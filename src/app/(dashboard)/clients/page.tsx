@@ -11,6 +11,7 @@ import { useCollection, useMemoFirebase } from "@/firebase";
 import { collection, query, orderBy } from "firebase/firestore";
 import { useFirestore } from "@/firebase";
 import Link from "next/link";
+import Image from "next/image";
 
 export default function ClientsPage() {
   const { profile, isLoading: isTenantLoading, companyId } = useTenant();
