@@ -12,7 +12,7 @@ export function useTenant() {
   const { user, isUserLoading: isAuthLoading } = useUser();
   const db = useFirestore();
 
-  // 1. Get the User Profile from Firestore to find their company_id and role_id
+  // 1. Get the User Profile from Firestore
   const userProfileRef = useMemoFirebase(() => {
     if (!db || !user?.uid) return null;
     return doc(db, 'users', user.uid);
@@ -46,13 +46,24 @@ export function useTenant() {
 
   const isLoading = isAuthLoading || isProfileLoading || isCompanyLoading || isRoleLoading || isSettingsLoading;
 
+  /**
+   * Checks if the user has a specific permission for a module.
+   */
   const hasPermission = (module: string, action: 'view' | 'create' | 'edit' | 'delete' | 'approve' = 'view') => {
+    // Admins have all permissions by default for enabled modules
+    if (profile?.role_id === 'admin') return true;
+    
     if (!role?.permissions) return false;
     const perms = role.permissions[module];
     return perms ? perms[action] : false;
   };
 
+  /**
+   * Checks if a module is enabled globally for the company.
+   */
   const isModuleEnabled = (moduleName: string) => {
+    // If settings document doesn't exist yet, default to dashboard and projects
+    if (!settings) return ['dashboard', 'projects'].includes(moduleName);
     return settings?.enabled_modules?.includes(moduleName) ?? false;
   };
 

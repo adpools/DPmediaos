@@ -37,8 +37,8 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useTenant } from "@/hooks/use-tenant";
 import { useFirestore } from "@/firebase";
-import { doc, serverTimestamp } from "firebase/firestore";
-import { updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
+import { doc, serverTimestamp, setDoc } from "firebase/firestore";
+import { updateDocumentNonBlocking, setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { performPasswordUpdate } from "@/firebase/non-blocking-login";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
@@ -183,9 +183,9 @@ function AccountCenterContent() {
   };
 
   const handleToggleModule = (moduleId: string, enabled: boolean) => {
-    if (!companyId || !db || !settings) return;
+    if (!companyId || !db) return;
 
-    const currentModules = settings.enabled_modules || [];
+    const currentModules = settings?.enabled_modules || ['dashboard', 'projects'];
     let updatedModules;
 
     if (enabled) {
@@ -195,10 +195,14 @@ function AccountCenterContent() {
     }
 
     const settingsRef = doc(db, 'companies', companyId, 'company_settings', companyId);
-    updateDocumentNonBlocking(settingsRef, {
+    
+    // If settings doc doesn't exist, we must use setDoc (non-blocking)
+    setDocumentNonBlocking(settingsRef, {
       enabled_modules: updatedModules,
-      updated_at: serverTimestamp()
-    });
+      updated_at: serverTimestamp(),
+      company_id: companyId,
+      id: companyId
+    }, { merge: true });
 
     toast({
       title: enabled ? "Module Enabled" : "Module Disabled",
