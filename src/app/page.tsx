@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect } from "react";
@@ -8,24 +9,30 @@ import { Loader2 } from "lucide-react";
 
 export default function RootPage() {
   const { user, isUserLoading } = useUser();
-  // useTenant returns companyId (camelCase) derived from profile.company_id
-  const { companyId, isLoading: isTenantLoading } = useTenant();
+  const { companyId, isLoading: isTenantLoading, profile } = useTenant();
   const router = useRouter();
 
   useEffect(() => {
-    if (!isUserLoading && !isTenantLoading) {
+    // Wait for auth to finish loading
+    if (!isUserLoading) {
       if (!user) {
         // User not signed in
         router.push("/login");
-      } else if (!companyId) {
-        // User signed in but has no company (needs onboarding)
-        router.push("/onboarding");
-      } else {
-        // User signed in and has a company
-        router.push("/dashboard");
+        return;
+      }
+
+      // If user is signed in, wait for tenant/profile loading to finish
+      if (!isTenantLoading) {
+        if (!profile || !companyId) {
+          // User signed in but has no profile/company (needs onboarding)
+          router.push("/onboarding");
+        } else {
+          // User signed in and has a company
+          router.push("/dashboard");
+        }
       }
     }
-  }, [user, isUserLoading, companyId, isTenantLoading, router]);
+  }, [user, isUserLoading, companyId, isTenantLoading, profile, router]);
 
   return (
     <div className="flex h-screen w-full items-center justify-center bg-[#F0F1F4]">

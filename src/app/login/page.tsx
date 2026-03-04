@@ -1,11 +1,12 @@
+
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { useAuth } from "@/firebase";
+import { useAuth, useUser } from "@/firebase";
 import { initiateEmailSignIn } from "@/firebase/non-blocking-login";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -17,13 +18,24 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const auth = useAuth();
+  const { user } = useUser();
   const router = useRouter();
+
+  // If user is already authenticated, send them to root to decide where to go
+  useEffect(() => {
+    if (user) {
+      router.push("/");
+    }
+  }, [user, router]);
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     
     initiateEmailSignIn(auth, email, password)
+      .then(() => {
+        router.push("/");
+      })
       .catch((error: any) => {
         setLoading(false);
         toast({
@@ -32,7 +44,6 @@ export default function LoginPage() {
           description: error.message || "Invalid email or password. Please try again.",
         });
       });
-    // Successful redirection is handled by the root page/layout listeners
   };
 
   return (

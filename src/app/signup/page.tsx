@@ -1,12 +1,14 @@
+
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { useAuth } from "@/firebase";
+import { useAuth, useUser } from "@/firebase";
 import { initiateEmailSignUp } from "@/firebase/non-blocking-login";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Sparkles, Loader2, ShieldCheck } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
@@ -16,12 +18,24 @@ export default function SignupPage() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const auth = useAuth();
+  const { user } = useUser();
+  const router = useRouter();
+
+  // If user is already authenticated, send them to root to decide where to go
+  useEffect(() => {
+    if (user) {
+      router.push("/");
+    }
+  }, [user, router]);
 
   const handleSignup = (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     
     initiateEmailSignUp(auth, email, password)
+      .then(() => {
+        router.push("/");
+      })
       .catch((error: any) => {
         setLoading(false);
         toast({
