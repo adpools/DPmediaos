@@ -24,7 +24,7 @@ export default function DashboardPage() {
     <div className="space-y-8 animate-in fade-in duration-500">
       <div className="flex flex-col gap-1">
         <h1 className="text-3xl font-bold font-headline text-primary">Overview</h1>
-        <p className="text-muted-foreground">Welcome back, Alex. Here's what's happening with DP Studios today.</p>
+        <p className="text-muted-foreground">Welcome back. Here's what's happening with DP Studios today.</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -44,10 +44,10 @@ export default function DashboardPage() {
         />
         <StatCard 
           title="Talent Bookings" 
-          value={32} 
-          description="12 pending approval" 
+          value={48} 
+          description="18 pending approval" 
           icon={Users} 
-          trend={{ value: 5, isPositive: true }}
+          trend={{ value: 8, isPositive: true }}
         />
         <StatCard 
           title="Sales Pipeline" 
@@ -71,7 +71,7 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-6">
-              {MOCK_PROJECTS.slice(0, 4).map((proj) => (
+              {MOCK_PROJECTS.slice(0, 5).map((proj) => (
                 <div key={proj.id} className="flex items-center justify-between group">
                   <div className="flex flex-col gap-1 min-w-[200px]">
                     <span className="font-semibold">{proj.name}</span>
@@ -104,17 +104,17 @@ export default function DashboardPage() {
           <CardHeader>
             <CardTitle className="text-xl font-headline flex items-center gap-2">
               <TrendingUp className="h-5 w-5 text-primary" />
-              Pipeline Value
+              Pipeline Health
             </CardTitle>
-            <CardDescription>Projected revenue by stage</CardDescription>
+            <CardDescription>Revenue potential by stage</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
              <div className="space-y-4">
                 {[
-                  { stage: 'Won', value: 120000, color: 'bg-emerald-500' },
-                  { stage: 'Negotiation', value: 85000, color: 'bg-amber-500' },
-                  { stage: 'Proposal Sent', value: 185000, color: 'bg-indigo-500' },
-                  { stage: 'Leads', value: 65000, color: 'bg-slate-400' },
+                  { stage: 'Won', value: 145000, color: 'bg-emerald-500' },
+                  { stage: 'Negotiation', value: 95000, color: 'bg-amber-500' },
+                  { stage: 'Proposal Sent', value: 215000, color: 'bg-indigo-500' },
+                  { stage: 'Initial Leads', value: 75000, color: 'bg-slate-400' },
                 ].map((item) => (
                   <div key={item.stage} className="space-y-1.5">
                     <div className="flex justify-between text-xs font-medium">
@@ -124,7 +124,7 @@ export default function DashboardPage() {
                     <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
                       <div 
                         className={`h-full ${item.color}`} 
-                        style={{ width: `${Math.min((item.value / 185000) * 100, 100)}%` }} 
+                        style={{ width: `${Math.min((item.value / 215000) * 100, 100)}%` }} 
                       />
                     </div>
                   </div>
@@ -135,13 +135,13 @@ export default function DashboardPage() {
                   <div className="h-8 w-8 rounded-full bg-emerald-100 flex items-center justify-center">
                     <CheckCircle2 className="h-4 w-4 text-emerald-600" />
                   </div>
-                  <span>4 Deals closed this week</span>
+                  <span>6 Deals closed this month</span>
                 </div>
                 <div className="flex items-center gap-3 text-xs text-muted-foreground">
                   <div className="h-8 w-8 rounded-full bg-rose-100 flex items-center justify-center">
                     <AlertCircle className="h-4 w-4 text-rose-600" />
                   </div>
-                  <span>3 High-value leads cooling down</span>
+                  <span>5 Leads require immediate follow-up</span>
                 </div>
              </div>
           </CardContent>

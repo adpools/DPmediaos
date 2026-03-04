@@ -34,7 +34,7 @@ import { usePathname } from "next/navigation";
 const navItems = [
   {
     title: "Dashboard",
-    url: "/",
+    url: "/dashboard",
     icon: LayoutDashboard,
     module: "core",
   },
@@ -122,7 +122,7 @@ export function AppSidebar() {
               <SidebarMenuItem key={item.title}>
                 <SidebarMenuButton
                   asChild
-                  isActive={pathname === item.url || (item.url !== "/" && pathname.startsWith(item.url))}
+                  isActive={pathname === item.url || (item.url !== "/dashboard" && pathname.startsWith(item.url))}
                   tooltip={item.title}
                 >
                   <Link href={item.url}>

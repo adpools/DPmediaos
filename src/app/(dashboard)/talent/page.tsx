@@ -4,7 +4,7 @@ import { MOCK_TALENTS } from "@/lib/mock-data";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Filter, Calendar, Heart, MapPin, Instagram, Users, Plus } from "lucide-react";
+import { Search, Heart, MapPin, Instagram, Users, Plus, Calendar } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import Image from "next/image";
 import { Slider } from "@/components/ui/slider";
