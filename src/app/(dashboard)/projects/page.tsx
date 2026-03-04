@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -26,6 +27,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useTenant } from "@/hooks/use-tenant";
 import { useCollection, useMemoFirebase } from "@/firebase";
 import { collection, query, orderBy, serverTimestamp } from "firebase/firestore";
@@ -34,7 +36,7 @@ import { addDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { toast } from "@/hooks/use-toast";
 
 export default function ProjectsPage() {
-  const { profile, isLoading: isTenantLoading } = useTenant();
+  const { profile, isLoading: isTenantLoading, companyId } = useTenant();
   const db = useFirestore();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -48,27 +50,45 @@ export default function ProjectsPage() {
   });
 
   const projectsQuery = useMemoFirebase(() => {
-    if (!db || !profile?.company_id) return null;
+    if (!db || !companyId) return null;
     return query(
-      collection(db, 'companies', profile.company_id, 'projects'),
+      collection(db, 'companies', companyId, 'projects'),
       orderBy('created_at', 'desc')
     );
-  }, [db, profile?.company_id]);
+  }, [db, companyId]);
 
   const { data: projects, isLoading: isProjectsLoading } = useCollection(projectsQuery);
 
+  // Fetch leads for the client dropdown
+  const leadsQuery = useMemoFirebase(() => {
+    if (!db || !companyId) return null;
+    return query(
+      collection(db, 'companies', companyId, 'leads'),
+      orderBy('company_name', 'asc')
+    );
+  }, [db, companyId]);
+
+  const { data: leads } = useCollection(leadsQuery);
+
   const handleCreateProject = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!profile?.company_id || !newProject.project_name) return;
+    if (!companyId || !newProject.project_name || !newProject.client_name) {
+      toast({
+        variant: "destructive",
+        title: "Information Missing",
+        description: "Please provide a project name and select a client.",
+      });
+      return;
+    }
 
     setIsSubmitting(true);
-    const projectsRef = collection(db, 'companies', profile.company_id, 'projects');
+    const projectsRef = collection(db, 'companies', companyId, 'projects');
     
     const colors = ['card-pink', 'card-purple'];
     const randomColor = colors[Math.floor(Math.random() * colors.length)];
 
     addDocumentNonBlocking(projectsRef, {
-      company_id: profile.company_id,
+      company_id: companyId,
       project_name: newProject.project_name,
       client_name: newProject.client_name,
       budget: parseFloat(newProject.budget) || 0,
@@ -135,14 +155,31 @@ export default function ProjectsPage() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="client">Client Name</Label>
-                <Input 
-                  id="client" 
-                  placeholder="e.g. Nike Global" 
-                  value={newProject.client_name}
-                  onChange={(e) => setNewProject({...newProject, client_name: e.target.value})}
+                <Select 
+                  value={newProject.client_name} 
+                  onValueChange={(val) => setNewProject({...newProject, client_name: val})}
                   required
-                  className="rounded-xl"
-                />
+                >
+                  <SelectTrigger className="rounded-xl">
+                    <SelectValue placeholder="Select a client company" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {leads?.length === 0 ? (
+                      <div className="p-4 text-center text-xs text-muted-foreground">
+                        No clients found. Add them in the CRM first.
+                      </div>
+                    ) : (
+                      leads?.map((lead) => (
+                        <SelectItem key={lead.id} value={lead.company_name}>
+                          {lead.company_name}
+                        </SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
+                <p className="text-[10px] text-muted-foreground px-1">
+                  Clients are managed in the <Link href="/crm" className="text-primary font-bold hover:underline">CRM</Link>.
+                </p>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">

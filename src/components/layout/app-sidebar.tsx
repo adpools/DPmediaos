@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from "react";
@@ -14,7 +15,8 @@ import {
   Plus,
   ShieldCheck,
   LogOut,
-  Loader2
+  Loader2,
+  Building2
 } from "lucide-react";
 import {
   Sidebar,
@@ -40,6 +42,7 @@ import { signOut } from "firebase/auth";
 const workspaceItems = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutGrid, module: "dashboard", isCore: true },
   { title: "Projects", url: "/projects", icon: Film, module: "projects", isCore: true },
+  { title: "Clients", url: "/clients", icon: Building2, module: "clients" },
   { title: "Talent Network", url: "/talents", icon: Users, module: "talents" },
   { title: "Sales CRM", url: "/crm", icon: Briefcase, module: "crm" },
   { title: "Proposals", url: "/proposals", icon: FileText, module: "proposals" },
@@ -79,7 +82,9 @@ export function AppSidebar() {
         <div className="flex items-center gap-4">
           <Avatar className="h-12 w-12 ring-2 ring-accent/10">
             <AvatarImage src={profile?.avatar} />
-            <AvatarFallback>{profile?.full_name?.substring(0, 2).toUpperCase() || 'U'}</AvatarFallback>
+            <AvatarFallback className="bg-primary/5 text-primary text-xs font-bold">
+              {profile?.full_name?.substring(0, 2).toUpperCase() || 'U'}
+            </AvatarFallback>
           </Avatar>
           {state !== "collapsed" && (
             <div className="flex flex-col">
