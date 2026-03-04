@@ -2,20 +2,20 @@
 
 import * as React from "react";
 import {
-  LayoutDashboard,
-  Inbox,
+  LayoutGrid,
   Film,
-  Zap,
-  Calendar,
-  Settings,
-  Plus,
-  Circle
+  Users,
+  Briefcase,
+  Receipt,
+  Search,
+  PieChart,
+  Building2,
+  Plus
 } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
   SidebarGroup,
-  SidebarGroupContent,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
@@ -29,19 +29,18 @@ import { usePathname } from "next/navigation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 
-const navItems = [
-  { title: "My Tasks", url: "/dashboard", icon: LayoutDashboard },
-  { title: "Inbox", url: "/inbox", icon: Inbox, badge: 0 },
+const workspaceItems = [
+  { title: "Dashboard", url: "/dashboard", icon: LayoutGrid },
   { title: "Projects", url: "/projects", icon: Film },
-  { title: "Standups", url: "/standups", icon: Zap },
-  { title: "Meetings", url: "/meetings", badge: 5, icon: Calendar },
-  { title: "Settings", url: "/settings", icon: Settings },
+  { title: "Talent Marketplace", url: "/talent", icon: Users },
+  { title: "Sales CRM", url: "/crm", icon: Briefcase },
+  { title: "Finance & Invoices", url: "/finance", icon: Receipt },
+  { title: "Market Intelligence", url: "/research", icon: Search },
+  { title: "Reports", url: "/reports", icon: PieChart },
 ];
 
-const favorites = [
-  { title: "Redwhale Design", color: "text-blue-500" },
-  { title: "Mobile App Mock...", color: "text-rose-500" },
-  { title: "UI Design Revisi...", color: "text-emerald-500" },
+const configurationItems = [
+  { title: "Workspace Settings", url: "/settings", icon: Building2 },
 ];
 
 export function AppSidebar() {
@@ -68,25 +67,20 @@ export function AppSidebar() {
       <SidebarContent className="px-4">
         <SidebarGroup>
           <div className="mb-4 px-2">
-            <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">Menu</span>
+            <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">Workspace</span>
           </div>
           <SidebarMenu>
-            {navItems.map((item) => (
+            {workspaceItems.map((item) => (
               <SidebarMenuItem key={item.title}>
                 <SidebarMenuButton
                   asChild
                   isActive={pathname === item.url}
                   tooltip={item.title}
-                  className="rounded-xl h-10 px-3 hover:bg-accent/5"
+                  className="rounded-xl h-10 px-3 hover:bg-accent/5 data-[active=true]:bg-primary/5 data-[active=true]:text-primary"
                 >
                   <Link href={item.url} className="flex items-center gap-3">
                     <item.icon className="h-4 w-4" />
                     <span className="font-semibold text-xs flex-1">{item.title}</span>
-                    {item.badge && item.badge > 0 && (
-                      <span className="bg-accent text-white text-[9px] px-1.5 py-0.5 rounded-md font-bold">
-                        {item.badge}
-                      </span>
-                    )}
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -96,16 +90,21 @@ export function AppSidebar() {
 
         <SidebarGroup className="mt-6">
           <div className="mb-4 px-2">
-            <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">Favorites</span>
+            <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">Configuration</span>
           </div>
           <SidebarMenu>
-            {favorites.map((fav) => (
-              <SidebarMenuItem key={fav.title}>
-                <SidebarMenuButton className="rounded-xl h-10 px-3 hover:bg-accent/5">
-                  <div className="flex items-center gap-3">
-                    <Circle className={`h-2.5 w-2.5 fill-current ${fav.color}`} />
-                    <span className="font-semibold text-xs">{fav.title}</span>
-                  </div>
+            {configurationItems.map((item) => (
+              <SidebarMenuItem key={item.title}>
+                <SidebarMenuButton
+                  asChild
+                  isActive={pathname === item.url}
+                  tooltip={item.title}
+                  className="rounded-xl h-10 px-3 hover:bg-accent/5 data-[active=true]:bg-primary/5 data-[active=true]:text-primary"
+                >
+                  <Link href={item.url} className="flex items-center gap-3">
+                    <item.icon className="h-4 w-4" />
+                    <span className="font-semibold text-xs flex-1">{item.title}</span>
+                  </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             ))}
@@ -118,7 +117,7 @@ export function AppSidebar() {
           <Plus className="h-6 w-6" />
         </Button>
         {state !== "collapsed" && (
-          <p className="mt-4 text-[10px] text-muted-foreground font-medium px-2">2021 AR Shakir License</p>
+          <p className="mt-4 text-[10px] text-muted-foreground font-medium px-2">© 2024 DP Media OS</p>
         )}
       </SidebarFooter>
     </Sidebar>
