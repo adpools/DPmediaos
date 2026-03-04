@@ -7,8 +7,8 @@ service cloud.firestore {
      * DP MEDIA OS - SECURITY RULES ARCHITECTURE
      * 
      * Core Philosophy: 
-     * This ruleset implements a robust multi-tenant SaaS security model. Data isolation is 
-     * enforced at the company level. Super Admins bypass restrictions.
+     * Robust multi-tenant SaaS model. Data isolation is enforced at the company level. 
+     * Platform-wide Super Admins (identified by email or DB marker) bypass restrictions.
      */
 
     // --- GLOBAL HELPER FUNCTIONS ---
@@ -17,15 +17,15 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    function isSuperAdmin() {
-      // Prioritize email check to avoid evaluation loops during bootstrap
+    // Ultimate authority check for the bootstrap administrator
+    function isPlatformAdmin() {
       return isSignedIn() && (
         request.auth.token.email == 'arundevv.com@gmail.com' || 
         exists(/databases/$(database)/documents/super_admins/$(request.auth.uid))
       );
     }
 
-    // Safely retrieves user data
+    // Safely retrieves user profile data
     function getUserData() {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
     }
@@ -34,27 +34,28 @@ service cloud.firestore {
       return exists(/databases/$(database)/documents/users/$(request.auth.uid));
     }
 
-    // Checks if the user belongs to the company specified in the path or is a platform admin.
+    // Checks if the user belongs to the specified company or has platform-wide authority.
     function isMember(companyId) {
       return isSignedIn() && (
-        isSuperAdmin() || 
+        isPlatformAdmin() || 
         (userProfileExists() && getUserData().company_id == companyId)
       );
     }
 
-    function isAdmin(companyId) {
+    // Checks for administrative role within a company or platform-wide authority.
+    function isCompanyAdmin(companyId) {
       return isSignedIn() && (
-        isSuperAdmin() || 
+        isPlatformAdmin() || 
         (userProfileExists() && getUserData().company_id == companyId && getUserData().role_id == 'admin')
       );
     }
 
-    // Validates that the company_id in the document matches the companyId in the path.
+    // Validates that the data being written belongs to the correct company context.
     function hasValidCompanyContext(companyId) {
       return request.resource.data.company_id == companyId;
     }
 
-    // Ensures critical relational fields remain unchanged during updates.
+    // Ensures company_id field remains unchanged during updates.
     function isCompanyImmutable() {
       return request.resource.data.company_id == resource.data.company_id;
     }
@@ -62,43 +63,47 @@ service cloud.firestore {
     // --- COLLECTION RULES ---
 
     match /super_admins/{adminId} {
+      // Allow any signed-in user to check if someone is an admin (required for some exists() logic)
       allow get: if isSignedIn();
-      allow list: if isSuperAdmin();
-      // Allow the specific bootstrap email to create/update their own administrative marker
-      allow create, update: if isSignedIn() && (request.auth.token.email == 'arundevv.com@gmail.com' || isSuperAdmin()) && request.auth.uid == adminId;
-      allow delete: if isSuperAdmin() && request.auth.token.email != 'arundevv.com@gmail.com'; 
+      // Only platform admins can list all admins
+      allow list: if isPlatformAdmin();
+      // Allow the bootstrap email to provision its own admin marker
+      allow create, update: if isSignedIn() && (request.auth.token.email == 'arundevv.com@gmail.com' || isPlatformAdmin()) && request.auth.uid == adminId;
+      // Only existing admins can delete markers (except the bootstrap one)
+      allow delete: if isPlatformAdmin() && adminId != 'b0gLru8vzBQjZSOFsiuogZGL6ib2'; 
     }
 
     match /users/{userId} {
       allow get: if isSignedIn() && (
         request.auth.uid == userId || 
-        isSuperAdmin() || 
+        isPlatformAdmin() || 
         (userProfileExists() && getUserData().company_id == get(/databases/$(database)/documents/users/$(userId)).data.company_id)
       );
+      // List users if admin or filtered by user's own company
       allow list: if isSignedIn() && (
-        isSuperAdmin() || 
+        isPlatformAdmin() || 
         (userProfileExists() && request.query.filters.company_id == getUserData().company_id)
       );
       allow create: if isSignedIn() && request.auth.uid == userId;
       allow update: if isSignedIn() && (
         request.auth.uid == userId || 
-        isSuperAdmin() || 
-        (userProfileExists() && isAdmin(resource.data.company_id))
+        isPlatformAdmin() || 
+        (userProfileExists() && isCompanyAdmin(resource.data.company_id))
       );
-      allow delete: if isSuperAdmin();
+      allow delete: if isPlatformAdmin();
     }
 
     match /companies/{companyId} {
       allow get: if isMember(companyId);
-      allow list: if isSuperAdmin();
+      allow list: if isPlatformAdmin();
       allow create: if isSignedIn(); 
       allow update: if isMember(companyId);
-      allow delete: if isSuperAdmin();
+      allow delete: if isPlatformAdmin();
 
       // --- TENANT SUBCOLLECTIONS ---
 
       match /invitations/{invId} {
-        allow read, write: if isAdmin(companyId);
+        allow read, write: if isCompanyAdmin(companyId);
       }
 
       match /roles/{roleId} {
