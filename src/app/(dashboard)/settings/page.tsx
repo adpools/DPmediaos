@@ -38,7 +38,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useTenant } from "@/hooks/use-tenant";
 import { useFirestore } from "@/firebase";
-import { doc } from "firebase/firestore";
+import { doc, serverTimestamp } from "firebase/firestore";
 import { updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
@@ -169,7 +169,7 @@ function AccountCenterContent() {
     const settingsRef = doc(db, 'companies', companyId, 'company_settings', companyId);
     updateDocumentNonBlocking(settingsRef, {
       enabled_modules: updatedModules,
-      updated_at: new Date().toISOString()
+      updated_at: serverTimestamp()
     });
 
     toast({

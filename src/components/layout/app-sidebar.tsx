@@ -79,11 +79,11 @@ export function AppSidebar() {
         <div className="flex items-center gap-4">
           <Avatar className="h-12 w-12 ring-2 ring-accent/10">
             <AvatarImage src={profile?.avatar} />
-            <AvatarFallback>{profile?.fullName?.substring(0, 2).toUpperCase()}</AvatarFallback>
+            <AvatarFallback>{profile?.full_name?.substring(0, 2).toUpperCase() || 'U'}</AvatarFallback>
           </Avatar>
           {state !== "collapsed" && (
             <div className="flex flex-col">
-              <span className="text-sm font-bold font-headline">{profile?.fullName}</span>
+              <span className="text-sm font-bold font-headline">{profile?.full_name}</span>
               <span className="text-[10px] text-muted-foreground font-medium">{company?.name}</span>
             </div>
           )}
@@ -97,7 +97,7 @@ export function AppSidebar() {
           </div>
           <SidebarMenu>
             {workspaceItems.map((item) => {
-              // Core modules (Dashboard, Projects) are always shown to everyone in the company
+              // Real-time module filtering
               const enabled = item.isCore || isModuleEnabled(item.module);
               const allowed = item.isCore || hasPermission(item.module, 'view');
               
