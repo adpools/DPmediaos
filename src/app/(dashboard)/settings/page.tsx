@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, Suspense } from "react";
@@ -30,8 +31,19 @@ import { toast } from "@/hooks/use-toast";
 function AccountCenterContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
+  
+  // Tab Management
   const initialTab = searchParams.get("tab") || "profile";
   const [activeTab, setActiveTab] = useState(initialTab);
+  
+  // Profile State
+  const [profile, setProfile] = useState({
+    name: MOCK_COMPANY.admin.name,
+    role: MOCK_COMPANY.admin.role,
+    email: "shakir@dpstudios.com",
+    bio: ""
+  });
+  
   const [isAdmin] = useState(true);
 
   useEffect(() => {
@@ -46,10 +58,22 @@ function AccountCenterContent() {
     router.push(`?${params.toString()}`);
   };
 
-  const handleSave = () => {
+  const handleInputChange = (field: keyof typeof profile, value: string) => {
+    setProfile(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleSaveProfile = () => {
+    // In a real app, this would be an API call or Firestore update
     toast({
-      title: "Settings Saved",
-      description: "Your account preferences have been updated successfully.",
+      title: "Profile Updated",
+      description: `Changes for ${profile.name} have been saved successfully.`,
+    });
+  };
+
+  const handleSaveSecurity = () => {
+    toast({
+      title: "Security Updated",
+      description: "Your password and security preferences are now active.",
     });
   };
 
@@ -70,7 +94,7 @@ function AccountCenterContent() {
         <Button 
           variant="destructive" 
           className="gap-2 rounded-xl h-11 px-6 shadow-lg shadow-rose-500/20"
-          onClick={() => toast({ title: "Session terminated" })}
+          onClick={() => toast({ title: "Session terminated", description: "You have been logged out." })}
         >
           <LogOut className="h-4 w-4" /> Logout
         </Button>
@@ -108,11 +132,11 @@ function AccountCenterContent() {
               <div className="flex items-center gap-6">
                 <Avatar className="h-24 w-24 ring-4 ring-white shadow-xl">
                   <AvatarImage src={MOCK_COMPANY.admin.avatar} />
-                  <AvatarFallback>JD</AvatarFallback>
+                  <AvatarFallback>{profile.name.substring(0,2).toUpperCase()}</AvatarFallback>
                 </Avatar>
                 <div className="space-y-1">
-                  <CardTitle className="text-2xl font-headline">{MOCK_COMPANY.admin.name}</CardTitle>
-                  <CardDescription className="text-base">{MOCK_COMPANY.admin.role}</CardDescription>
+                  <CardTitle className="text-2xl font-headline">{profile.name}</CardTitle>
+                  <CardDescription className="text-base">{profile.role}</CardDescription>
                   <Badge variant="secondary" className="bg-accent/10 text-accent border-none font-bold uppercase tracking-wider text-[10px]">Active</Badge>
                 </div>
               </div>
@@ -121,23 +145,44 @@ function AccountCenterContent() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <Label htmlFor="fullName">Full Name</Label>
-                  <Input id="fullName" defaultValue={MOCK_COMPANY.admin.name} className="rounded-xl h-12" />
+                  <Input 
+                    id="fullName" 
+                    value={profile.name} 
+                    onChange={(e) => handleInputChange('name', e.target.value)}
+                    className="rounded-xl h-12" 
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="email">Email Address</Label>
-                  <Input id="email" defaultValue="shakir@dpstudios.com" className="rounded-xl h-12" />
+                  <Input 
+                    id="email" 
+                    value={profile.email} 
+                    onChange={(e) => handleInputChange('email', e.target.value)}
+                    className="rounded-xl h-12" 
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="roleTitle">Professional Role</Label>
-                  <Input id="roleTitle" defaultValue={MOCK_COMPANY.admin.role} className="rounded-xl h-12" />
+                  <Input 
+                    id="roleTitle" 
+                    value={profile.role} 
+                    onChange={(e) => handleInputChange('role', e.target.value)}
+                    className="rounded-xl h-12" 
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="bio">Short Bio</Label>
-                  <Input id="bio" placeholder="Tell us about yourself..." className="rounded-xl h-12" />
+                  <Input 
+                    id="bio" 
+                    value={profile.bio}
+                    onChange={(e) => handleInputChange('bio', e.target.value)}
+                    placeholder="Tell us about yourself..." 
+                    className="rounded-xl h-12" 
+                  />
                 </div>
               </div>
               <div className="flex justify-end pt-4 border-t">
-                <Button onClick={handleSave} className="gap-2 rounded-xl h-11 px-8 shadow-lg shadow-primary/20">
+                <Button onClick={handleSaveProfile} className="gap-2 rounded-xl h-11 px-8 shadow-lg shadow-primary/20">
                   <Save className="h-4 w-4" /> Save Profile
                 </Button>
               </div>
@@ -179,7 +224,7 @@ function AccountCenterContent() {
                 <Switch />
               </div>
               <div className="flex justify-end pt-4">
-                <Button onClick={handleSave} className="gap-2 rounded-xl h-11 px-8">
+                <Button onClick={handleSaveSecurity} className="gap-2 rounded-xl h-11 px-8">
                   <RefreshCcw className="h-4 w-4" /> Update Security
                 </Button>
               </div>
@@ -187,6 +232,7 @@ function AccountCenterContent() {
           </Card>
         </TabsContent>
 
+        {/* Other Tabs remain functionally consistent */}
         <TabsContent value="company" className="animate-in fade-in-50 duration-300">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <Card className="lg:col-span-2 border-none shadow-soft rounded-[2rem] p-8">
@@ -230,7 +276,7 @@ function AccountCenterContent() {
                 <p className="text-sm">Configure your GenAI endpoints and behavior models for market research and proposal writing.</p>
                 <Button 
                   className="w-full bg-white text-accent hover:bg-white/90 rounded-xl h-11 font-bold"
-                  onClick={() => toast({ title: "AI Setup Helper Launched" })}
+                  onClick={() => toast({ title: "AI Setup Helper Launched", description: "Configuring LLM parameters..." })}
                 >
                   Launch AI Setup Helper
                 </Button>
