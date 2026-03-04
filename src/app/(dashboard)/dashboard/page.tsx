@@ -3,24 +3,35 @@
 import { useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { MoreHorizontal, Sparkles, Key, Loader2, Plus, ShieldCheck } from "lucide-react";
+import { MoreHorizontal, Sparkles, Key, Loader2, Plus, ShieldCheck, Zap } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useTenant } from "@/hooks/use-tenant";
 import { useCollection, useMemoFirebase, useFirestore } from "@/firebase";
-import { collection, query, where, limit, orderBy, doc } from "firebase/firestore";
-import { updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
+import { collection, query, where, limit, orderBy, doc, serverTimestamp } from "firebase/firestore";
+import { updateDocumentNonBlocking, setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import Link from "next/link";
 
 export default function DashboardPage() {
-  const { profile, company, user, isLoading: isTenantLoading, companyId } = useTenant();
+  const { profile, company, user, isLoading: isTenantLoading, companyId, isSuperAdmin } = useTenant();
   const db = useFirestore();
 
-  // Bootstrap Promotion Logic for specific administrator email
+  // Bootstrap Promotion Logic for Super Administrator
   useEffect(() => {
-    if (user?.email === 'arundevv.com@gmail.com' && profile && profile.role_id !== 'admin' && db) {
-      const userRef = doc(db, 'users', user.uid);
-      updateDocumentNonBlocking(userRef, { role_id: 'admin' });
+    if (user?.email === 'arundevv.com@gmail.com' && db) {
+      // 1. Promote to Workspace Admin if needed
+      if (profile && profile.role_id !== 'admin') {
+        const userRef = doc(db, 'users', user.uid);
+        updateDocumentNonBlocking(userRef, { role_id: 'admin' });
+      }
+
+      // 2. Promote to Platform Super Admin
+      const superAdminRef = doc(db, 'super_admins', user.uid);
+      setDocumentNonBlocking(superAdminRef, {
+        uid: user.uid,
+        email: user.email,
+        granted_at: serverTimestamp()
+      }, { merge: true });
     }
   }, [user, profile, db]);
 
@@ -64,11 +75,18 @@ export default function DashboardPage() {
             <h1 className="text-4xl font-bold tracking-tight text-primary">
               Hi {profile?.full_name?.split(' ')[0] || 'User'}!
             </h1>
-            {profile?.role_id === 'admin' && (
-              <div className="flex items-center gap-1.5 px-3 py-1 bg-primary/10 text-primary rounded-full text-[10px] font-bold uppercase tracking-wider">
-                <ShieldCheck className="h-3 w-3" /> Admin
-              </div>
-            )}
+            <div className="flex items-center gap-2">
+              {isSuperAdmin && (
+                <div className="flex items-center gap-1.5 px-3 py-1 bg-accent/10 text-accent rounded-full text-[10px] font-bold uppercase tracking-wider border border-accent/20">
+                  <Zap className="h-3 w-3 fill-current" /> Super Admin
+                </div>
+              )}
+              {profile?.role_id === 'admin' && !isSuperAdmin && (
+                <div className="flex items-center gap-1.5 px-3 py-1 bg-primary/10 text-primary rounded-full text-[10px] font-bold uppercase tracking-wider">
+                  <ShieldCheck className="h-3 w-3" /> Admin
+                </div>
+              )}
+            </div>
           </div>
           <p className="text-muted-foreground">{company?.name || 'Your'} Workspace Overview</p>
         </div>

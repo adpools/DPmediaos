@@ -44,14 +44,22 @@ export function useTenant() {
 
   const { data: settings, isLoading: isSettingsLoading } = useDoc(settingsRef);
 
-  const isLoading = isAuthLoading || isProfileLoading || isCompanyLoading || isRoleLoading || isSettingsLoading;
+  // 5. Get Super Admin Marker
+  const superAdminRef = useMemoFirebase(() => {
+    if (!db || !user?.uid) return null;
+    return doc(db, 'super_admins', user.uid);
+  }, [db, user?.uid]);
+
+  const { data: superAdmin, isLoading: isSuperAdminLoading } = useDoc(superAdminRef);
+
+  const isLoading = isAuthLoading || isProfileLoading || isCompanyLoading || isRoleLoading || isSettingsLoading || isSuperAdminLoading;
 
   /**
    * Checks if the user has a specific permission for a module.
    */
   const hasPermission = (module: string, action: 'view' | 'create' | 'edit' | 'delete' | 'approve' = 'view') => {
-    // Admins have all permissions by default for enabled modules
-    if (profile?.role_id === 'admin') return true;
+    // Super admins and Workspace Admins have all permissions for enabled modules
+    if (superAdmin || profile?.role_id === 'admin') return true;
     
     if (!role?.permissions) return false;
     const perms = role.permissions[module];
@@ -62,7 +70,9 @@ export function useTenant() {
    * Checks if a module is enabled globally for the company.
    */
   const isModuleEnabled = (moduleName: string) => {
-    // If settings document doesn't exist yet, default to dashboard and projects
+    // Super admins see all modules regardless of workspace settings
+    if (superAdmin) return true;
+    // If settings document doesn't exist yet, default to core modules
     if (!settings) return ['dashboard', 'projects'].includes(moduleName);
     return settings?.enabled_modules?.includes(moduleName) ?? false;
   };
@@ -75,6 +85,7 @@ export function useTenant() {
     settings,
     isLoading,
     companyId: profile?.company_id,
+    isSuperAdmin: !!superAdmin,
     hasPermission,
     isModuleEnabled,
   };
