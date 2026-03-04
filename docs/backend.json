@@ -1,204 +1,37 @@
-
 {
   "entities": {
     "Company": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Company",
       "type": "object",
-      "description": "Represents a single company (tenant) within the multi-tenant SaaS platform, holding essential information.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Company entity."
-        },
-        "name": {
-          "type": "string",
-          "description": "The registered name of the company."
-        },
-        "logoUrl": {
-          "type": "string",
-          "description": "URL to the company's logo image, stored in Firebase Storage.",
-          "format": "uri"
-        },
-        "onboardingStatus": {
-          "type": "string",
-          "description": "Current status of the company's onboarding process (e.g., 'pending', 'completed', 'wizard_step_2')."
-        },
-        "createdAt": {
-          "type": "string",
-          "description": "Timestamp when the company record was created.",
-          "format": "date-time"
-        },
-        "updatedAt": {
-          "type": "string",
-          "description": "Timestamp when the company record was last updated.",
-          "format": "date-time"
-        },
-        "stripeCustomerId": {
-          "type": "string",
-          "description": "Identifier for the customer in the external Stripe billing system. (Relationship: Company 1:1 ExternalStripeCustomer)"
-        }
-      },
-      "required": [
-        "id",
-        "name",
-        "onboardingStatus",
-        "createdAt"
-      ]
-    },
-    "User": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "User",
-      "type": "object",
-      "description": "Represents a user account within a specific company, linked to Firebase Authentication and controlled by roles.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the User entity, typically the Firebase Authentication UID."
-        },
-        "company_id": {
-          "type": "string",
-          "description": "Reference to Company. (Relationship: Company 1:N User)"
-        },
-        "role_id": {
-          "type": "string",
-          "description": "Reference to Role, defining the user's permissions within their company. (Relationship: Role 1:N User)"
-        },
-        "email": {
-          "type": "string",
-          "description": "The user's email address, used for authentication.",
-          "format": "email"
-        },
-        "fullName": {
-          "type": "string",
-          "description": "The full name of the user."
-        },
-        "status": {
-          "type": "string",
-          "description": "Current status of the user's account, controlling access."
-        },
-        "lastLoginAt": {
-          "type": "string",
-          "description": "Timestamp of the user's last successful login.",
-          "format": "date-time"
-        },
-        "createdAt": {
-          "type": "string",
-          "description": "Timestamp when the user record was created.",
-          "format": "date-time"
-        }
-      },
-      "required": [
-        "id",
-        "company_id",
-        "role_id",
-        "email",
-        "fullName",
-        "status",
-        "createdAt"
-      ]
-    },
-    "Role": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Role",
-      "type": "object",
-      "description": "Defines a set of permissions for users within a specific company, enabling Role-Based Access Control (RBAC).",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Role entity."
-        },
-        "company_id": {
-          "type": "string",
-          "description": "Reference to Company. (Relationship: Company 1:N Role)"
-        },
-        "name": {
-          "type": "string",
-          "description": "The name of the role (e.g., 'Admin', 'Manager', 'Viewer')."
-        },
-        "permissions": {
-          "type": "object",
-          "description": "A map of module IDs to permission objects specifying access levels.",
-          "additionalProperties": {
-            "type": "object",
-            "properties": {
-              "view": { "type": "boolean" },
-              "create": { "type": "boolean" },
-              "edit": { "type": "boolean" },
-              "delete": { "type": "boolean" }
-            }
-          }
-        }
-      },
-      "required": [
-        "id",
-        "company_id",
-        "name",
-        "permissions"
-      ]
-    },
-    "CompanySetting": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "CompanySetting",
-      "type": "object",
-      "description": "Stores company-specific configuration and module enablement status.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the CompanySetting entity, typically matching the companyId for a 1:1 relationship."
-        },
-        "company_id": {
-          "type": "string",
-          "description": "Reference to Company. (Relationship: Company 1:1 CompanySetting)"
-        },
-        "enabledModules": {
-          "type": "array",
-          "description": "An array of strings listing the names of modules currently enabled for the company (e.g., ['projects', 'talents', 'crm']).",
-          "items": {
-            "type": "string"
-          }
-        },
-        "invoiceTemplateId": {
-          "type": "string",
-          "description": "Reference to a default invoice template used by the company. (Relationship: InvoiceTemplate 1:N CompanySetting)"
-        },
-        "defaultCurrency": {
-          "type": "string",
-          "description": "The default currency code (e.g., 'USD', 'EUR') for financial transactions."
-        },
-        "updatedAt": {
-          "type": "string",
-          "description": "Timestamp when the company settings were last updated.",
-          "format": "date-time"
-        }
-      },
-      "required": [
-        "id",
-        "company_id",
-        "enabledModules",
-        "defaultCurrency",
-        "updatedAt"
-      ]
-    },
-    "Invitation": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Invitation",
-      "type": "object",
-      "description": "Represents an invitation sent to a user to join a specific company workspace.",
+      "description": "Represents a single company (tenant) within the multi-tenant SaaS platform.",
       "properties": {
         "id": { "type": "string" },
-        "email": { "type": "string", "format": "email" },
-        "role_id": { "type": "string" },
-        "invited_by": { "type": "string" },
-        "company_id": { "type": "string" },
-        "status": { "type": "string", "enum": ["pending", "accepted", "expired"] },
-        "created_at": { "type": "string", "format": "date-time" }
+        "name": { "type": "string" },
+        "onboardingStatus": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
       },
-      "required": ["email", "role_id", "invited_by", "company_id", "status", "created_at"]
+      "required": ["id", "name", "onboardingStatus", "createdAt"]
+    },
+    "User": {
+      "title": "User",
+      "type": "object",
+      "description": "Represents a user account within a specific company.",
+      "properties": {
+        "id": { "type": "string" },
+        "company_id": { "type": "string" },
+        "role_id": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "fullName": { "type": "string" },
+        "status": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "company_id", "role_id", "email", "fullName", "status", "createdAt"]
     },
     "Project": {
       "title": "Project",
       "type": "object",
+      "description": "Represents a media production workspace.",
       "properties": {
         "id": { "type": "string" },
         "company_id": { "type": "string" },
@@ -211,12 +44,41 @@
         "color": { "type": "string" },
         "created_at": { "type": "string", "format": "date-time" }
       }
+    },
+    "Invoice": {
+      "title": "Invoice",
+      "type": "object",
+      "description": "Represents a financial billing record.",
+      "properties": {
+        "id": { "type": "string" },
+        "company_id": { "type": "string" },
+        "client_name": { "type": "string" },
+        "invoice_number": { "type": "string" },
+        "total": { "type": "number" },
+        "payment_status": { "type": "string" },
+        "due_date": { "type": "string" },
+        "created_at": { "type": "string", "format": "date-time" }
+      }
+    },
+    "Lead": {
+      "title": "Lead",
+      "type": "object",
+      "description": "Represents a sales opportunity or client company.",
+      "properties": {
+        "id": { "type": "string" },
+        "company_id": { "type": "string" },
+        "company_name": { "type": "string" },
+        "contact_person": { "type": "string" },
+        "email": { "type": "string" },
+        "industry": { "type": "string" },
+        "stage": { "type": "string" },
+        "deal_value": { "type": "number" },
+        "created_at": { "type": "string", "format": "date-time" }
+      }
     }
   },
   "auth": {
-    "providers": [
-      "password"
-    ]
+    "providers": ["password"]
   },
   "firestore": {
     "super_admins/{userId}": {
@@ -228,27 +90,39 @@
           "granted_at": { "type": "string", "format": "date-time" }
         }
       },
-      "description": "Marker for platform-wide super administrators."
+      "description": "Platform-wide super administrators."
     },
     "users/{userId}": {
       "schema": { "$ref": "#/backend/entities/User" },
-      "description": "Stores user profiles and their role/company context."
+      "description": "User profiles and workspace affiliation."
     },
     "companies/{companyId}": {
       "schema": { "$ref": "#/backend/entities/Company" },
-      "description": "Root collection for multi-tenant data isolation."
+      "description": "Multi-tenant company roots."
     },
-    "companies/{companyId}/roles/{roleId}": {
-      "schema": { "$ref": "#/backend/entities/Role" },
-      "description": "RBAC role definitions within a company."
+    "companies/{companyId}/projects/{projectId}": {
+      "schema": { "$ref": "#/backend/entities/Project" },
+      "description": "Production workspaces."
     },
-    "companies/{companyId}/company_settings/{settingId}": {
-      "schema": { "$ref": "#/backend/entities/CompanySetting" },
-      "description": "Workspace settings including enabled modules."
+    "companies/{companyId}/invoices/{invoiceId}": {
+      "schema": { "$ref": "#/backend/entities/Invoice" },
+      "description": "Billing records."
+    },
+    "companies/{companyId}/leads/{leadId}": {
+      "schema": { "$ref": "#/backend/entities/Lead" },
+      "description": "CRM opportunities and clients."
     },
     "companies/{companyId}/invitations/{invId}": {
-      "schema": { "$ref": "#/backend/entities/Invitation" },
-      "description": "Pending team invitations for a company."
+      "schema": {
+        "type": "object",
+        "properties": {
+          "email": { "type": "string" },
+          "role_id": { "type": "string" },
+          "status": { "type": "string" },
+          "created_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "description": "Team invitations."
     }
   }
 }
