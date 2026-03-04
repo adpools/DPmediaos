@@ -1,0 +1,28 @@
+{
+  "placeholderImages": [
+    {
+      "id": "app-logo",
+      "description": "DP Media OS Logo",
+      "imageUrl": "https://picsum.photos/seed/dp-logo/200/200",
+      "imageHint": "media logo"
+    },
+    {
+      "id": "talent-actor-1",
+      "description": "Professional Actor Headshot",
+      "imageUrl": "https://picsum.photos/seed/talent1/400/600",
+      "imageHint": "actor headshot"
+    },
+    {
+      "id": "talent-model-1",
+      "description": "Professional Model Portfolio",
+      "imageUrl": "https://picsum.photos/seed/talent2/400/600",
+      "imageHint": "fashion model"
+    },
+    {
+      "id": "project-production-1",
+      "description": "Media Production Set",
+      "imageUrl": "https://picsum.photos/seed/prod1/1200/800",
+      "imageHint": "film set"
+    }
+  ]
+}
