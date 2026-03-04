@@ -1,13 +1,6 @@
 import { redirect } from "next/navigation";
 
 export default function RootPage() {
-  // In a real application, logic to check if a user is authenticated or onboarded would go here.
-  // For now, we redirect to the dashboard.
-  const onboarded = true;
-
-  if (!onboarded) {
-    redirect("/onboarding");
-  }
-
+  // Central redirect to handle the entry point of the application
   redirect("/dashboard");
 }

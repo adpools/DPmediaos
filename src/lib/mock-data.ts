@@ -29,16 +29,21 @@ export const MOCK_LEADS = [
   { id: 'lead_2', name: 'RedBull Extreme Sports Doc', company: 'RedBull', value: 120000, stage: 'proposal' },
   { id: 'lead_3', name: 'Apple Vision Pro Launch', company: 'Apple', value: 85000, stage: 'negotiation' },
   { id: 'lead_4', name: 'Zara Fall Collection', company: 'Inditex', value: 30000, stage: 'won' },
+  { id: 'lead_5', name: 'BMW Electric Series', company: 'BMW', value: 210000, stage: 'lead' },
+  { id: 'lead_6', name: 'Spotify Wrapped 2024', company: 'Spotify', value: 65000, stage: 'meeting' },
 ];
 
 export const MOCK_PROJECTS = [
   { id: 'proj_1', name: 'Nike Summer Campaign', status: 'Pre-Production', progress: 35, dueDate: '2024-06-15' },
   { id: 'proj_2', name: 'Zara Fall Collection', status: 'Production', progress: 65, dueDate: '2024-05-20' },
   { id: 'proj_3', name: 'Tech Documentary', status: 'Post-Production', progress: 90, dueDate: '2024-04-10' },
+  { id: 'proj_4', name: 'Adidas Originals Shoot', status: 'Pre-Production', progress: 15, dueDate: '2024-07-01' },
+  { id: 'proj_5', name: 'Lego Commercial', status: 'Completed', progress: 100, dueDate: '2024-03-25' },
 ];
 
 export const MOCK_TALENTS = [
   { id: 'tal_1', name: 'Sarah Jenkins', category: 'Actress', rate: '$1,200/day', metrics: '450k Followers', image: 'https://picsum.photos/seed/talent1/300/400' },
   { id: 'tal_2', name: 'Michael Chen', category: 'Influencer', rate: '$2,500/post', metrics: '1.2M Followers', image: 'https://picsum.photos/seed/talent2/300/400' },
   { id: 'tal_3', name: 'Emma Watson', category: 'Model', rate: '$1,800/day', metrics: '890k Followers', image: 'https://picsum.photos/seed/talent3/300/400' },
+  { id: 'tal_4', name: 'David Gandy', category: 'Model', rate: '$3,000/day', metrics: '1.5M Followers', image: 'https://picsum.photos/seed/talent4/300/400' },
 ];
