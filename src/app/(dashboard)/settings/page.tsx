@@ -1,22 +1,12 @@
 "use client";
 
-import { useState, useEffect, Suspense, useCallback } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { 
   User as UserIcon, 
   Lock, 
-  Settings2, 
-  Building2, 
   Puzzle, 
-  Sparkles, 
-  History, 
-  RefreshCcw, 
   LogOut,
-  Save,
-  Moon,
-  Sun,
-  Palette,
-  Check,
   Loader2,
   LayoutGrid,
   Film,
@@ -33,24 +23,20 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useTenant } from "@/hooks/use-tenant";
-import { useFirestore } from "@/firebase";
+import { useFirestore, useAuth } from "@/firebase";
 import { doc, serverTimestamp } from "firebase/firestore";
 import { updateDocumentNonBlocking, setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
-import { performPasswordUpdate } from "@/firebase/non-blocking-login";
 import { toast } from "@/hooks/use-toast";
-import { cn } from "@/lib/utils";
 import { signOut } from "firebase/auth";
-import { useAuth } from "@/firebase";
 
 function AccountCenterContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const db = useFirestore();
   const auth = useAuth();
-  const { profile: tenantProfile, company, settings, user, companyId, isLoading: isTenantLoading } = useTenant();
+  const { profile: tenantProfile, settings, companyId, isLoading: isTenantLoading } = useTenant();
   
   const initialTab = searchParams.get("tab") || "profile";
   const [activeTab, setActiveTab] = useState(initialTab);
@@ -61,12 +47,6 @@ function AccountCenterContent() {
     email: "",
     bio: ""
   });
-
-  const [passwords, setPasswords] = useState({
-    new: "",
-    confirm: ""
-  });
-  const [isUpdatingPass, setIsUpdatingPass] = useState(false);
 
   useEffect(() => {
     if (tenantProfile) {

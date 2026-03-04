@@ -1,7 +1,7 @@
 'use client';
 
 import { useUser, useDoc, useMemoFirebase } from '@/firebase';
-import { doc, Firestore } from 'firebase/firestore';
+import { doc } from 'firebase/firestore';
 import { useFirestore } from '@/firebase';
 
 /**
@@ -59,7 +59,7 @@ export function useTenant() {
    */
   const hasPermission = (module: string, action: 'view' | 'create' | 'edit' | 'delete' | 'approve' = 'view') => {
     // Super admins and Workspace Admins have all permissions for enabled modules
-    if (superAdmin || profile?.role_id === 'admin') return true;
+    if (!!superAdmin || profile?.role_id === 'admin') return true;
     
     if (!role?.permissions) return false;
     const perms = role.permissions[module];
@@ -71,7 +71,7 @@ export function useTenant() {
    */
   const isModuleEnabled = (moduleName: string) => {
     // Super admins see all modules regardless of workspace settings
-    if (superAdmin) return true;
+    if (!!superAdmin) return true;
     // If settings document doesn't exist yet, default to core modules
     if (!settings) return ['dashboard', 'projects'].includes(moduleName);
     return settings?.enabled_modules?.includes(moduleName) ?? false;
