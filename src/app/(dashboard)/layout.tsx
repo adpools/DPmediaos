@@ -1,9 +1,14 @@
+"use client";
+
 import { AppSidebar } from "@/components/layout/app-sidebar";
-import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
+import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { Toaster } from "@/components/ui/toaster";
-import { Search, Bell } from "lucide-react";
-import { Input } from "@/components/ui/input";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { Search, Calendar, LayoutGrid, MoreHorizontal, Phone, Smile, ArrowRight, Plus } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
+import { MOCK_SCHEDULE } from "@/lib/mock-data";
 
 export default function DashboardLayout({
   children,
@@ -12,29 +17,119 @@ export default function DashboardLayout({
 }) {
   return (
     <SidebarProvider>
-      <div className="flex min-h-screen w-full bg-background">
+      <div className="flex min-h-screen w-full bg-[#F0F1F4]">
         <AppSidebar />
-        <SidebarInset className="flex flex-col">
-          <header className="sticky top-0 z-30 flex h-16 items-center border-b bg-background px-6 gap-4">
-            <SidebarTrigger />
-            <div className="h-6 w-px bg-border mx-2" />
-            <div className="flex-1 max-w-md relative hidden md:block">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search across OS..."
-                className="pl-9 bg-muted/50 border-none focus-visible:ring-1"
-              />
-            </div>
-            <div className="flex items-center gap-3 ml-auto">
-              <Button variant="ghost" size="icon" className="relative">
-                <Bell className="h-5 w-5" />
-                <span className="absolute top-2 right-2 h-2 w-2 bg-accent rounded-full border-2 border-background" />
-              </Button>
-            </div>
-          </header>
-          <main className="flex-1 p-6 overflow-auto">
+        <SidebarInset className="flex flex-row bg-transparent">
+          <main className="flex-1 p-8 overflow-auto">
             {children}
           </main>
+          
+          {/* Right Sidebar */}
+          <aside className="w-[380px] p-8 hidden xl:flex flex-col gap-8 bg-white/40 border-l border-white/20">
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-bold font-headline">Today's Schedule</h3>
+                <div className="flex gap-2">
+                  <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg bg-white/80 shadow-sm"><LayoutGrid className="h-4 w-4" /></Button>
+                  <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg bg-white/80 shadow-sm"><Calendar className="h-4 w-4" /></Button>
+                </div>
+              </div>
+
+              {MOCK_SCHEDULE.map(item => (
+                <Card key={item.id} className="border-none shadow-soft rounded-2xl overflow-hidden">
+                  <CardContent className="p-0">
+                    <div className="p-4 bg-white space-y-3">
+                      <div className="flex justify-between items-start">
+                        <span className="text-[10px] font-bold text-accent uppercase tracking-wider">{item.time}</span>
+                        <Button variant="ghost" size="sm" className="h-6 text-[10px] text-blue-500 font-bold px-2 hover:bg-blue-50">+ Invite</Button>
+                      </div>
+                      <h4 className="font-bold text-sm leading-tight">{item.title}</h4>
+                    </div>
+                    <div className="p-4 bg-emerald-400 flex items-center justify-between text-white">
+                      <div className="flex -space-x-2">
+                        {item.members.map(m => (
+                          <Avatar key={m} className="h-7 w-7 border-2 border-emerald-400">
+                            <AvatarImage src={`https://picsum.photos/seed/${m}/50/50`} />
+                            <AvatarFallback>U</AvatarFallback>
+                          </Avatar>
+                        ))}
+                        <div className="h-7 w-7 rounded-full bg-white/20 flex items-center justify-center text-[10px] font-bold">+</div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-bold font-code">{item.duration}</span>
+                        <div className="h-8 w-8 rounded-lg bg-white/20 flex items-center justify-center"><Phone className="h-4 w-4 fill-current" /></div>
+                        <MoreHorizontal className="h-4 w-4" />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-bold font-headline">Design Project</h3>
+                <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
+              </div>
+              <div className="flex items-center gap-2 text-[10px] text-muted-foreground font-bold uppercase tracking-wider">
+                <Smile className="h-3 w-3 text-orange-400" /> In Progress
+              </div>
+              
+              <div className="grid grid-cols-3 gap-4 pt-2">
+                <div className="space-y-1">
+                  <span className="text-[10px] font-bold text-muted-foreground">Completed</span>
+                  <p className="text-xl font-bold font-headline">114</p>
+                </div>
+                <div className="space-y-1">
+                  <span className="text-[10px] font-bold text-muted-foreground">In Progress</span>
+                  <div className="flex items-center gap-1">
+                    <p className="text-xl font-bold font-headline">24</p>
+                    <div className="h-1.5 w-1.5 rounded-full bg-rose-500" />
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <span className="text-[10px] font-bold text-muted-foreground">Team members</span>
+                  <div className="flex -space-x-2">
+                    <Avatar className="h-6 w-6 border-2 border-white"><AvatarImage src="https://picsum.photos/seed/m1/40/40" /></Avatar>
+                    <div className="h-6 w-6 rounded-full bg-rose-500 flex items-center justify-center text-[8px] font-bold text-white">S</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-auto space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-bold font-headline">New Task</h3>
+                <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
+              </div>
+              <div className="bg-white/80 rounded-2xl p-4 shadow-sm space-y-4 border border-white">
+                <div className="space-y-1">
+                   <span className="text-[10px] font-bold text-muted-foreground/60 uppercase">Task Title</span>
+                   <p className="text-xs font-semibold text-muted-foreground/40">Create new...</p>
+                </div>
+                <div className="flex items-center gap-2 overflow-x-auto pb-2 border-b">
+                   {['🤠', '🎉', '👩', '🤔', '😂', '🔥', '😅', '🤣'].map(e => <span key={e} className="text-sm cursor-pointer hover:scale-125 transition-transform">{e}</span>)}
+                </div>
+                <div className="space-y-2">
+                  <span className="text-[10px] font-bold text-muted-foreground/60 uppercase">Add Collaborators</span>
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 bg-purple-100 px-2 py-1 rounded-lg">
+                      <Avatar className="h-5 w-5"><AvatarImage src="https://picsum.photos/seed/a1/40/40" /></Avatar>
+                      <span className="text-[10px] font-bold text-purple-700">Angela</span>
+                      <Plus className="h-2 w-2 rotate-45 text-purple-700" />
+                    </div>
+                    <div className="flex items-center gap-2 bg-emerald-100 px-2 py-1 rounded-lg">
+                      <Avatar className="h-5 w-5"><AvatarImage src="https://picsum.photos/seed/c1/40/40" /></Avatar>
+                      <span className="text-[10px] font-bold text-emerald-700">Chris</span>
+                      <Plus className="h-2 w-2 rotate-45 text-emerald-700" />
+                    </div>
+                    <Button variant="ghost" size="icon" className="h-6 w-6 rounded-lg bg-slate-100"><Plus className="h-3 w-3" /></Button>
+                    <Button size="icon" className="h-8 w-8 rounded-xl bg-accent ml-auto"><ArrowRight className="h-4 w-4" /></Button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </aside>
         </SidebarInset>
       </div>
       <Toaster />
