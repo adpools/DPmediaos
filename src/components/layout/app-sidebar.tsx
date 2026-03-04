@@ -9,16 +9,12 @@ import {
   Receipt,
   Search,
   Settings,
-  ShieldCheck,
-  ChevronRight,
-  LogOut,
   Building2,
   PieChart
 } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
-  SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
   SidebarGroupLabel,
@@ -31,8 +27,7 @@ import {
   SidebarMenuSubItem,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { MOCK_COMPANY, MOCK_USER } from "@/lib/mock-data";
+import { MOCK_COMPANY } from "@/lib/mock-data";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -88,14 +83,9 @@ const navItems = [
 
 const adminItems = [
   {
-    title: "Company Settings",
+    title: "Workspace Settings",
     url: "/settings",
     icon: Building2,
-  },
-  {
-    title: "Access Control",
-    url: "/settings/rbac",
-    icon: ShieldCheck,
   },
 ];
 
@@ -157,7 +147,7 @@ export function AppSidebar() {
         </SidebarGroup>
 
         <SidebarGroup>
-          <SidebarGroupLabel>System Admin</SidebarGroupLabel>
+          <SidebarGroupLabel>Configuration</SidebarGroupLabel>
           <SidebarMenu>
             {adminItems.map((item) => (
               <SidebarMenuItem key={item.title}>
@@ -172,30 +162,6 @@ export function AppSidebar() {
           </SidebarMenu>
         </SidebarGroup>
       </SidebarContent>
-
-      <SidebarFooter className="p-4">
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <div className={`flex items-center gap-3 ${state === 'collapsed' ? 'justify-center' : ''}`}>
-              <Avatar className="h-8 w-8 border">
-                <AvatarImage src={MOCK_USER.avatar} />
-                <AvatarFallback>AP</AvatarFallback>
-              </Avatar>
-              {state !== "collapsed" && (
-                <div className="flex flex-col flex-1 overflow-hidden">
-                  <span className="text-sm font-medium truncate">{MOCK_USER.name}</span>
-                  <span className="text-xs text-muted-foreground truncate">{MOCK_USER.role}</span>
-                </div>
-              )}
-              {state !== "collapsed" && (
-                <SidebarMenuButton size="sm" variant="ghost" className="h-8 w-8 p-0">
-                  <LogOut className="h-4 w-4" />
-                </SidebarMenuButton>
-              )}
-            </div>
-          </SidebarMenuItem>
-        </SidebarMenu>
-      </SidebarFooter>
     </Sidebar>
   );
 }
