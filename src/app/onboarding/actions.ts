@@ -1,8 +1,6 @@
-
 'use client';
 
-import { doc, serverTimestamp, Firestore } from 'firebase/firestore';
-import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { doc, serverTimestamp, Firestore, setDoc } from 'firebase/firestore';
 
 /**
  * Provisions a new company and admin profile with exhaustive module access.
@@ -17,31 +15,19 @@ export async function setupNewCompany(
   const companyId = `comp_${Math.random().toString(36).substr(2, 9)}`;
   const roleId = 'admin';
 
-  // 1. Establish User Context
-  const userRef = doc(db, 'users', userId);
-  setDocumentNonBlocking(userRef, {
-    id: userId,
-    company_id: companyId,
-    role_id: roleId,
-    email,
-    fullName: email.split('@')[0],
-    status: 'active',
-    createdAt: serverTimestamp(),
-  }, { merge: true });
-
-  // 2. Create Company Tenant
+  // 1. Create Company Tenant
   const companyRef = doc(db, 'companies', companyId);
-  setDocumentNonBlocking(companyRef, {
+  await setDoc(companyRef, {
     id: companyId,
     name: companyName,
     onboardingStatus: 'completed',
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
-  }, { merge: true });
+  });
 
-  // 3. Define Admin Role with Full Module Permissions
+  // 2. Define Admin Role with Full Module Permissions
   const roleRef = doc(db, 'companies', companyId, 'roles', roleId);
-  setDocumentNonBlocking(roleRef, {
+  await setDoc(roleRef, {
     id: roleId,
     company_id: companyId,
     name: 'Admin',
@@ -56,22 +42,34 @@ export async function setupNewCompany(
       reports: { view: true, create: true, edit: true, delete: true },
       admin: { view: true, create: true, edit: true, delete: true },
     }
-  }, { merge: true });
+  });
 
-  // 4. Enable All Request Modules for New Workspaces
+  // 3. Enable All Request Modules for New Workspaces
   const settingsRef = doc(db, 'companies', companyId, 'company_settings', companyId);
-  setDocumentNonBlocking(settingsRef, {
+  await setDoc(settingsRef, {
     id: companyId,
     company_id: companyId,
     enabledModules: ['dashboard', 'projects', 'talents', 'crm', 'proposals', 'invoices', 'research', 'reports'],
     defaultCurrency: 'USD',
     updatedAt: serverTimestamp(),
+  });
+
+  // 4. Establish User Context
+  const userRef = doc(db, 'users', userId);
+  await setDoc(userRef, {
+    id: userId,
+    company_id: companyId,
+    role_id: roleId,
+    email,
+    fullName: email.split('@')[0],
+    status: 'active',
+    createdAt: serverTimestamp(),
   }, { merge: true });
 
   // 5. Special Platform Admin Hook
   if (email === 'arundevv.com@gmail.com') {
     const adminMarkerRef = doc(db, 'super_admins', userId);
-    setDocumentNonBlocking(adminMarkerRef, {
+    await setDoc(adminMarkerRef, {
       uid: userId,
       email: email,
       granted_at: serverTimestamp()

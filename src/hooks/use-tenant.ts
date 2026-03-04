@@ -22,7 +22,7 @@ export function useTenant() {
 
   // 2. Get the Company data
   const companyRef = useMemoFirebase(() => {
-    // Check both for resilience, but prefer snake_case
+    // Standardize on snake_case
     const cId = profile?.company_id || (profile as any)?.companyId;
     if (!db || !cId) return null;
     return doc(db, 'companies', cId);
@@ -57,11 +57,11 @@ export function useTenant() {
 
   const { data: superAdmin, isLoading: isSuperAdminLoading } = useDoc(superAdminRef);
 
-  const isLoading = isAuthLoading || isProfileLoading;
+  const isLoading = isAuthLoading || isProfileLoading || isSuperAdminLoading;
   
   // Secondary loading states are only relevant if we have a company_id
   const hasContext = !!(profile?.company_id || (profile as any)?.companyId);
-  const isContextLoading = hasContext && (isCompanyLoading || isRoleLoading || isSettingsLoading || isSuperAdminLoading);
+  const isContextLoading = hasContext && (isCompanyLoading || isRoleLoading || isSettingsLoading);
 
   /**
    * Checks if the user has a specific permission for a module.

@@ -8,7 +8,7 @@ import { Loader2 } from "lucide-react";
 
 export default function RootPage() {
   const { user, isUserLoading } = useUser();
-  const { companyId, isLoading: isTenantLoading, profile } = useTenant();
+  const { companyId, isSuperAdmin, isLoading: isTenantLoading, profile } = useTenant();
   const router = useRouter();
 
   useEffect(() => {
@@ -19,15 +19,19 @@ export default function RootPage() {
       }
 
       if (!isTenantLoading) {
-        // Redirection based on standardized snake_case company_id
-        if (!profile || !profile.company_id) {
+        // Redirection based on standardized snake_case company_id or Super Admin status
+        const cId = profile?.company_id || (profile as any)?.companyId;
+        
+        if (isSuperAdmin) {
+          router.push("/dashboard");
+        } else if (!cId) {
           router.push("/onboarding");
         } else {
           router.push("/dashboard");
         }
       }
     }
-  }, [user, isUserLoading, isTenantLoading, profile, router]);
+  }, [user, isUserLoading, isTenantLoading, profile, isSuperAdmin, router]);
 
   return (
     <div className="flex h-screen w-full items-center justify-center bg-[#F0F1F4]">

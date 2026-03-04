@@ -26,17 +26,21 @@ export default function DashboardLayout({
 
   // 1. Protection & Redirection Logic
   useEffect(() => {
-    if (!isLoading && !profile?.company_id && !(profile as any)?.companyId) {
-      // If we're not loading and there's no company context, send to onboarding
-      router.push("/onboarding");
+    if (!isLoading) {
+      const cId = profile?.company_id || (profile as any)?.companyId;
+      if (!cId && !isSuperAdmin) {
+        // If we're not loading, have no company, and aren't a Super Admin, send to onboarding
+        router.push("/onboarding");
+      }
     }
-  }, [isLoading, profile, router]);
+  }, [isLoading, profile, isSuperAdmin, router]);
 
   // 2. Bootstrap Promotion Logic for Global Administrators
   useEffect(() => {
     if (user?.email === 'arundevv.com@gmail.com' && db) {
       // Promote to Workspace Admin if needed
-      if (profile && profile.role_id !== 'admin' && (profile as any).roleId !== 'admin') {
+      const currentRoleId = profile?.role_id || (profile as any)?.roleId;
+      if (profile && currentRoleId !== 'admin') {
         const userRef = doc(db, 'users', user.uid);
         updateDocumentNonBlocking(userRef, { role_id: 'admin' });
       }
@@ -59,8 +63,9 @@ export default function DashboardLayout({
     );
   }
 
-  // Only render if we have a company context (to avoid flicker before redirect)
-  if (!companyId && !isSuperAdmin) {
+  // Only render if we have a company context or are a platform admin
+  const hasAccess = !!companyId || isSuperAdmin;
+  if (!hasAccess) {
     return null;
   }
 
