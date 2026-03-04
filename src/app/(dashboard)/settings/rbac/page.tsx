@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from "react";
@@ -115,14 +114,17 @@ export default function RBACPage() {
   const handleInvite = (e: React.FormEvent) => {
     e.preventDefault();
     if (!companyId || !inviteData.email || !db) {
-      toast({ variant: "destructive", title: "Configuration Error", description: "Workspace context missing." });
+      toast({ 
+        variant: "destructive", 
+        title: "Configuration Error", 
+        description: "Your workspace context is still initializing. Please wait a moment." 
+      });
       return;
     }
 
     setIsInviting(true);
     const inviteRef = collection(db, 'companies', companyId, 'invitations');
     
-    // We initiate the non-blocking write. UI will close and show toast immediately.
     addDocumentNonBlocking(inviteRef, {
       email: inviteData.email,
       role_id: inviteData.role_id,
@@ -206,8 +208,8 @@ export default function RBACPage() {
                   </SelectTrigger>
                   <SelectContent>
                     {roles?.map(r => <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>)}
-                    <SelectItem value="admin">Administrator</SelectItem>
-                    <SelectItem value="member">Standard Member</SelectItem>
+                    {!roles?.some(r => r.id === 'admin') && <SelectItem value="admin">Administrator</SelectItem>}
+                    {!roles?.some(r => r.id === 'member') && <SelectItem value="member">Standard Member</SelectItem>}
                   </SelectContent>
                 </Select>
               </div>
@@ -253,18 +255,18 @@ export default function RBACPage() {
                             <Avatar className="h-9 w-9 ring-2 ring-primary/5">
                               <AvatarImage src={member.avatar} />
                               <AvatarFallback className="bg-primary/5 text-primary text-[10px] font-bold">
-                                {(member.fullName)?.substring(0,2).toUpperCase() || 'U'}
+                                {(member.fullName || member.full_name)?.substring(0,2).toUpperCase() || 'U'}
                               </AvatarFallback>
                             </Avatar>
                             <div className="flex flex-col">
-                              <span className="font-bold text-sm">{member.fullName || 'New Member'}</span>
+                              <span className="font-bold text-sm">{member.fullName || member.full_name || 'New Member'}</span>
                               <span className="text-[10px] text-muted-foreground font-medium">{member.email}</span>
                             </div>
                           </div>
                         </td>
                         <td className="p-4">
                           <Badge variant="secondary" className="text-[9px] font-bold uppercase py-0 bg-primary/5 text-primary border-none">
-                            {member.role_id}
+                            {member.role_id || member.roleId}
                           </Badge>
                         </td>
                         <td className="p-4">
@@ -289,7 +291,7 @@ export default function RBACPage() {
                               <DropdownMenuSeparator />
                               <DropdownMenuItem 
                                 className="gap-2 text-destructive cursor-pointer py-2"
-                                onClick={() => handleRemoveMember(member.id, member.fullName)}
+                                onClick={() => handleRemoveMember(member.id, member.fullName || member.full_name)}
                               >
                                 <UserMinus className="h-4 w-4" /> Remove from Team
                               </DropdownMenuItem>
@@ -358,7 +360,6 @@ export default function RBACPage() {
         </TabsContent>
       </Tabs>
 
-      {/* Edit Role Dialog */}
       <Dialog open={isEditRoleOpen} onOpenChange={setIsEditRoleOpen}>
         <DialogContent className="sm:max-w-[600px] rounded-[2rem] max-h-[80vh] overflow-y-auto">
           <DialogHeader>

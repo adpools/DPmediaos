@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect } from "react";
@@ -7,32 +6,42 @@ import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { Toaster } from "@/components/ui/toaster";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Calendar, LayoutGrid, MoreHorizontal, Phone, Smile, ArrowRight, Plus, ShieldCheck, Zap } from "lucide-react";
+import { Calendar, LayoutGrid, MoreHorizontal, Phone, Smile, ArrowRight, Plus, ShieldCheck, Zap, Loader2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { MOCK_SCHEDULE } from "@/lib/mock-data";
 import { useTenant } from "@/hooks/use-tenant";
 import { doc, serverTimestamp } from "firebase/firestore";
 import { useFirestore } from "@/firebase";
 import { updateDocumentNonBlocking, setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
+import { useRouter } from "next/navigation";
 
 export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const { profile, user, companyId, isSuperAdmin } = useTenant();
+  const { profile, user, companyId, isSuperAdmin, isLoading } = useTenant();
   const db = useFirestore();
+  const router = useRouter();
 
-  // Bootstrap Promotion Logic for Global Administrators
+  // 1. Protection & Redirection Logic
+  useEffect(() => {
+    if (!isLoading && !profile?.company_id && !(profile as any)?.companyId) {
+      // If we're not loading and there's no company context, send to onboarding
+      router.push("/onboarding");
+    }
+  }, [isLoading, profile, router]);
+
+  // 2. Bootstrap Promotion Logic for Global Administrators
   useEffect(() => {
     if (user?.email === 'arundevv.com@gmail.com' && db) {
-      // 1. Promote to Workspace Admin if needed
-      if (profile && profile.role_id !== 'admin') {
+      // Promote to Workspace Admin if needed
+      if (profile && profile.role_id !== 'admin' && (profile as any).roleId !== 'admin') {
         const userRef = doc(db, 'users', user.uid);
         updateDocumentNonBlocking(userRef, { role_id: 'admin' });
       }
 
-      // 2. Promote to Platform Super Admin
+      // Promote to Platform Super Admin
       const superAdminRef = doc(db, 'super_admins', user.uid);
       setDocumentNonBlocking(superAdminRef, {
         uid: user.uid,
@@ -41,6 +50,19 @@ export default function DashboardLayout({
       }, { merge: true });
     }
   }, [user, profile, db]);
+
+  if (isLoading) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center bg-[#F0F1F4]">
+        <Loader2 className="h-8 w-8 animate-spin text-primary opacity-50" />
+      </div>
+    );
+  }
+
+  // Only render if we have a company context (to avoid flicker before redirect)
+  if (!companyId && !isSuperAdmin) {
+    return null;
+  }
 
   return (
     <SidebarProvider>
@@ -51,7 +73,6 @@ export default function DashboardLayout({
             {children}
           </main>
           
-          {/* Right Sidebar */}
           <aside className="w-[380px] p-8 hidden xl:flex flex-col gap-8 bg-white/40 border-l border-white/20">
             <div className="space-y-6">
               <div className="flex items-center justify-between">
