@@ -8,7 +8,7 @@ service cloud.firestore {
      * 
      * Core Philosophy: 
      * This ruleset implements a robust multi-tenant SaaS security model. Data isolation is 
-     * enforced at the company level using a hybrid of path-based and field-based authorization.
+     * enforced at the company level. Super Admins bypass restrictions.
      */
 
     // --- GLOBAL HELPER FUNCTIONS ---
@@ -19,28 +19,34 @@ service cloud.firestore {
 
     function isSuperAdmin() {
       // Prioritize email check to avoid evaluation loops during bootstrap
-      return isSignedIn() && (request.auth.token.email == 'arundevv.com@gmail.com' || exists(/databases/$(database)/documents/super_admins/$(request.auth.uid)));
+      return isSignedIn() && (
+        request.auth.token.email == 'arundevv.com@gmail.com' || 
+        exists(/databases/$(database)/documents/super_admins/$(request.auth.uid))
+      );
     }
 
-    // Safely retrieves user data only if the document exists
+    // Safely retrieves user data
     function getUserData() {
-      let path = /databases/$(database)/documents/users/$(request.auth.uid);
-      return exists(path) ? get(path).data : null;
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function userProfileExists() {
+      return exists(/databases/$(database)/documents/users/$(request.auth.uid));
     }
 
     // Checks if the user belongs to the company specified in the path or is a platform admin.
     function isMember(companyId) {
-      if (!isSignedIn()) return false;
-      if (isSuperAdmin()) return true;
-      let userData = getUserData();
-      return userData != null && userData.company_id == companyId;
+      return isSignedIn() && (
+        isSuperAdmin() || 
+        (userProfileExists() && getUserData().company_id == companyId)
+      );
     }
 
     function isAdmin(companyId) {
-      if (!isSignedIn()) return false;
-      if (isSuperAdmin()) return true;
-      let userData = getUserData();
-      return userData != null && userData.company_id == companyId && userData.role_id == 'admin';
+      return isSignedIn() && (
+        isSuperAdmin() || 
+        (userProfileExists() && getUserData().company_id == companyId && getUserData().role_id == 'admin')
+      );
     }
 
     // Validates that the company_id in the document matches the companyId in the path.
@@ -64,21 +70,22 @@ service cloud.firestore {
     }
 
     match /users/{userId} {
-      allow get: if isSignedIn() && (request.auth.uid == userId || isSuperAdmin() || (getUserData() != null && getUserData().company_id == get(/databases/$(database)/documents/users/$(userId)).data.company_id));
-      allow list: if isSignedIn() && (isSuperAdmin() || (getUserData() != null && request.query.filters.company_id == getUserData().company_id));
+      allow get: if isSignedIn() && (
+        request.auth.uid == userId || 
+        isSuperAdmin() || 
+        (userProfileExists() && getUserData().company_id == get(/databases/$(database)/documents/users/$(userId)).data.company_id)
+      );
+      allow list: if isSignedIn() && (
+        isSuperAdmin() || 
+        (userProfileExists() && request.query.filters.company_id == getUserData().company_id)
+      );
       allow create: if isSignedIn() && request.auth.uid == userId;
-      allow update: if isSignedIn() && (request.auth.uid == userId || isSuperAdmin() || (isAdmin(resource.data.company_id)));
+      allow update: if isSignedIn() && (
+        request.auth.uid == userId || 
+        isSuperAdmin() || 
+        (userProfileExists() && isAdmin(resource.data.company_id))
+      );
       allow delete: if isSuperAdmin();
-    }
-
-    match /modules/{moduleId} {
-      allow get, list: if isSignedIn();
-      allow create, update, delete: if false;
-    }
-
-    match /subscription_plans/{planId} {
-      allow get, list: if isSignedIn();
-      allow create, update, delete: if false;
     }
 
     match /companies/{companyId} {
