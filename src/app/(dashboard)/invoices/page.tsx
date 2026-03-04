@@ -16,60 +16,60 @@ import { addDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { toast } from "@/hooks/use-toast";
 
 export default function InvoicesPage() {
-  const { profile, isLoading: isTenantLoading } = useTenant();
+  const { profile, isLoading: isTenantLoading, companyId } = useTenant();
   const db = useFirestore();
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Invoice State
   const [newInvoice, setNewInvoice] = useState({
-    clientName: "",
-    invoiceNumber: `INV-${Date.now().toString().slice(-6)}`,
+    client_name: "",
+    invoice_number: `INV-${Date.now().toString().slice(-6)}`,
     total: "",
-    issueDate: new Date().toISOString().split('T')[0],
-    dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+    issue_date: new Date().toISOString().split('T')[0],
+    due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
   });
 
   const invoicesQuery = useMemoFirebase(() => {
-    if (!db || !profile?.companyId) return null;
+    if (!db || !companyId) return null;
     return query(
-      collection(db, 'companies', profile.companyId, 'invoices'),
-      orderBy('createdAt', 'desc')
+      collection(db, 'companies', companyId, 'invoices'),
+      orderBy('created_at', 'desc')
     );
-  }, [db, profile?.companyId]);
+  }, [db, companyId]);
 
   const { data: invoices, isLoading: isInvoicesLoading } = useCollection(invoicesQuery);
 
   const handleCreateInvoice = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!profile?.companyId || !newInvoice.clientName) return;
+    if (!companyId || !newInvoice.client_name) return;
 
     setIsSubmitting(true);
-    const invoicesRef = collection(db, 'companies', profile.companyId, 'invoices');
+    const invoicesRef = collection(db, 'companies', companyId, 'invoices');
     
     addDocumentNonBlocking(invoicesRef, {
-      companyId: profile.companyId,
+      company_id: companyId,
       ...newInvoice,
       total: parseFloat(newInvoice.total) || 0,
-      paymentStatus: 'unpaid',
-      lineItems: ["Production Services"],
+      payment_status: 'unpaid',
+      line_items: ["Production Services"],
       subtotal: parseFloat(newInvoice.total) || 0,
-      taxAmount: 0,
+      tax_amount: 0,
       currency: "USD",
-      createdAt: serverTimestamp(),
+      created_at: serverTimestamp(),
     });
 
     toast({
       title: "Invoice Generated",
-      description: `Billing for ${newInvoice.clientName} has been created.`,
+      description: `Billing for ${newInvoice.client_name} has been created.`,
     });
 
     setNewInvoice({ 
-      clientName: "", 
-      invoiceNumber: `INV-${Date.now().toString().slice(-6)}`, 
+      client_name: "", 
+      invoice_number: `INV-${Date.now().toString().slice(-6)}`, 
       total: "", 
-      issueDate: new Date().toISOString().split('T')[0],
-      dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+      issue_date: new Date().toISOString().split('T')[0],
+      due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
     });
     setIsAddOpen(false);
     setIsSubmitting(false);
@@ -83,7 +83,7 @@ export default function InvoicesPage() {
     );
   }
 
-  const totalOutstanding = invoices?.reduce((sum, inv) => inv.paymentStatus !== 'paid' ? sum + (inv.total || 0) : sum, 0) || 0;
+  const totalOutstanding = invoices?.reduce((sum, inv) => inv.payment_status !== 'paid' ? sum + (inv.total || 0) : sum, 0) || 0;
 
   return (
     <div className="space-y-8">
@@ -119,8 +119,8 @@ export default function InvoicesPage() {
                   <Input 
                     id="client" 
                     placeholder="e.g. Apple Vision Pro Campaign" 
-                    value={newInvoice.clientName}
-                    onChange={(e) => setNewInvoice({...newInvoice, clientName: e.target.value})}
+                    value={newInvoice.client_name}
+                    onChange={(e) => setNewInvoice({...newInvoice, client_name: e.target.value})}
                     required
                     className="rounded-xl"
                   />
@@ -128,7 +128,7 @@ export default function InvoicesPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="invNum">Invoice #</Label>
-                    <Input id="invNum" value={newInvoice.invoiceNumber} disabled className="rounded-xl bg-muted" />
+                    <Input id="invNum" value={newInvoice.invoice_number} disabled className="rounded-xl bg-muted" />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="tot">Total Amount ($)</Label>
@@ -149,8 +149,8 @@ export default function InvoicesPage() {
                     <Input 
                       id="iss" 
                       type="date"
-                      value={newInvoice.issueDate}
-                      onChange={(e) => setNewInvoice({...newInvoice, issueDate: e.target.value})}
+                      value={newInvoice.issue_date}
+                      onChange={(e) => setNewInvoice({...newInvoice, issue_date: e.target.value})}
                       className="rounded-xl"
                     />
                   </div>
@@ -159,8 +159,8 @@ export default function InvoicesPage() {
                     <Input 
                       id="due" 
                       type="date"
-                      value={newInvoice.dueDate}
-                      onChange={(e) => setNewInvoice({...newInvoice, dueDate: e.target.value})}
+                      value={newInvoice.due_date}
+                      onChange={(e) => setNewInvoice({...newInvoice, due_date: e.target.value})}
                       className="rounded-xl"
                     />
                   </div>
@@ -198,7 +198,7 @@ export default function InvoicesPage() {
           <CardContent className="p-6">
             <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">Paid to Date</p>
             <h4 className="text-2xl font-bold font-headline">
-              ${invoices?.reduce((sum, inv) => inv.paymentStatus === 'paid' ? sum + (inv.total || 0) : sum, 0).toLocaleString()}
+              ${invoices?.reduce((sum, inv) => inv.payment_status === 'paid' ? sum + (inv.total || 0) : sum, 0).toLocaleString()}
             </h4>
             <div className="mt-2 flex items-center gap-1 text-[10px] text-emerald-600 font-bold">
               <CheckCircle2 className="h-3 w-3" /> Fully reconciled
@@ -251,18 +251,20 @@ export default function InvoicesPage() {
                 ) : (
                   invoices?.map((inv) => (
                     <tr key={inv.id} className="hover:bg-slate-50 transition-colors group">
-                      <td className="p-4 font-mono font-bold text-primary">{inv.invoiceNumber}</td>
-                      <td className="p-4 font-bold">{inv.clientName}</td>
-                      <td className="p-4 text-muted-foreground text-xs font-medium">{inv.dueDate}</td>
+                      <td className="p-4 font-mono font-bold text-primary">{inv.invoice_number}</td>
+                      <td className="p-4 font-bold">{inv.client_name}</td>
+                      <td className="p-4 text-muted-foreground text-xs font-medium">{inv.due_date}</td>
                       <td className="p-4 font-bold">${(inv.total || 0).toLocaleString()}</td>
                       <td className="p-4">
-                        <Badge variant={inv.paymentStatus === 'paid' ? 'default' : 'secondary'} className="text-[9px] uppercase font-bold py-0.5">
-                          {inv.paymentStatus}
+                        <Badge variant={inv.payment_status === 'paid' ? 'default' : 'secondary'} className="text-[9px] uppercase font-bold py-0.5">
+                          {inv.payment_status}
                         </Badge>
                       </td>
-                      <td className="p-4 text-right flex justify-end gap-2">
-                        <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"><Download className="h-4 w-4" /></Button>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"><FileText className="h-4 w-4" /></Button>
+                      <td className="p-4 text-right">
+                        <div className="flex justify-end gap-2">
+                          <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"><Download className="h-4 w-4" /></Button>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"><FileText className="h-4 w-4" /></Button>
+                        </div>
                       </td>
                     </tr>
                   ))

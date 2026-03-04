@@ -18,50 +18,50 @@ import { addDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { toast } from "@/hooks/use-toast";
 
 export default function CRMPage() {
-  const { profile, isLoading: isTenantLoading } = useTenant();
+  const { profile, isLoading: isTenantLoading, companyId } = useTenant();
   const db = useFirestore();
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Quick Add State
   const [newLead, setNewLead] = useState({
-    companyName: "",
-    contactPerson: "",
+    company_name: "",
+    contact_person: "",
     industry: "",
-    dealValue: "",
+    deal_value: "",
     stage: "lead"
   });
 
   const leadsQuery = useMemoFirebase(() => {
-    if (!db || !profile?.companyId) return null;
+    if (!db || !companyId) return null;
     return query(
-      collection(db, 'companies', profile.companyId, 'leads'),
-      orderBy('createdAt', 'desc')
+      collection(db, 'companies', companyId, 'leads'),
+      orderBy('created_at', 'desc')
     );
-  }, [db, profile?.companyId]);
+  }, [db, companyId]);
 
   const { data: leads, isLoading: isLeadsLoading } = useCollection(leadsQuery);
 
   const handleAddLead = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!profile?.companyId || !newLead.companyName) return;
+    if (!companyId || !newLead.company_name) return;
 
     setIsSubmitting(true);
-    const leadsRef = collection(db, 'companies', profile.companyId, 'leads');
+    const leadsRef = collection(db, 'companies', companyId, 'leads');
     
     addDocumentNonBlocking(leadsRef, {
-      companyId: profile.companyId,
+      company_id: companyId,
       ...newLead,
-      dealValue: parseFloat(newLead.dealValue) || 0,
-      createdAt: serverTimestamp(),
+      deal_value: parseFloat(newLead.deal_value) || 0,
+      created_at: serverTimestamp(),
     });
 
     toast({
       title: "Lead Captured",
-      description: `${newLead.companyName} has been added to your pipeline.`,
+      description: `${newLead.company_name} has been added to your pipeline.`,
     });
 
-    setNewLead({ companyName: "", contactPerson: "", industry: "", dealValue: "", stage: "lead" });
+    setNewLead({ company_name: "", contact_person: "", industry: "", deal_value: "", stage: "lead" });
     setIsAddOpen(false);
     setIsSubmitting(false);
   };
@@ -109,8 +109,8 @@ export default function CRMPage() {
                   <Input 
                     id="companyName" 
                     placeholder="e.g. RedBull Media" 
-                    value={newLead.companyName}
-                    onChange={(e) => setNewLead({...newLead, companyName: e.target.value})}
+                    value={newLead.company_name}
+                    onChange={(e) => setNewLead({...newLead, company_name: e.target.value})}
                     required
                     className="rounded-xl"
                   />
@@ -120,8 +120,8 @@ export default function CRMPage() {
                   <Input 
                     id="contact" 
                     placeholder="e.g. Jane Smith" 
-                    value={newLead.contactPerson}
-                    onChange={(e) => setNewLead({...newLead, contactPerson: e.target.value})}
+                    value={newLead.contact_person}
+                    onChange={(e) => setNewLead({...newLead, contact_person: e.target.value})}
                     required
                     className="rounded-xl"
                   />
@@ -133,8 +133,8 @@ export default function CRMPage() {
                       id="value" 
                       type="number"
                       placeholder="25000" 
-                      value={newLead.dealValue}
-                      onChange={(e) => setNewLead({...newLead, dealValue: e.target.value})}
+                      value={newLead.deal_value}
+                      onChange={(e) => setNewLead({...newLead, deal_value: e.target.value})}
                       className="rounded-xl"
                     />
                   </div>
@@ -165,7 +165,7 @@ export default function CRMPage() {
       <div className="flex gap-6 overflow-x-auto pb-6 min-h-[calc(100vh-250px)] scrollbar-hide">
         {PIPELINE_STAGES.map((stage) => {
           const leadsInStage = leads?.filter(l => l.stage === stage.id) || [];
-          const totalValue = leadsInStage.reduce((sum, l) => sum + (l.dealValue || 0), 0);
+          const totalValue = leadsInStage.reduce((sum, l) => sum + (l.deal_value || 0), 0);
 
           return (
             <div key={stage.id} className="flex flex-col gap-4 min-w-[320px] w-[320px]">
@@ -184,7 +184,7 @@ export default function CRMPage() {
                   <Card key={lead.id} className="cursor-pointer hover:ring-2 hover:ring-primary/10 transition-all border-none shadow-sm group">
                     <CardContent className="p-5 space-y-4">
                       <div className="flex items-start justify-between gap-2">
-                        <span className="text-sm font-bold leading-tight group-hover:text-primary transition-colors">{lead.companyName}</span>
+                        <span className="text-sm font-bold leading-tight group-hover:text-primary transition-colors">{lead.company_name}</span>
                         <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0">
                           <MoreHorizontal className="h-4 w-4" />
                         </Button>
@@ -193,7 +193,7 @@ export default function CRMPage() {
                       <div className="space-y-2">
                         <div className="flex items-center gap-2 text-[11px] text-muted-foreground font-medium">
                           <Building2 className="h-3.5 w-3.5" />
-                          <span>{lead.contactPerson}</span>
+                          <span>{lead.contact_person}</span>
                         </div>
                         <div className="flex items-center gap-2 text-[11px] text-muted-foreground font-medium">
                           <Calendar className="h-3.5 w-3.5" />
@@ -204,7 +204,7 @@ export default function CRMPage() {
                       <div className="flex items-center justify-between pt-3 border-t">
                         <div className="flex items-center gap-1 text-primary font-bold text-sm">
                           <DollarSign className="h-3.5 w-3.5" />
-                          <span>{(lead.dealValue || 0).toLocaleString()}</span>
+                          <span>{(lead.deal_value || 0).toLocaleString()}</span>
                         </div>
                         <Badge variant="secondary" className="text-[9px] h-5 py-0 uppercase font-bold text-accent bg-accent/5 border-none">Active</Badge>
                       </div>

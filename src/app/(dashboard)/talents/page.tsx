@@ -18,53 +18,55 @@ import { addDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { toast } from "@/hooks/use-toast";
 
 export default function TalentsPage() {
-  const { profile, isLoading: isTenantLoading } = useTenant();
+  const { profile, isLoading: isTenantLoading, companyId } = useTenant();
   const db = useFirestore();
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Add Talent State
   const [newTalent, setNewTalent] = useState({
-    fullName: "",
+    full_name: "",
     category: "Actor",
     location: "London",
     followers: "",
-    engagementRate: "0.05"
+    engagement_rate: "0.05"
   });
 
   const talentsQuery = useMemoFirebase(() => {
-    if (!db || !profile?.companyId) return null;
+    if (!db || !companyId) return null;
     return query(
-      collection(db, 'companies', profile.companyId, 'talents'),
-      orderBy('createdAt', 'desc')
+      collection(db, 'companies', companyId, 'talents'),
+      orderBy('created_at', 'desc')
     );
-  }, [db, profile?.companyId]);
+  }, [db, companyId]);
 
   const { data: talents, isLoading: isTalentsLoading } = useCollection(talentsQuery);
 
   const handleAddTalent = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!profile?.companyId || !newTalent.fullName) return;
+    if (!companyId || !newTalent.full_name) return;
 
     setIsSubmitting(true);
-    const talentsRef = collection(db, 'companies', profile.companyId, 'talents');
+    const talentsRef = collection(db, 'companies', companyId, 'talents');
     
     addDocumentNonBlocking(talentsRef, {
-      companyId: profile.companyId,
-      ...newTalent,
+      company_id: companyId,
+      full_name: newTalent.full_name,
+      category: newTalent.category,
+      location: newTalent.location,
       followers: parseInt(newTalent.followers) || 0,
-      engagementRate: parseFloat(newTalent.engagementRate) || 0,
-      isPublic: true,
-      portfolioUrls: [`https://picsum.photos/seed/${Math.random()}/400/600`],
-      createdAt: serverTimestamp(),
+      engagement_rate: parseFloat(newTalent.engagement_rate) || 0,
+      is_public: true,
+      portfolio_urls: [`https://picsum.photos/seed/${Math.random()}/400/600`],
+      created_at: serverTimestamp(),
     });
 
     toast({
       title: "Talent Profile Created",
-      description: `${newTalent.fullName} is now available in your network.`,
+      description: `${newTalent.full_name} is now available in your network.`,
     });
 
-    setNewTalent({ fullName: "", category: "Actor", location: "London", followers: "", engagementRate: "0.05" });
+    setNewTalent({ full_name: "", category: "Actor", location: "London", followers: "", engagement_rate: "0.05" });
     setIsAddOpen(false);
     setIsSubmitting(false);
   };
@@ -111,8 +113,8 @@ export default function TalentsPage() {
                   <Input 
                     id="fullName" 
                     placeholder="e.g. Michael Jenkins" 
-                    value={newTalent.fullName}
-                    onChange={(e) => setNewTalent({...newTalent, fullName: e.target.value})}
+                    value={newTalent.full_name}
+                    onChange={(e) => setNewTalent({...newTalent, full_name: e.target.value})}
                     required
                     className="rounded-xl"
                   />
@@ -125,7 +127,7 @@ export default function TalentsPage() {
                         <SelectValue placeholder="Select" />
                       </SelectTrigger>
                       <SelectContent>
-                        {['Actor', 'Influencer', 'Model', 'VO'].map(c => <SelectItem key={s} value={c}>{c}</SelectItem>)}
+                        {['Actor', 'Influencer', 'Model', 'VO'].map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
                       </SelectContent>
                     </Select>
                   </div>
@@ -159,8 +161,8 @@ export default function TalentsPage() {
                       type="number"
                       step="0.01"
                       placeholder="0.05" 
-                      value={newTalent.engagementRate}
-                      onChange={(e) => setNewTalent({...newTalent, engagementRate: e.target.value})}
+                      value={newTalent.engagement_rate}
+                      onChange={(e) => setNewTalent({...newTalent, engagement_rate: e.target.value})}
                       className="rounded-xl"
                     />
                   </div>
@@ -230,8 +232,8 @@ export default function TalentsPage() {
               <Card key={talent.id} className="overflow-hidden group border-none shadow-sm hover:shadow-md transition-all rounded-3xl">
                 <div className="relative aspect-[3/4] overflow-hidden bg-muted">
                   <Image 
-                    src={talent.portfolioUrls?.[0] || `https://picsum.photos/seed/${talent.id}/400/600`} 
-                    alt={talent.fullName}
+                    src={talent.portfolio_urls?.[0] || `https://picsum.photos/seed/${talent.id}/400/600`} 
+                    alt={talent.full_name}
                     fill
                     className="object-cover group-hover:scale-105 transition-transform duration-500"
                   />
@@ -247,7 +249,7 @@ export default function TalentsPage() {
                 <CardContent className="p-5 space-y-3">
                   <div className="flex items-start justify-between">
                     <div>
-                      <h3 className="font-bold text-base leading-tight">{talent.fullName}</h3>
+                      <h3 className="font-bold text-base leading-tight">{talent.full_name}</h3>
                       <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
                         <MapPin className="h-3 w-3" /> {talent.location}
                       </p>
@@ -261,7 +263,7 @@ export default function TalentsPage() {
                     </div>
                     <div className="flex items-center gap-1.5">
                       <Users className="h-3 w-3" />
-                      <span>Eng. {(talent.engagementRate * 100).toFixed(1)}%</span>
+                      <span>Eng. {(talent.engagement_rate * 100).toFixed(1)}%</span>
                     </div>
                   </div>
 

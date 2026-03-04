@@ -16,7 +16,7 @@ import { addDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { toast } from "@/hooks/use-toast";
 
 export default function ProposalsPage() {
-  const { profile, isLoading: isTenantLoading } = useTenant();
+  const { profile, isLoading: isTenantLoading, companyId } = useTenant();
   const db = useFirestore();
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -24,33 +24,33 @@ export default function ProposalsPage() {
   // Proposal State
   const [newProposal, setNewProposal] = useState({
     title: "",
-    clientName: "",
-    proposalNumber: `PROP-${Date.now().toString().slice(-6)}`,
+    client_name: "",
+    proposal_number: `PROP-${Date.now().toString().slice(-6)}`,
     content: "Production services including filming, editing, and distribution."
   });
 
   const proposalsQuery = useMemoFirebase(() => {
-    if (!db || !profile?.companyId) return null;
+    if (!db || !companyId) return null;
     return query(
-      collection(db, 'companies', profile.companyId, 'proposals'),
-      orderBy('createdAt', 'desc')
+      collection(db, 'companies', companyId, 'proposals'),
+      orderBy('created_at', 'desc')
     );
-  }, [db, profile?.companyId]);
+  }, [db, companyId]);
 
   const { data: proposals, isLoading: isProposalsLoading } = useCollection(proposalsQuery);
 
   const handleCreateProposal = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!profile?.companyId || !newProposal.title) return;
+    if (!companyId || !newProposal.title) return;
 
     setIsSubmitting(true);
-    const proposalsRef = collection(db, 'companies', profile.companyId, 'proposals');
+    const proposalsRef = collection(db, 'companies', companyId, 'proposals');
     
     addDocumentNonBlocking(proposalsRef, {
-      companyId: profile.companyId,
+      company_id: companyId,
       ...newProposal,
       status: 'draft',
-      createdAt: serverTimestamp(),
+      created_at: serverTimestamp(),
     });
 
     toast({
@@ -60,8 +60,8 @@ export default function ProposalsPage() {
 
     setNewProposal({ 
       title: "", 
-      clientName: "", 
-      proposalNumber: `PROP-${Date.now().toString().slice(-6)}`, 
+      client_name: "", 
+      proposal_number: `PROP-${Date.now().toString().slice(-6)}`, 
       content: "Production services..." 
     });
     setIsAddOpen(false);
@@ -122,8 +122,8 @@ export default function ProposalsPage() {
                   <Input 
                     id="client" 
                     placeholder="e.g. Nike Global" 
-                    value={newProposal.clientName}
-                    onChange={(e) => setNewProposal({...newProposal, clientName: e.target.value})}
+                    value={newProposal.client_name}
+                    onChange={(e) => setNewProposal({...newProposal, client_name: e.target.value})}
                     required
                     className="rounded-xl"
                   />
@@ -132,7 +132,7 @@ export default function ProposalsPage() {
                   <Label htmlFor="num">Reference Number</Label>
                   <Input 
                     id="num" 
-                    value={newProposal.proposalNumber}
+                    value={newProposal.proposal_number}
                     disabled
                     className="rounded-xl bg-muted"
                   />
@@ -166,7 +166,7 @@ export default function ProposalsPage() {
                   </div>
                   <div>
                     <h3 className="font-bold text-lg leading-tight group-hover:text-primary transition-colors">{prop.title}</h3>
-                    <p className="text-xs text-muted-foreground mt-1">Ref: {prop.proposalNumber} • Client: {prop.clientName || 'Private'}</p>
+                    <p className="text-xs text-muted-foreground mt-1">Ref: {prop.proposal_number} • Client: {prop.client_name || 'Private'}</p>
                   </div>
                 </div>
 
@@ -182,7 +182,7 @@ export default function ProposalsPage() {
                     <span className="text-[10px] font-bold uppercase text-muted-foreground tracking-widest">Date</span>
                     <div className="flex items-center gap-1.5 text-xs font-semibold">
                       <Clock className="h-3 w-3 text-muted-foreground" />
-                      {prop.createdAt?.toDate ? prop.createdAt.toDate().toLocaleDateString() : 'Just now'}
+                      {prop.created_at?.toDate ? prop.created_at.toDate().toLocaleDateString() : 'Just now'}
                     </div>
                   </div>
 

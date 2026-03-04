@@ -52,14 +52,14 @@ export default function DashboardPage() {
       <div className="flex items-end justify-between">
         <div>
           <h1 className="text-4xl font-bold tracking-tight text-primary">
-            Hi {profile?.full_name?.split(' ')[0]}!
+            Hi {profile?.full_name?.split(' ')[0] || 'User'}!
           </h1>
-          <p className="text-muted-foreground mt-2">{company?.name} Workspace Overview</p>
+          <p className="text-muted-foreground mt-2">{company?.name || 'Your'} Workspace Overview</p>
         </div>
         <div className="flex flex-col items-end gap-2 mb-1">
           <div className="flex items-center gap-4 text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
-            <span>Project Completion</span>
-            <Progress value={25} className="w-32 h-1.5 bg-white shadow-inner" />
+            <span>Overall Progress</span>
+            <Progress value={35} className="w-32 h-1.5 bg-white shadow-inner" />
           </div>
         </div>
       </div>
@@ -81,7 +81,7 @@ export default function DashboardPage() {
                     <MoreHorizontal className="h-5 w-5 opacity-50 group-hover:opacity-100 transition-opacity" />
                   </div>
                   <div className="space-y-4">
-                    <h3 className="font-bold text-lg leading-tight w-2/3">{proj.project_name}</h3>
+                    <h3 className="font-bold text-lg leading-tight w-2/3 line-clamp-2">{proj.project_name}</h3>
                     <div className="flex -space-x-2">
                       {[1, 2, 3].map(i => (
                         <Avatar key={i} className="h-6 w-6 border-2 border-white/20">
