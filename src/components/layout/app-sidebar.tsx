@@ -1,4 +1,3 @@
-
 "use client";
 
 import * as React from "react";
@@ -44,7 +43,7 @@ const workspaceItems = [
   { title: "Sales CRM", url: "/crm", icon: Briefcase, module: "crm" },
   { title: "Proposals", url: "/proposals", icon: FileText, module: "proposals" },
   { title: "Finance & Invoices", url: "/invoices", icon: Receipt, module: "invoices" },
-  { title: "Market Intelligence", url: "/research", icon: research, module: "research" },
+  { title: "Market Intelligence", url: "/research", icon: Search, module: "research" },
   { title: "Analytics & Reports", url: "/reports", icon: PieChart, module: "reports" },
 ];
 
