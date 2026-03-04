@@ -1,23 +1,36 @@
-
 "use client";
 
+import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Heart, MapPin, Instagram, Users, Plus, Calendar, Loader2, Filter } from "lucide-react";
+import { Search, Heart, MapPin, Instagram, Users, Plus, Calendar, Loader2, Sparkles } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import Image from "next/image";
-import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useTenant } from "@/hooks/use-tenant";
 import { useCollection, useMemoFirebase } from "@/firebase";
-import { collection, query, orderBy } from "firebase/firestore";
+import { collection, query, orderBy, serverTimestamp } from "firebase/firestore";
 import { useFirestore } from "@/firebase";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { addDocumentNonBlocking } from "@/firebase/non-blocking-updates";
+import { toast } from "@/hooks/use-toast";
 
 export default function TalentsPage() {
   const { profile, isLoading: isTenantLoading } = useTenant();
   const db = useFirestore();
+  const [isAddOpen, setIsAddOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Add Talent State
+  const [newTalent, setNewTalent] = useState({
+    fullName: "",
+    category: "Actor",
+    location: "London",
+    followers: "",
+    engagementRate: "0.05"
+  });
 
   const talentsQuery = useMemoFirebase(() => {
     if (!db || !profile?.companyId) return null;
@@ -28,6 +41,33 @@ export default function TalentsPage() {
   }, [db, profile?.companyId]);
 
   const { data: talents, isLoading: isTalentsLoading } = useCollection(talentsQuery);
+
+  const handleAddTalent = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!profile?.companyId || !newTalent.fullName) return;
+
+    setIsSubmitting(true);
+    const talentsRef = collection(db, 'companies', profile.companyId, 'talents');
+    
+    addDocumentNonBlocking(talentsRef, {
+      companyId: profile.companyId,
+      ...newTalent,
+      followers: parseInt(newTalent.followers) || 0,
+      engagementRate: parseFloat(newTalent.engagementRate) || 0,
+      isPublic: true,
+      portfolioUrls: [`https://picsum.photos/seed/${Math.random()}/400/600`],
+      createdAt: serverTimestamp(),
+    });
+
+    toast({
+      title: "Talent Profile Created",
+      description: `${newTalent.fullName} is now available in your network.`,
+    });
+
+    setNewTalent({ fullName: "", category: "Actor", location: "London", followers: "", engagementRate: "0.05" });
+    setIsAddOpen(false);
+    setIsSubmitting(false);
+  };
 
   if (isTenantLoading || isTalentsLoading) {
     return (
@@ -48,9 +88,92 @@ export default function TalentsPage() {
           <Button variant="outline" className="gap-2 rounded-xl">
             <Heart className="h-4 w-4" /> Favorites
           </Button>
-          <Button className="gap-2 rounded-xl shadow-lg shadow-primary/20">
-            <Plus className="h-4 w-4" /> Add Talent
-          </Button>
+          
+          <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
+            <DialogTrigger asChild>
+              <Button className="gap-2 rounded-xl shadow-lg shadow-primary/20">
+                <Plus className="h-4 w-4" /> Add Talent
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[425px] rounded-[2rem]">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <Sparkles className="h-5 w-5 text-accent" />
+                  List New Talent
+                </DialogTitle>
+                <DialogDescription>
+                  Register a profile in your company's talent network.
+                </DialogDescription>
+              </DialogHeader>
+              <form onSubmit={handleAddTalent} className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label htmlFor="fullName">Full Name</Label>
+                  <Input 
+                    id="fullName" 
+                    placeholder="e.g. Michael Jenkins" 
+                    value={newTalent.fullName}
+                    onChange={(e) => setNewTalent({...newTalent, fullName: e.target.value})}
+                    required
+                    className="rounded-xl"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="cat">Category</Label>
+                    <Select onValueChange={(val) => setNewTalent({...newTalent, category: val})} defaultValue="Actor">
+                      <SelectTrigger className="rounded-xl">
+                        <SelectValue placeholder="Select" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {['Actor', 'Influencer', 'Model', 'VO'].map(c => <SelectItem key={s} value={c}>{c}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="loc">Location</Label>
+                    <Input 
+                      id="loc" 
+                      placeholder="e.g. London" 
+                      value={newTalent.location}
+                      onChange={(e) => setNewTalent({...newTalent, location: e.target.value})}
+                      className="rounded-xl"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="foll">Followers</Label>
+                    <Input 
+                      id="foll" 
+                      type="number"
+                      placeholder="100000" 
+                      value={newTalent.followers}
+                      onChange={(e) => setNewTalent({...newTalent, followers: e.target.value})}
+                      className="rounded-xl"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="eng">Eng. Rate (0-1)</Label>
+                    <Input 
+                      id="eng" 
+                      type="number"
+                      step="0.01"
+                      placeholder="0.05" 
+                      value={newTalent.engagementRate}
+                      onChange={(e) => setNewTalent({...newTalent, engagementRate: e.target.value})}
+                      className="rounded-xl"
+                    />
+                  </div>
+                </div>
+                <DialogFooter className="pt-4">
+                  <Button type="submit" disabled={isSubmitting} className="w-full rounded-xl h-11 font-bold">
+                    {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                    Create Profile
+                  </Button>
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
 
@@ -100,7 +223,7 @@ export default function TalentsPage() {
           {talents?.length === 0 ? (
             <div className="col-span-full py-20 text-center text-muted-foreground bg-white rounded-3xl border-2 border-dashed">
               <p>Your talent library is empty.</p>
-              <Button variant="link" className="mt-2">Import from Agency</Button>
+              <Button variant="link" className="mt-2" onClick={() => setIsAddOpen(true)}>List Your First Talent</Button>
             </div>
           ) : (
             talents?.map((talent) => (

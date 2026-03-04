@@ -1,30 +1,33 @@
-
 "use client";
 
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { useState } from "react";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { 
-  FileText, 
-  Plus, 
-  Search, 
-  Filter, 
-  Download, 
-  ExternalLink,
-  Loader2,
-  Clock,
-  CheckCircle2,
-  AlertCircle
-} from "lucide-react";
+import { FileText, Plus, Search, Loader2, Clock, Download, ExternalLink, Sparkles } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { useTenant } from "@/hooks/use-tenant";
 import { useCollection, useMemoFirebase } from "@/firebase";
-import { collection, query, orderBy } from "firebase/firestore";
+import { collection, query, orderBy, serverTimestamp } from "firebase/firestore";
 import { useFirestore } from "@/firebase";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { addDocumentNonBlocking } from "@/firebase/non-blocking-updates";
+import { toast } from "@/hooks/use-toast";
 
 export default function ProposalsPage() {
   const { profile, isLoading: isTenantLoading } = useTenant();
   const db = useFirestore();
+  const [isAddOpen, setIsAddOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Proposal State
+  const [newProposal, setNewProposal] = useState({
+    title: "",
+    clientName: "",
+    proposalNumber: `PROP-${Date.now().toString().slice(-6)}`,
+    content: "Production services including filming, editing, and distribution."
+  });
 
   const proposalsQuery = useMemoFirebase(() => {
     if (!db || !profile?.companyId) return null;
@@ -35,6 +38,35 @@ export default function ProposalsPage() {
   }, [db, profile?.companyId]);
 
   const { data: proposals, isLoading: isProposalsLoading } = useCollection(proposalsQuery);
+
+  const handleCreateProposal = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!profile?.companyId || !newProposal.title) return;
+
+    setIsSubmitting(true);
+    const proposalsRef = collection(db, 'companies', profile.companyId, 'proposals');
+    
+    addDocumentNonBlocking(proposalsRef, {
+      companyId: profile.companyId,
+      ...newProposal,
+      status: 'draft',
+      createdAt: serverTimestamp(),
+    });
+
+    toast({
+      title: "Proposal Generated",
+      description: `${newProposal.title} has been added to your drafts.`,
+    });
+
+    setNewProposal({ 
+      title: "", 
+      clientName: "", 
+      proposalNumber: `PROP-${Date.now().toString().slice(-6)}`, 
+      content: "Production services..." 
+    });
+    setIsAddOpen(false);
+    setIsSubmitting(false);
+  };
 
   if (isTenantLoading || isProposalsLoading) {
     return (
@@ -56,18 +88,73 @@ export default function ProposalsPage() {
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input placeholder="Find a proposal..." className="pl-9 h-10 rounded-xl" />
           </div>
-          <Button className="gap-2 rounded-xl shadow-lg shadow-primary/20">
-            <Plus className="h-4 w-4" /> New Proposal
-          </Button>
+          
+          <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
+            <DialogTrigger asChild>
+              <Button className="gap-2 rounded-xl shadow-lg shadow-primary/20">
+                <Plus className="h-4 w-4" /> New Proposal
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[425px] rounded-[2rem]">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <Sparkles className="h-5 w-5 text-accent" />
+                  New Production Proposal
+                </DialogTitle>
+                <DialogDescription>
+                  Define the project scope and client for this pitch.
+                </DialogDescription>
+              </DialogHeader>
+              <form onSubmit={handleCreateProposal} className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label htmlFor="title">Proposal Title</Label>
+                  <Input 
+                    id="title" 
+                    placeholder="e.g. Summer Brand Film 2024" 
+                    value={newProposal.title}
+                    onChange={(e) => setNewProposal({...newProposal, title: e.target.value})}
+                    required
+                    className="rounded-xl"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="client">Client Name</Label>
+                  <Input 
+                    id="client" 
+                    placeholder="e.g. Nike Global" 
+                    value={newProposal.clientName}
+                    onChange={(e) => setNewProposal({...newProposal, clientName: e.target.value})}
+                    required
+                    className="rounded-xl"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="num">Reference Number</Label>
+                  <Input 
+                    id="num" 
+                    value={newProposal.proposalNumber}
+                    disabled
+                    className="rounded-xl bg-muted"
+                  />
+                </div>
+                <DialogFooter className="pt-4">
+                  <Button type="submit" disabled={isSubmitting} className="w-full rounded-xl h-11 font-bold">
+                    {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                    Create Draft
+                  </Button>
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
 
       <div className="grid grid-cols-1 gap-4">
         {proposals?.length === 0 ? (
-          <Card className="border-2 border-dashed flex flex-col items-center justify-center p-12 text-muted-foreground">
+          <Card className="border-2 border-dashed flex flex-col items-center justify-center p-12 text-muted-foreground bg-white/50 rounded-3xl">
             <FileText className="h-12 w-12 mb-4 opacity-20" />
             <p className="font-medium text-sm">No proposals generated yet.</p>
-            <Button variant="link" className="mt-2">Launch Proposal Wizard</Button>
+            <Button variant="link" className="mt-2" onClick={() => setIsAddOpen(true)}>Launch Proposal Wizard</Button>
           </Card>
         ) : (
           proposals?.map((prop) => (
@@ -92,10 +179,10 @@ export default function ProposalsPage() {
                   </div>
 
                   <div className="flex flex-col gap-1">
-                    <span className="text-[10px] font-bold uppercase text-muted-foreground tracking-widest">Sent At</span>
+                    <span className="text-[10px] font-bold uppercase text-muted-foreground tracking-widest">Date</span>
                     <div className="flex items-center gap-1.5 text-xs font-semibold">
                       <Clock className="h-3 w-3 text-muted-foreground" />
-                      {prop.sentAt ? new Date(prop.sentAt).toLocaleDateString() : 'Draft'}
+                      {prop.createdAt?.toDate ? prop.createdAt.toDate().toLocaleDateString() : 'Just now'}
                     </div>
                   </div>
 
