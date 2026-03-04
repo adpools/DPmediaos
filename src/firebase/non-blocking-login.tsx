@@ -5,12 +5,13 @@ import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   sendPasswordResetEmail,
+  updatePassword,
   UserCredential,
+  User,
 } from 'firebase/auth';
 
 /** Initiate anonymous sign-in (non-blocking). */
 export function initiateAnonymousSignIn(authInstance: Auth): Promise<UserCredential> {
-  // Return the promise so the caller can handle success/failure UI states
   return signInAnonymously(authInstance);
 }
 
@@ -24,7 +25,20 @@ export function initiateEmailSignIn(authInstance: Auth, email: string, password:
   return signInWithEmailAndPassword(authInstance, email, password);
 }
 
-/** Initiate password reset email (non-blocking). */
+/** 
+ * Initiate password reset email (non-blocking). 
+ * Includes a continue URL to return the user to the login page.
+ */
 export function initiatePasswordReset(authInstance: Auth, email: string): Promise<void> {
-  return sendPasswordResetEmail(authInstance, email);
+  const actionCodeSettings = {
+    // URL to redirect back to. The domain must be authorized in the Firebase Console.
+    url: typeof window !== 'undefined' ? `${window.location.origin}/login` : '',
+    handleCodeInApp: false,
+  };
+  return sendPasswordResetEmail(authInstance, email, actionCodeSettings);
+}
+
+/** Update the password for the currently signed-in user. */
+export function performPasswordUpdate(user: User, newPassword: string): Promise<void> {
+  return updatePassword(user, newPassword);
 }

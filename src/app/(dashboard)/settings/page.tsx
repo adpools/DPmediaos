@@ -3,7 +3,7 @@
 import { useState, useEffect, Suspense, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { 
-  User, 
+  User as UserIcon, 
   Lock, 
   Settings2, 
   Building2, 
@@ -39,8 +39,11 @@ import { useTenant } from "@/hooks/use-tenant";
 import { useFirestore } from "@/firebase";
 import { doc, serverTimestamp } from "firebase/firestore";
 import { updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
+import { performPasswordUpdate } from "@/firebase/non-blocking-login";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { signOut } from "firebase/auth";
+import { useAuth } from "@/firebase";
 
 // Helper to convert hex to HSL components for CSS variables
 function hexToHslComponents(hex: string): string {
@@ -72,7 +75,8 @@ function AccountCenterContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const db = useFirestore();
-  const { profile: tenantProfile, company, settings, companyId, isLoading: isTenantLoading } = useTenant();
+  const auth = useAuth();
+  const { profile: tenantProfile, company, settings, user, companyId, isLoading: isTenantLoading } = useTenant();
   
   // Tab Management
   const initialTab = searchParams.get("tab") || "profile";
@@ -85,6 +89,13 @@ function AccountCenterContent() {
     email: "",
     bio: ""
   });
+
+  // Security State
+  const [passwords, setPasswords] = useState({
+    new: "",
+    confirm: ""
+  });
+  const [isUpdatingPass, setIsUpdatingPass] = useState(false);
 
   // Sync local state when tenant profile loads
   useEffect(() => {
@@ -153,6 +164,24 @@ function AccountCenterContent() {
     });
   };
 
+  const handleUpdatePassword = async () => {
+    if (!user || !passwords.new || passwords.new !== passwords.confirm) {
+      toast({ variant: "destructive", title: "Validation Error", description: "Passwords must match and cannot be empty." });
+      return;
+    }
+
+    setIsUpdatingPass(true);
+    try {
+      await performPasswordUpdate(user, passwords.new);
+      toast({ title: "Security Updated", description: "Your password has been changed successfully." });
+      setPasswords({ new: "", confirm: "" });
+    } catch (error: any) {
+      toast({ variant: "destructive", title: "Update Failed", description: error.message || "Please re-authenticate to change your password." });
+    } finally {
+      setIsUpdatingPass(false);
+    }
+  };
+
   const handleToggleModule = (moduleId: string, enabled: boolean) => {
     if (!companyId || !db || !settings) return;
 
@@ -199,11 +228,14 @@ function AccountCenterContent() {
     document.documentElement.style.setProperty('--sidebar-ring', hsl);
   }, []);
 
-  const handleRestore = () => {
-    toast({
-      title: "System Restore Initiated",
-      description: "Rolling back configuration to the last stable backup.",
-    });
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      toast({ title: "Session terminated", description: "You have been logged out." });
+      router.push('/login');
+    } catch (e) {
+      toast({ variant: "destructive", title: "Logout failed" });
+    }
   };
 
   if (isTenantLoading) {
@@ -224,7 +256,7 @@ function AccountCenterContent() {
         <Button 
           variant="destructive" 
           className="gap-2 rounded-xl h-11 px-6 shadow-lg shadow-rose-500/20"
-          onClick={() => toast({ title: "Session terminated", description: "You have been logged out." })}
+          onClick={handleLogout}
         >
           <LogOut className="h-4 w-4" /> Logout
         </Button>
@@ -233,7 +265,7 @@ function AccountCenterContent() {
       <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
         <TabsList className="bg-white/50 border p-1 h-auto flex-wrap gap-1 rounded-2xl">
           <TabsTrigger value="profile" className="rounded-xl px-4 py-2 gap-2 data-[state=active]:bg-primary data-[state=active]:text-white">
-            <User className="h-4 w-4" /> Profile
+            <UserIcon className="h-4 w-4" /> Profile
           </TabsTrigger>
           <TabsTrigger value="preferences" className="rounded-xl px-4 py-2 gap-2 data-[state=active]:bg-primary data-[state=active]:text-white">
             <Settings2 className="h-4 w-4" /> Preferences
@@ -411,21 +443,32 @@ function AccountCenterContent() {
             <CardContent className="px-0 space-y-6">
               <div className="space-y-4 max-w-md">
                 <div className="space-y-2">
-                  <Label htmlFor="currentPass">Current Password</Label>
-                  <Input id="currentPass" type="password" placeholder="••••••••" className="rounded-xl h-12" />
-                </div>
-                <div className="space-y-2">
                   <Label htmlFor="newPass">New Password</Label>
-                  <Input id="newPass" type="password" placeholder="••••••••" className="rounded-xl h-12" />
+                  <Input 
+                    id="newPass" 
+                    type="password" 
+                    placeholder="At least 8 characters" 
+                    className="rounded-xl h-12"
+                    value={passwords.new}
+                    onChange={(e) => setPasswords({...passwords, new: e.target.value})}
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="confirmPass">Confirm New Password</Label>
-                  <Input id="confirmPass" type="password" placeholder="••••••••" className="rounded-xl h-12" />
+                  <Input 
+                    id="confirmPass" 
+                    type="password" 
+                    placeholder="••••••••" 
+                    className="rounded-xl h-12"
+                    value={passwords.confirm}
+                    onChange={(e) => setPasswords({...passwords, confirm: e.target.value})}
+                  />
                 </div>
               </div>
               <div className="flex justify-end pt-4">
-                <Button onClick={() => toast({ title: "Security Updated" })} className="gap-2 rounded-xl h-11 px-8">
-                  <RefreshCcw className="h-4 w-4" /> Update Security
+                <Button disabled={isUpdatingPass} onClick={handleUpdatePassword} className="gap-2 rounded-xl h-11 px-8">
+                  {isUpdatingPass ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCcw className="h-4 w-4" />}
+                  Update Credentials
                 </Button>
               </div>
             </CardContent>
@@ -505,7 +548,7 @@ function AccountCenterContent() {
               <Button 
                 variant="outline" 
                 className="rounded-xl gap-2 h-11 px-6"
-                onClick={handleRestore}
+                onClick={() => toast({ title: "Restore Initiated" })}
               >
                 <RefreshCcw className="h-4 w-4" /> Restore Configuration
               </Button>

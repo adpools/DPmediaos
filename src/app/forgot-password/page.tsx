@@ -9,12 +9,13 @@ import { useAuth } from "@/firebase";
 import { initiatePasswordReset } from "@/firebase/non-blocking-login";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { KeyRound, Loader2, ArrowLeft } from "lucide-react";
+import { KeyRound, Loader2, ArrowLeft, CheckCircle2 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
+  const [isSent, setIsSent] = useState(false);
   const auth = useAuth();
   const router = useRouter();
 
@@ -27,12 +28,11 @@ export default function ForgotPasswordPage() {
     initiatePasswordReset(auth, email)
       .then(() => {
         setLoading(false);
+        setIsSent(true);
         toast({
-          title: "Reset Email Sent",
-          description: `An authentication link has been dispatched to ${email}. Please check your inbox and spam folders.`,
+          title: "Reset Link Dispatched",
+          description: `A secure authentication link has been sent to ${email}.`,
         });
-        // Success redirect
-        router.push("/login");
       })
       .catch((error: any) => {
         setLoading(false);
@@ -40,10 +40,35 @@ export default function ForgotPasswordPage() {
         toast({
           variant: "destructive",
           title: "Dispatch Failed",
-          description: error.message || "We couldn't process this request. Ensure the account exists and the project email service is active.",
+          description: error.message || "We couldn't process this request. Ensure the account exists and the email provider is active.",
         });
       });
   };
+
+  if (isSent) {
+    return (
+      <div className="min-h-screen bg-[#F0F1F4] flex items-center justify-center p-6">
+        <Card className="w-full max-w-md border-none shadow-2xl rounded-[2.5rem] overflow-hidden text-center p-10 space-y-6">
+          <div className="mx-auto h-20 w-20 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-600">
+            <CheckCircle2 className="h-10 w-10" />
+          </div>
+          <div className="space-y-2">
+            <CardTitle className="text-2xl font-bold">Verification Sent</CardTitle>
+            <CardDescription className="text-base px-4">
+              We've sent a password recovery link to <strong>{email}</strong>. 
+              Please follow the instructions in the email to regain access.
+            </CardDescription>
+          </div>
+          <Button onClick={() => router.push('/login')} className="w-full h-12 rounded-xl font-bold">
+            Return to Login
+          </Button>
+          <p className="text-xs text-muted-foreground">
+            Didn't receive it? Check your spam folder or <button onClick={() => setIsSent(false)} className="text-primary font-bold hover:underline">try a different email</button>.
+          </p>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#F0F1F4] flex items-center justify-center p-6">
