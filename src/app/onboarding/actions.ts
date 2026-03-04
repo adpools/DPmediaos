@@ -1,3 +1,4 @@
+
 'use client';
 
 import { doc, serverTimestamp, Firestore, collection } from 'firebase/firestore';
@@ -26,7 +27,7 @@ export async function setupNewCompany(
     updatedAt: serverTimestamp(),
   }, { merge: true });
 
-  // 2. Create Admin Role
+  // 2. Create Admin Role with all module permissions
   const roleRef = doc(db, 'companies', companyId, 'roles', roleId);
   setDocumentNonBlocking(roleRef, {
     id: roleId,
@@ -37,8 +38,10 @@ export async function setupNewCompany(
       projects: { view: true, create: true, edit: true, delete: true },
       talents: { view: true, create: true, edit: true, delete: true },
       crm: { view: true, create: true, edit: true, delete: true },
-      finance: { view: true, create: true, edit: true, delete: true },
+      proposals: { view: true, create: true, edit: true, delete: true },
+      invoices: { view: true, create: true, edit: true, delete: true, approve: true },
       research: { view: true, create: true, edit: true, delete: true },
+      reports: { view: true },
       admin: { view: true, create: true, edit: true, delete: true },
     }
   }, { merge: true });
@@ -48,7 +51,7 @@ export async function setupNewCompany(
   setDocumentNonBlocking(settingsRef, {
     id: companyId,
     companyId,
-    enabledModules: ['dashboard', 'projects', 'talents', 'crm', 'finance', 'research', 'reports'],
+    enabledModules: ['dashboard', 'projects', 'talents', 'crm', 'proposals', 'invoices', 'research', 'reports'],
     defaultCurrency: 'USD',
     updatedAt: serverTimestamp(),
   }, { merge: true });
@@ -60,12 +63,12 @@ export async function setupNewCompany(
     companyId,
     roleId,
     email,
-    fullName: email.split('@')[0], // Default name
+    fullName: email.split('@')[0],
     status: 'active',
     createdAt: serverTimestamp(),
   }, { merge: true });
 
-  // 5. Seed initial data (optional but helpful for evaluation)
+  // 5. Seed initial lead
   const leadsRef = collection(db, 'companies', companyId, 'leads');
   addDocumentNonBlocking(leadsRef, {
     companyId,

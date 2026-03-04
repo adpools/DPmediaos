@@ -7,6 +7,7 @@ import {
   Film,
   Users,
   Briefcase,
+  FileText,
   Receipt,
   Search,
   PieChart,
@@ -14,7 +15,6 @@ import {
   Plus,
   ShieldCheck,
   LogOut,
-  Settings2,
   Loader2
 } from "lucide-react";
 import {
@@ -40,11 +40,12 @@ import { signOut } from "firebase/auth";
 const workspaceItems = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutGrid, module: "dashboard" },
   { title: "Projects", url: "/projects", icon: Film, module: "projects" },
-  { title: "Talent Marketplace", url: "/talent", icon: Users, module: "talents" },
+  { title: "Talent Network", url: "/talents", icon: Users, module: "talents" },
   { title: "Sales CRM", url: "/crm", icon: Briefcase, module: "crm" },
-  { title: "Finance & Invoices", url: "/finance", icon: Receipt, module: "finance" },
-  { title: "Market Intelligence", url: "/research", icon: Search, module: "research" },
-  { title: "Reports", url: "/reports", icon: PieChart, module: "reports" },
+  { title: "Proposals", url: "/proposals", icon: FileText, module: "proposals" },
+  { title: "Finance & Invoices", url: "/invoices", icon: Receipt, module: "invoices" },
+  { title: "Market Intelligence", url: "/research", icon: research, module: "research" },
+  { title: "Analytics & Reports", url: "/reports", icon: PieChart, module: "reports" },
 ];
 
 export function AppSidebar() {
@@ -96,7 +97,6 @@ export function AppSidebar() {
           </div>
           <SidebarMenu>
             {workspaceItems.map((item) => {
-              // Permission & Module Enablement Check
               const enabled = isModuleEnabled(item.module);
               const allowed = hasPermission(item.module, 'view');
               
@@ -117,7 +117,7 @@ export function AppSidebar() {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               );
-            })}Side
+            })}
           </SidebarMenu>
         </SidebarGroup>
 
@@ -129,7 +129,7 @@ export function AppSidebar() {
             <SidebarMenuItem>
               <SidebarMenuButton
                 asChild
-                isActive={pathname.startsWith('/settings')}
+                isActive={pathname === '/settings'}
                 tooltip="Account Center"
                 className="rounded-xl h-10 px-3 hover:bg-accent/5 data-[active=true]:bg-primary/5 data-[active=true]:text-primary"
               >
