@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -14,7 +15,8 @@ import {
   XCircle,
   Mail,
   UserCog,
-  UserMinus
+  UserMinus,
+  Sparkles
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTenant } from "@/hooks/use-tenant";
@@ -115,7 +117,7 @@ export default function RBACPage() {
 
   const handleInvite = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!companyId || !inviteData.email) return;
+    if (!companyId || !inviteData.email || !db) return;
 
     setIsInviting(true);
     try {
@@ -123,7 +125,7 @@ export default function RBACPage() {
       addDocumentNonBlocking(inviteRef, {
         email: inviteData.email,
         role_id: inviteData.role_id,
-        invited_by: profile?.id,
+        invited_by: profile?.id || profile?.uid || 'system',
         company_id: companyId,
         status: 'pending',
         created_at: serverTimestamp()
@@ -137,7 +139,8 @@ export default function RBACPage() {
       setInviteData({ email: "", role_id: "member" });
       setIsInviteOpen(false);
     } catch (error) {
-      console.error(error);
+      console.error("Invitation failed:", error);
+      toast({ variant: "destructive", title: "Invitation Failed", description: "Could not send invitation. Check permissions." });
     } finally {
       setIsInviting(false);
     }
@@ -157,7 +160,6 @@ export default function RBACPage() {
     }
     if (!db) return;
     const userRef = doc(db, 'users', memberId);
-    // In multi-tenant, we usually just clear the company_id or delete the record
     updateDocumentNonBlocking(userRef, { company_id: null, role_id: null });
     toast({ title: "Member Removed", description: `${name} no longer has access to this workspace.` });
   };
@@ -187,7 +189,7 @@ export default function RBACPage() {
           <DialogContent className="sm:max-w-[425px] rounded-[2rem]">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
-                <Mail className="h-5 w-5 text-accent" />
+                <Sparkles className="h-5 w-5 text-accent" />
                 Invite to Workspace
               </DialogTitle>
               <DialogDescription>
@@ -262,11 +264,11 @@ export default function RBACPage() {
                             <Avatar className="h-9 w-9 ring-2 ring-primary/5">
                               <AvatarImage src={member.avatar} />
                               <AvatarFallback className="bg-primary/5 text-primary text-[10px] font-bold">
-                                {member.full_name?.substring(0,2).toUpperCase() || 'U'}
+                                {(member.fullName || member.full_name)?.substring(0,2).toUpperCase() || 'U'}
                               </AvatarFallback>
                             </Avatar>
                             <div className="flex flex-col">
-                              <span className="font-bold text-sm">{member.full_name || 'New Member'}</span>
+                              <span className="font-bold text-sm">{member.fullName || member.full_name || 'New Member'}</span>
                               <span className="text-[10px] text-muted-foreground font-medium">{member.email}</span>
                             </div>
                           </div>
@@ -298,7 +300,7 @@ export default function RBACPage() {
                               <DropdownMenuSeparator />
                               <DropdownMenuItem 
                                 className="gap-2 text-destructive cursor-pointer py-2"
-                                onClick={() => handleRemoveMember(member.id, member.full_name)}
+                                onClick={() => handleRemoveMember(member.id, member.fullName || member.full_name)}
                               >
                                 <UserMinus className="h-4 w-4" /> Remove from Team
                               </DropdownMenuItem>

@@ -1,3 +1,4 @@
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -26,11 +27,11 @@ service cloud.firestore {
 
     // Checks if the user belongs to the company specified in the path or is a platform admin.
     function isMember(companyId) {
-      return isSignedIn() && (isSuperAdmin() || getUserData().company_id == companyId);
+      return isSignedIn() && (isSuperAdmin() || (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && getUserData().company_id == companyId));
     }
 
     function isAdmin(companyId) {
-      return isMember(companyId) && (isSuperAdmin() || getUserData().role_id == 'admin');
+      return isMember(companyId) && (isSuperAdmin() || (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && getUserData().role_id == 'admin'));
     }
 
     // Ensures the document exists and the requester has member-level access.
@@ -59,11 +60,11 @@ service cloud.firestore {
     }
 
     match /users/{userId} {
-      allow get: if isSignedIn() && (request.auth.uid == userId || isSuperAdmin() || getUserData().company_id == resource.data.company_id);
+      allow get: if isSignedIn() && (request.auth.uid == userId || isSuperAdmin() || (exists(/databases/$(database)/documents/users/$(userId)) && getUserData().company_id == get(/databases/$(database)/documents/users/$(userId)).data.company_id));
       // Allow users to list others in the same company
-      allow list: if isSignedIn() && (isSuperAdmin() || request.query.filters.company_id == getUserData().company_id);
+      allow list: if isSignedIn() && (isSuperAdmin() || (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && request.query.filters.company_id == getUserData().company_id));
       allow create: if isSignedIn() && request.auth.uid == userId;
-      allow update: if isSignedIn() && (request.auth.uid == userId || isSuperAdmin() || (getUserData().role_id == 'admin' && getUserData().company_id == resource.data.company_id));
+      allow update: if isSignedIn() && (request.auth.uid == userId || isSuperAdmin() || (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && getUserData().role_id == 'admin' && getUserData().company_id == resource.data.company_id));
       allow delete: if isSuperAdmin();
     }
 

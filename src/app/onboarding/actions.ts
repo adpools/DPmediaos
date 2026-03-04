@@ -1,3 +1,4 @@
+
 'use client';
 
 import { doc, serverTimestamp, Firestore, collection } from 'firebase/firestore';
@@ -23,6 +24,7 @@ export async function setupNewCompany(
     company_id: companyId,
     role_id: roleId,
     email,
+    fullName: email.split('@')[0],
     full_name: email.split('@')[0],
     status: 'active',
     created_at: serverTimestamp(),
@@ -62,7 +64,7 @@ export async function setupNewCompany(
   setDocumentNonBlocking(settingsRef, {
     id: companyId,
     company_id: companyId,
-    enabled_modules: ['dashboard', 'projects', 'talents', 'crm', 'proposals', 'invoices', 'research', 'reports'],
+    enabledModules: ['dashboard', 'projects', 'talents', 'crm', 'proposals', 'invoices', 'research', 'reports'],
     default_currency: 'USD',
     updated_at: serverTimestamp(),
   }, { merge: true });

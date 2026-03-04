@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useUser, useDoc, useMemoFirebase } from '@/firebase';
@@ -74,7 +75,7 @@ export function useTenant() {
     if (!!superAdmin) return true;
     // If settings document doesn't exist yet, default to core modules
     if (!settings) return ['dashboard', 'projects'].includes(moduleName);
-    return settings?.enabled_modules?.includes(moduleName) ?? false;
+    return settings?.enabledModules?.includes(moduleName) || settings?.enabled_modules?.includes(moduleName) || false;
   };
 
   return {

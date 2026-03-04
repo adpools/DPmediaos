@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, Suspense } from "react";
@@ -51,7 +52,7 @@ function AccountCenterContent() {
   useEffect(() => {
     if (tenantProfile) {
       setFormData({
-        name: tenantProfile.full_name || "",
+        name: tenantProfile.fullName || tenantProfile.full_name || "",
         role: tenantProfile.role_id || "Member",
         email: tenantProfile.email || "",
         bio: tenantProfile.bio || ""
@@ -81,6 +82,7 @@ function AccountCenterContent() {
     if (!tenantProfile?.id || !db) return;
     const userRef = doc(db, 'users', tenantProfile.id);
     updateDocumentNonBlocking(userRef, {
+      fullName: formData.name,
       full_name: formData.name,
       bio: formData.bio
     });
@@ -89,7 +91,7 @@ function AccountCenterContent() {
 
   const handleToggleModule = (moduleId: string, enabled: boolean) => {
     if (!companyId || !db) return;
-    const currentModules = settings?.enabled_modules || ['dashboard', 'projects'];
+    const currentModules = settings?.enabledModules || ['dashboard', 'projects'];
     let updatedModules;
     if (enabled) {
       updatedModules = Array.from(new Set([...currentModules, moduleId]));
@@ -98,8 +100,8 @@ function AccountCenterContent() {
     }
     const settingsRef = doc(db, 'companies', companyId, 'company_settings', companyId);
     setDocumentNonBlocking(settingsRef, {
-      enabled_modules: updatedModules,
-      updated_at: serverTimestamp(),
+      enabledModules: updatedModules,
+      updatedAt: serverTimestamp(),
       company_id: companyId,
       id: companyId
     }, { merge: true });
@@ -150,11 +152,11 @@ function AccountCenterContent() {
               <div className="flex items-center gap-6">
                 <Avatar className="h-24 w-24 ring-4 ring-white shadow-xl">
                   <AvatarImage src={tenantProfile?.avatar} />
-                  <AvatarFallback>{formData.name.substring(0,2).toUpperCase() || 'U'}</AvatarFallback>
+                  <AvatarFallback className="text-2xl font-bold">{formData.name.substring(0,2).toUpperCase() || 'U'}</AvatarFallback>
                 </Avatar>
                 <div>
                   <CardTitle className="text-2xl font-bold">{formData.name || "User"}</CardTitle>
-                  <CardDescription>{formData.role}</CardDescription>
+                  <CardDescription className="uppercase text-[10px] font-bold tracking-widest mt-1">{formData.role}</CardDescription>
                 </div>
               </div>
             </CardHeader>
@@ -169,7 +171,7 @@ function AccountCenterContent() {
                   <Input value={formData.bio} onChange={(e) => setFormData({...formData, bio: e.target.value})} className="rounded-xl" />
                 </div>
               </div>
-              <Button onClick={handleSaveProfile} className="rounded-xl px-8">Save Profile</Button>
+              <Button onClick={handleSaveProfile} className="rounded-xl px-8 font-bold">Save Profile</Button>
             </CardContent>
           </Card>
         </TabsContent>
@@ -182,7 +184,7 @@ function AccountCenterContent() {
             </CardHeader>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
               {modulesList.map(mod => {
-                const isEnabled = settings?.enabled_modules?.includes(mod.id);
+                const isEnabled = settings?.enabledModules?.includes(mod.id);
                 return (
                   <div key={mod.id} className="flex items-center justify-between p-4 bg-muted/30 rounded-2xl">
                     <div className="flex items-center gap-3">
