@@ -9,7 +9,7 @@ import {
   Receipt,
   Search,
   PieChart,
-  Building2,
+  UserCircle,
   Plus
 } from "lucide-react";
 import {
@@ -40,7 +40,7 @@ const workspaceItems = [
 ];
 
 const configurationItems = [
-  { title: "Workspace Settings", url: "/settings", icon: Building2 },
+  { title: "Account Center", url: "/settings", icon: UserCircle },
 ];
 
 export function AppSidebar() {
