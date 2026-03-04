@@ -1,0 +1,2520 @@
+{
+  "entities": {
+    "Company": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Company",
+      "type": "object",
+      "description": "Represents a single company (tenant) within the multi-tenant SaaS platform, holding essential information.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Company entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "The registered name of the company."
+        },
+        "logoUrl": {
+          "type": "string",
+          "description": "URL to the company's logo image, stored in Firebase Storage.",
+          "format": "uri"
+        },
+        "onboardingStatus": {
+          "type": "string",
+          "description": "Current status of the company's onboarding process (e.g., 'pending', 'completed', 'wizard_step_2')."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp when the company record was created.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp when the company record was last updated.",
+          "format": "date-time"
+        },
+        "stripeCustomerId": {
+          "type": "string",
+          "description": "Identifier for the customer in the external Stripe billing system. (Relationship: Company 1:1 ExternalStripeCustomer)"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "onboardingStatus",
+        "createdAt"
+      ]
+    },
+    "User": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User",
+      "type": "object",
+      "description": "Represents a user account within a specific company, linked to Firebase Authentication and controlled by roles.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the User entity, typically the Firebase Authentication UID."
+        },
+        "companyId": {
+          "type": "string",
+          "description": "Reference to Company. (Relationship: Company 1:N User)"
+        },
+        "roleId": {
+          "type": "string",
+          "description": "Reference to Role, defining the user's permissions within their company. (Relationship: Role 1:N User)"
+        },
+        "email": {
+          "type": "string",
+          "description": "The user's email address, used for authentication.",
+          "format": "email"
+        },
+        "fullName": {
+          "type": "string",
+          "description": "The full name of the user."
+        },
+        "status": {
+          "type": "string",
+          "description": "Current status of the user's account, controlling access.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "lastLoginAt": {
+          "type": "string",
+          "description": "Timestamp of the user's last successful login.",
+          "format": "date-time"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp when the user record was created.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "companyId",
+        "roleId",
+        "email",
+        "fullName",
+        "status",
+        "createdAt"
+      ]
+    },
+    "Role": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Role",
+      "type": "object",
+      "description": "Defines a set of permissions for users within a specific company, enabling Role-Based Access Control (RBAC).",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Role entity."
+        },
+        "companyId": {
+          "type": "string",
+          "description": "Reference to Company. (Relationship: Company 1:N Role)"
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the role (e.g., 'Admin', 'Manager', 'Viewer')."
+        },
+        "permissions": {
+          "type": "array",
+          "description": "An array of permission objects, where each object specifies access levels for a module.",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "companyId",
+        "name",
+        "permissions"
+      ]
+    },
+    "CompanySetting": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "CompanySetting",
+      "type": "object",
+      "description": "Stores company-specific configuration and module enablement status.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the CompanySetting entity, typically matching the companyId for a 1:1 relationship."
+        },
+        "companyId": {
+          "type": "string",
+          "description": "Reference to Company. (Relationship: Company 1:1 CompanySetting)"
+        },
+        "enabledModules": {
+          "type": "array",
+          "description": "An array of strings listing the names of modules currently enabled for the company (e.g., ['projects', 'talents', 'crm']).",
+          "items": {
+            "type": "string"
+          }
+        },
+        "invoiceTemplateId": {
+          "type": "string",
+          "description": "Reference to a default invoice template used by the company. (Relationship: InvoiceTemplate 1:N CompanySetting)"
+        },
+        "defaultCurrency": {
+          "type": "string",
+          "description": "The default currency code (e.g., 'USD', 'EUR') for financial transactions."
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp when the company settings were last updated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "companyId",
+        "enabledModules",
+        "defaultCurrency",
+        "updatedAt"
+      ]
+    },
+    "SettingsHistory": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "SettingsHistory",
+      "type": "object",
+      "description": "Logs changes to CompanySettings, providing version control and restore capabilities.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the SettingsHistory entity."
+        },
+        "companyId": {
+          "type": "string",
+          "description": "Reference to Company. (Relationship: Company 1:N SettingsHistory)"
+        },
+        "settingId": {
+          "type": "string",
+          "description": "Reference to the CompanySetting that was modified. (Relationship: CompanySetting 1:N SettingsHistory)"
+        },
+        "snapshot": {
+          "type": "array",
+          "description": "A snapshot of the CompanySetting object at the time of the change.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "changedByUserId": {
+          "type": "string",
+          "description": "Reference to the User who made the change. (Relationship: User 1:N SettingsHistory)"
+        },
+        "timestamp": {
+          "type": "string",
+          "description": "Timestamp when the settings change occurred.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "companyId",
+        "settingId",
+        "snapshot",
+        "changedByUserId",
+        "timestamp"
+      ]
+    },
+    "ActivityLog": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ActivityLog",
+      "type": "object",
+      "description": "Records significant user and system actions within a company for auditing and traceability.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the ActivityLog entity."
+        },
+        "companyId": {
+          "type": "string",
+          "description": "Reference to Company. (Relationship: Company 1:N ActivityLog)"
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to the User who performed the action. (Relationship: User 1:N ActivityLog)"
+        },
+        "action": {
+          "type": "string",
+          "description": "A description of the action performed (e.g., 'Project Created', 'Invoice Finalized')."
+        },
+        "resourceType": {
+          "type": "string",
+          "description": "The type of resource affected by the action (e.g., 'Project', 'Invoice')."
+        },
+        "resourceId": {
+          "type": "string",
+          "description": "Reference to the specific resource affected by the action. (Relationship: ResourceType 1:N ActivityLog)"
+        },
+        "details": {
+          "type": "array",
+          "description": "An object containing additional contextual details about the activity.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "timestamp": {
+          "type": "string",
+          "description": "Timestamp when the activity occurred.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "companyId",
+        "userId",
+        "action",
+        "resourceType",
+        "resourceId",
+        "timestamp"
+      ]
+    },
+    "Subscription": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Subscription",
+      "type": "object",
+      "description": "Manages a company's subscription plan, status, and feature limits.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Subscription entity, typically matching the companyId for a 1:1 relationship."
+        },
+        "companyId": {
+          "type": "string",
+          "description": "Reference to Company. (Relationship: Company 1:1 Subscription)"
+        },
+        "planId": {
+          "type": "string",
+          "description": "Reference to the SubscriptionPlan the company is subscribed to. (Relationship: SubscriptionPlan 1:N Subscription)"
+        },
+        "startDate": {
+          "type": "string",
+          "description": "The date when the subscription started.",
+          "format": "date-time"
+        },
+        "endDate": {
+          "type": "string",
+          "description": "The date when the current subscription period is set to end.",
+          "format": "date-time"
+        },
+        "status": {
+          "type": "string",
+          "description": "The current status of the subscription (e.g., 'active', 'past_due', 'cancelled').",
+          "items": {
+            "type": "string"
+          }
+        },
+        "featureLimits": {
+          "type": "array",
+          "description": "An object defining specific feature limits for the subscription (e.g., maxProjects, maxUsers).",
+          "items": {
+            "type": "string"
+          }
+        },
+        "stripeSubscriptionId": {
+          "type": "string",
+          "description": "Identifier for the subscription in the external Stripe billing system."
+        }
+      },
+      "required": [
+        "id",
+        "companyId",
+        "planId",
+        "startDate",
+        "endDate",
+        "status",
+        "featureLimits"
+      ]
+    },
+    "SubscriptionPlan": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "SubscriptionPlan",
+      "type": "object",
+      "description": "Defines the different subscription tiers offered by the platform.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the SubscriptionPlan entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the subscription plan (e.g., 'Basic', 'Pro', 'Enterprise')."
+        },
+        "description": {
+          "type": "string",
+          "description": "A detailed description of what the plan offers."
+        },
+        "price": {
+          "type": "number",
+          "description": "The monthly or annual price of the subscription plan."
+        },
+        "features": {
+          "type": "array",
+          "description": "An array of strings or objects detailing the features included and their limits.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp when the subscription plan was created.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "price",
+        "features",
+        "createdAt"
+      ]
+    },
+    "Module": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Module",
+      "type": "object",
+      "description": "Defines an available feature module within the platform, which can be enabled/disabled per company.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Module entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "The programmatic name of the module (e.g., 'projects', 'talents', 'crm')."
+        },
+        "displayName": {
+          "type": "string",
+          "description": "The user-friendly display name of the module (e.g., 'Project Management')."
+        },
+        "description": {
+          "type": "string",
+          "description": "A brief description of the module's functionality."
+        },
+        "isCoreModule": {
+          "type": "boolean",
+          "description": "Indicates if the module is a core part of the platform and cannot be disabled."
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "displayName",
+        "description",
+        "isCoreModule"
+      ]
+    },
+    "Project": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Project",
+      "type": "object",
+      "description": "Manages a media production project from inception to completion.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Project entity."
+        },
+        "companyId": {
+          "type": "string",
+          "description": "Reference to Company. (Relationship: Company 1:N Project)"
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the project."
+        },
+        "clientName": {
+          "type": "string",
+          "description": "The name of the client for whom the project is being done."
+        },
+        "status": {
+          "type": "string",
+          "description": "Current status of the project (e.g., 'pending', 'in_progress', 'completed', 'archived').",
+          "items": {
+            "type": "string"
+          }
+        },
+        "startDate": {
+          "type": "string",
+          "description": "The planned start date of the project.",
+          "format": "date-time"
+        },
+        "deadline": {
+          "type": "string",
+          "description": "The deadline for project completion.",
+          "format": "date-time"
+        },
+        "budget": {
+          "type": "number",
+          "description": "The overall budget allocated for the project."
+        },
+        "assignedTeamUserIds": {
+          "type": "array",
+          "description": "An array of User IDs assigned to this project. (Relationship: User N:N Project)",
+          "items": {
+            "type": "string"
+          }
+        },
+        "description": {
+          "type": "string",
+          "description": "A detailed description of the project."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp when the project record was created.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "companyId",
+        "name",
+        "clientName",
+        "status",
+        "startDate",
+        "deadline",
+        "budget",
+        "createdAt"
+      ]
+    },
+    "Task": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Task",
+      "type": "object",
+      "description": "Represents an individual task within a project.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Task entity."
+        },
+        "companyId": {
+          "type": "string",
+          "description": "Reference to Company. (Relationship: Company 1:N Task)"
+        },
+        "projectId": {
+          "type": "string",
+          "description": "Reference to Project. (Relationship: Project 1:N Task)"
+        },
+        "name": {
+          "type": "string",
+          "description": "The name or title of the task."
+        },
+        "description": {
+          "type": "string",
+          "description": "A detailed description of the task."
+        },
+        "assignedToUserId": {
+          "type": "string",
+          "description": "Reference to the User assigned to this task. (Relationship: User 1:N Task)"
+        },
+        "status": {
+          "type": "string",
+          "description": "Current status of the task (e.g., 'todo', 'in_progress', 'awaiting_review', 'done').",
+          "items": {
+            "type": "string"
+          }
+        },
+        "dueDate": {
+          "type": "string",
+          "description": "The deadline for completing the task.",
+          "format": "date-time"
+        },
+        "priority": {
+          "type": "string",
+          "description": "The priority level of the task (e.g., 'high', 'medium', 'low')."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp when the task record was created.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "companyId",
+        "projectId",
+        "name",
+        "status",
+        "dueDate",
+        "createdAt"
+      ]
+    },
+    "PreProductionPhase": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "PreProductionPhase",
+      "type": "object",
+      "description": "Details for the pre-production phase of a media project.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the PreProductionPhase entity."
+        },
+        "companyId": {
+          "type": "string",
+          "description": "Reference to Company. (Relationship: Company 1:N PreProductionPhase)"
+        },
+        "projectId": {
+          "type": "string",
+          "description": "Reference to Project. (Relationship: Project 1:N PreProductionPhase)"
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the pre-production stage (e.g., 'Scripting', 'Storyboarding', 'Casting')."
+        },
+        "description": {
+          "type": "string",
+          "description": "Description of the activities within this phase."
+        },
+        "startDate": {
+          "type": "string",
+          "description": "Planned start date for this phase.",
+          "format": "date-time"
+        },
+        "endDate": {
+          "type": "string",
+          "description": "Planned end date for this phase.",
+          "format": "date-time"
+        },
+        "status": {
+          "type": "string",
+          "description": "Current status of the pre-production phase (e.g., 'planned', 'in_progress', 'completed').",
+          "items": {
+            "type": "string"
+          }
+        },
+        "deliverables": {
+          "type": "array",
+          "description": "An array of objects detailing deliverables for this phase (e.g., script, storyboard URL).",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "companyId",
+        "projectId",
+        "name",
+        "status"
+      ]
+    },
+    "ProductionDay": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ProductionDay",
+      "type": "object",
+      "description": "Details for a specific production day within a media project.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the ProductionDay entity."
+        },
+        "companyId": {
+          "type": "string",
+          "description": "Reference to Company. (Relationship: Company 1:N ProductionDay)"
+        },
+        "projectId": {
+          "type": "string",
+          "description": "Reference to Project. (Relationship: Project 1:N ProductionDay)"
+        },
+        "date": {
+          "type": "string",
+          "description": "The date of the production day.",
+          "format": "date-time"
+        },
+        "location": {
+          "type": "string",
+          "description": "The filming or production location for this day."
+        },
+        "schedule": {
+          "type": "string",
+          "description": "Detailed schedule or call sheet for the day."
+        },
+        "crewTalentIds": {
+          "type": "array",
+          "description": "An array of Talent IDs involved as crew or cast on this production day. (Relationship: Talent N:N ProductionDay)",
+          "items": {
+            "type": "string"
+          }
+        },
+        "notes": {
+          "type": "string",
+          "description": "Any additional notes or incidents from the production day."
+        }
+      },
+      "required": [
+        "id",
+        "companyId",
+        "projectId",
+        "date",
+        "location"
+      ]
+    },
+    "PostProductionPhase": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "PostProductionPhase",
+      "type": "object",
+      "description": "Details for the post-production phase of a media project.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the PostProductionPhase entity."
+        },
+        "companyId": {
+          "type": "string",
+          "description": "Reference to Company. (Relationship: Company 1:N PostProductionPhase)"
+        },
+        "projectId": {
+          "type": "string",
+          "description": "Reference to Project. (Relationship: Project 1:N PostProductionPhase)"
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the post-production stage (e.g., 'Editing', 'Sound Design', 'VFX')."
+        },
+        "description": {
+          "type": "string",
+          "description": "Description of the activities within this phase."
+        },
+        "startDate": {
+          "type": "string",
+          "description": "Planned start date for this phase.",
+          "format": "date-time"
+        },
+        "endDate": {
+          "type": "string",
+          "description": "Planned end date for this phase.",
+          "format": "date-time"
+        },
+        "status": {
+          "type": "string",
+          "description": "Current status of the post-production phase (e.g., 'planned', 'in_progress', 'completed').",
+          "items": {
+            "type": "string"
+          }
+        },
+        "deliverables": {
+          "type": "array",
+          "description": "An array of objects detailing deliverables for this phase (e.g., final cut URL, sound mix file).",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "companyId",
+        "projectId",
+        "name",
+        "status"
+      ]
+    },
+    "ProjectTalent": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ProjectTalent",
+      "type": "object",
+      "description": "A linking entity that associates a talent with a specific project and defines their role.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the ProjectTalent linking entity."
+        },
+        "companyId": {
+          "type": "string",
+          "description": "Reference to Company. (Relationship: Company 1:N ProjectTalent)"
+        },
+        "projectId": {
+          "type": "string",
+          "description": "Reference to Project. (Relationship: Project N:N Talent via ProjectTalent)"
+        },
+        "talentId": {
+          "type": "string",
+          "description": "Reference to Talent. (Relationship: Talent N:N Project via ProjectTalent)"
+        },
+        "roleInProject": {
+          "type": "string",
+          "description": "The specific role the talent plays in this project (e.g., 'Lead Actor', 'Director of Photography')."
+        },
+        "assignedAt": {
+          "type": "string",
+          "description": "Timestamp when the talent was assigned to the project.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "companyId",
+        "projectId",
+        "talentId",
+        "roleInProject",
+        "assignedAt"
+      ]
+    },
+    "Budget": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Budget",
+      "type": "object",
+      "description": "Tracks estimated and actual expenditures for a project.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Budget entity."
+        },
+        "companyId": {
+          "type": "string",
+          "description": "Reference to Company. (Relationship: Company 1:N Budget)"
+        },
+        "projectId": {
+          "type": "string",
+          "description": "Reference to Project. (Relationship: Project 1:N Budget)"
+        },
+        "type": {
+          "type": "string",
+          "description": "The type of budget item (e.g., 'estimated', 'actual', 'expense').",
+          "items": {
+            "type": "string"
+          }
+        },
+        "category": {
+          "type": "string",
+          "description": "Category of the expenditure (e.g., 'Talent Fees', 'Equipment Rental', 'Location Fees')."
+        },
+        "amount": {
+          "type": "number",
+          "description": "The monetary amount of the budget item."
+        },
+        "description": {
+          "type": "string",
+          "description": "A brief description of the budget item."
+        },
+        "date": {
+          "type": "string",
+          "description": "The date associated with the budget item (e.g., expense date).",
+          "format": "date-time"
+        },
+        "currency": {
+          "type": "string",
+          "description": "The currency code for the budget amount."
+        }
+      },
+      "required": [
+        "id",
+        "companyId",
+        "projectId",
+        "type",
+        "category",
+        "amount",
+        "date",
+        "currency"
+      ]
+    },
+    "Talent": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Talent",
+      "type": "object",
+      "description": "Represents a talent profile in the network, including personal details, rates, and portfolio.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Talent entity."
+        },
+        "companyId": {
+          "type": "string",
+          "description": "Reference to Company. (Relationship: Company 1:N Talent)"
+        },
+        "fullName": {
+          "type": "string",
+          "description": "The full name of the talent."
+        },
+        "category": {
+          "type": "string",
+          "description": "The primary category of the talent (e.g., 'Actor', 'Actress', 'Influencer', 'Model', 'Voice Artist').",
+          "items": {
+            "type": "string"
+          }
+        },
+        "gender": {
+          "type": "string",
+          "description": "The gender of the talent."
+        },
+        "location": {
+          "type": "string",
+          "description": "The current geographic location of the talent."
+        },
+        "languages": {
+          "type": "array",
+          "description": "An array of languages the talent speaks.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "instagramHandle": {
+          "type": "string",
+          "description": "The talent's Instagram handle."
+        },
+        "followers": {
+          "type": "number",
+          "description": "The number of followers on a primary social media platform (e.g., Instagram)."
+        },
+        "engagementRate": {
+          "type": "number",
+          "description": "The social media engagement rate as a percentage (e.g., 0.05 for 5%)."
+        },
+        "rates": {
+          "type": "array",
+          "description": "An object describing the talent's rates (e.g., hourly, daily, project-based) with currency.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "portfolioUrls": {
+          "type": "array",
+          "description": "An array of URLs to the talent's portfolio images or videos, stored in Firebase Storage.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "isPublic": {
+          "type": "boolean",
+          "description": "Indicates if the talent's profile is publicly visible in the marketplace or private."
+        },
+        "description": {
+          "type": "string",
+          "description": "A brief biography or description of the talent."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp when the talent profile was created.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "companyId",
+        "fullName",
+        "category",
+        "location",
+        "isPublic",
+        "createdAt"
+      ]
+    },
+    "TalentMetric": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "TalentMetric",
+      "type": "object",
+      "description": "Stores historical or specific metrics for a talent, distinct from general profile fields.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the TalentMetric entity."
+        },
+        "companyId": {
+          "type": "string",
+          "description": "Reference to Company. (Relationship: Company 1:N TalentMetric)"
+        },
+        "talentId": {
+          "type": "string",
+          "description": "Reference to Talent. (Relationship: Talent 1:N TalentMetric)"
+        },
+        "metricName": {
+          "type": "string",
+          "description": "The name of the metric (e.g., 'reach', 'impressions', 'avgLikesPerPost')."
+        },
+        "value": {
+          "type": "number",
+          "description": "The numerical value of the metric."
+        },
+        "dateRecorded": {
+          "type": "string",
+          "description": "The date when this metric was recorded.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "companyId",
+        "talentId",
+        "metricName",
+        "value",
+        "dateRecorded"
+      ]
+    },
+    "TalentAvailability": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "TalentAvailability",
+      "type": "object",
+      "description": "Tracks a talent's availability over specific date ranges.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the TalentAvailability entity."
+        },
+        "companyId": {
+          "type": "string",
+          "description": "Reference to Company. (Relationship: Company 1:N TalentAvailability)"
+        },
+        "talentId": {
+          "type": "string",
+          "description": "Reference to Talent. (Relationship: Talent 1:N TalentAvailability)"
+        },
+        "startDate": {
+          "type": "string",
+          "description": "The start date of the availability period.",
+          "format": "date-time"
+        },
+        "endDate": {
+          "type": "string",
+          "description": "The end date of the availability period.",
+          "format": "date-time"
+        },
+        "status": {
+          "type": "string",
+          "description": "The status of the availability (e.g., 'available', 'booked', 'tentative', 'unavailable').",
+          "items": {
+            "type": "string"
+          }
+        },
+        "notes": {
+          "type": "string",
+          "description": "Any additional notes regarding this availability period."
+        }
+      },
+      "required": [
+        "id",
+        "companyId",
+        "talentId",
+        "startDate",
+        "endDate",
+        "status"
+      ]
+    },
+    "TalentReview": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "TalentReview",
+      "type": "object",
+      "description": "Stores reviews and ratings given to talents by company users.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the TalentReview entity."
+        },
+        "companyId": {
+          "type": "string",
+          "description": "Reference to Company. (Relationship: Company 1:N TalentReview)"
+        },
+        "talentId": {
+          "type": "string",
+          "description": "Reference to Talent. (Relationship: Talent 1:N TalentReview)"
+        },
+        "reviewerUserId": {
+          "type": "string",
+          "description": "Reference to the User who provided the review. (Relationship: User 1:N TalentReview)"
+        },
+        "rating": {
+          "type": "number",
+          "description": "The numerical rating given to the talent (e.g., 1-5)."
+        },
+        "comment": {
+          "type": "string",
+          "description": "A textual comment or feedback from the reviewer."
+        },
+        "reviewDate": {
+          "type": "string",
+          "description": "Timestamp when the review was submitted.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "companyId",
+        "talentId",
+        "reviewerUserId",
+        "rating",
+        "reviewDate"
+      ]
+    },
+    "Booking": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Booking",
+      "type": "object",
+      "description": "Records a booking of a talent for a project or client.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Booking entity."
+        },
+        "companyId": {
+          "type": "string",
+          "description": "Reference to Company. (Relationship: Company 1:N Booking)"
+        },
+        "talentId": {
+          "type": "string",
+          "description": "Reference to Talent. (Relationship: Talent 1:N Booking)"
+        },
+        "projectId": {
+          "type": "string",
+          "description": "Reference to Project if the booking is for a specific project. (Relationship: Project 1:N Booking)"
+        },
+        "clientName": {
+          "type": "string",
+          "description": "The name of the client if the booking is not directly linked to a project."
+        },
+        "startDate": {
+          "type": "string",
+          "description": "The start date of the booking period.",
+          "format": "date-time"
+        },
+        "endDate": {
+          "type": "string",
+          "description": "The end date of the booking period.",
+          "format": "date-time"
+        },
+        "status": {
+          "type": "string",
+          "description": "Current status of the booking (e.g., 'pending', 'confirmed', 'cancelled', 'completed').",
+          "items": {
+            "type": "string"
+          }
+        },
+        "agreedRate": {
+          "type": "number",
+          "description": "The agreed monetary rate for the booking."
+        },
+        "description": {
+          "type": "string",
+          "description": "A brief description of the booking."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp when the booking record was created.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "companyId",
+        "talentId",
+        "startDate",
+        "endDate",
+        "status",
+        "agreedRate",
+        "createdAt"
+      ]
+    },
+    "Contract": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Contract",
+      "type": "object",
+      "description": "Stores details and documentation for talent or project contracts.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Contract entity."
+        },
+        "companyId": {
+          "type": "string",
+          "description": "Reference to Company. (Relationship: Company 1:N Contract)"
+        },
+        "bookingId": {
+          "type": "string",
+          "description": "Reference to Booking if the contract is for a specific talent booking. (Relationship: Booking 1:1 Contract)"
+        },
+        "projectId": {
+          "type": "string",
+          "description": "Reference to Project if the contract is related to a project. (Relationship: Project 1:N Contract)"
+        },
+        "documentUrl": {
+          "type": "string",
+          "description": "URL to the contract document, stored in Firebase Storage.",
+          "format": "uri"
+        },
+        "status": {
+          "type": "string",
+          "description": "Current status of the contract (e.g., 'draft', 'sent', 'signed', 'cancelled').",
+          "items": {
+            "type": "string"
+          }
+        },
+        "startDate": {
+          "type": "string",
+          "description": "The effective start date of the contract.",
+          "format": "date-time"
+        },
+        "endDate": {
+          "type": "string",
+          "description": "The effective end date of the contract.",
+          "format": "date-time"
+        },
+        "termsSummary": {
+          "type": "string",
+          "description": "A summary of the key terms and conditions of the contract."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp when the contract record was created.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "companyId",
+        "documentUrl",
+        "status",
+        "startDate",
+        "endDate",
+        "createdAt"
+      ]
+    },
+    "Lead": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Lead",
+      "type": "object",
+      "description": "Represents a potential client in the sales pipeline.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Lead entity."
+        },
+        "companyId": {
+          "type": "string",
+          "description": "Reference to Company. (Relationship: Company 1:N Lead)"
+        },
+        "companyName": {
+          "type": "string",
+          "description": "The name of the potential client's company."
+        },
+        "contactPerson": {
+          "type": "string",
+          "description": "The primary contact person at the lead's company."
+        },
+        "industry": {
+          "type": "string",
+          "description": "The industry of the lead's company."
+        },
+        "phone": {
+          "type": "string",
+          "description": "The contact phone number for the lead."
+        },
+        "email": {
+          "type": "string",
+          "description": "The contact email address for the lead.",
+          "format": "email"
+        },
+        "stage": {
+          "type": "string",
+          "description": "Current stage of the lead in the sales pipeline (e.g., 'Lead', 'Contacted', 'Meeting', 'Proposal Sent', 'Negotiation', 'Won', 'Lost').",
+          "items": {
+            "type": "string"
+          }
+        },
+        "dealValue": {
+          "type": "number",
+          "description": "The estimated monetary value of the potential deal."
+        },
+        "assignedToUserId": {
+          "type": "string",
+          "description": "Reference to the User assigned to manage this lead. (Relationship: User 1:N Lead)"
+        },
+        "source": {
+          "type": "string",
+          "description": "The source from which the lead was acquired (e.g., 'Website', 'Referral', 'Cold Call')."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp when the lead record was created.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "companyId",
+        "companyName",
+        "contactPerson",
+        "email",
+        "stage",
+        "assignedToUserId",
+        "createdAt"
+      ]
+    },
+    "SalesActivity": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "SalesActivity",
+      "type": "object",
+      "description": "Records interactions and activities related to a sales lead.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the SalesActivity entity."
+        },
+        "companyId": {
+          "type": "string",
+          "description": "Reference to Company. (Relationship: Company 1:N SalesActivity)"
+        },
+        "leadId": {
+          "type": "string",
+          "description": "Reference to Lead. (Relationship: Lead 1:N SalesActivity)"
+        },
+        "activityType": {
+          "type": "string",
+          "description": "The type of sales activity (e.g., 'Call', 'Email', 'Meeting', 'Note').",
+          "items": {
+            "type": "string"
+          }
+        },
+        "description": {
+          "type": "string",
+          "description": "A detailed description or summary of the activity."
+        },
+        "activityDate": {
+          "type": "string",
+          "description": "The date and time when the activity occurred.",
+          "format": "date-time"
+        },
+        "performedByUserId": {
+          "type": "string",
+          "description": "Reference to the User who performed the activity. (Relationship: User 1:N SalesActivity)"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp when the sales activity record was created.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "companyId",
+        "leadId",
+        "activityType",
+        "activityDate",
+        "performedByUserId",
+        "createdAt"
+      ]
+    },
+    "Proposal": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Proposal",
+      "type": "object",
+      "description": "Manages client proposals, including generation, status, and conversion to projects.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Proposal entity."
+        },
+        "companyId": {
+          "type": "string",
+          "description": "Reference to Company. (Relationship: Company 1:N Proposal)"
+        },
+        "leadId": {
+          "type": "string",
+          "description": "Reference to Lead this proposal is for. (Relationship: Lead 1:N Proposal)"
+        },
+        "projectId": {
+          "type": "string",
+          "description": "Reference to Project, if the proposal was converted into a project. (Relationship: Project 1:1 Proposal)"
+        },
+        "proposalNumber": {
+          "type": "string",
+          "description": "An auto-generated unique identifier for the proposal."
+        },
+        "title": {
+          "type": "string",
+          "description": "The title of the proposal."
+        },
+        "templateUsed": {
+          "type": "string",
+          "description": "The name or ID of the template used to create the proposal."
+        },
+        "content": {
+          "type": "string",
+          "description": "The main content of the proposal, potentially including structured data or rich text."
+        },
+        "status": {
+          "type": "string",
+          "description": "Current status of the proposal (e.g., 'draft', 'sent', 'viewed', 'accepted', 'rejected', 'converted_to_project').",
+          "items": {
+            "type": "string"
+          }
+        },
+        "pdfUrl": {
+          "type": "string",
+          "description": "URL to the generated PDF version of the proposal, stored in Firebase Storage.",
+          "format": "uri"
+        },
+        "aiGeneratedContent": {
+          "type": "boolean",
+          "description": "Indicates if AI was used to generate parts of the proposal content."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp when the proposal record was created.",
+          "format": "date-time"
+        },
+        "sentAt": {
+          "type": "string",
+          "description": "Timestamp when the proposal was last sent to the client.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "companyId",
+        "leadId",
+        "proposalNumber",
+        "title",
+        "content",
+        "status",
+        "createdAt"
+      ]
+    },
+    "Invoice": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Invoice",
+      "type": "object",
+      "description": "Manages client invoices, including line items, tax, payment status, and Google Drive/Sheets integration.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Invoice entity."
+        },
+        "companyId": {
+          "type": "string",
+          "description": "Reference to Company. (Relationship: Company 1:N Invoice)"
+        },
+        "invoiceNumber": {
+          "type": "string",
+          "description": "An auto-generated unique invoice number."
+        },
+        "clientName": {
+          "type": "string",
+          "description": "The name of the client to whom the invoice is issued."
+        },
+        "projectId": {
+          "type": "string",
+          "description": "Reference to the Project this invoice is for. (Relationship: Project 1:N Invoice)"
+        },
+        "issueDate": {
+          "type": "string",
+          "description": "The date when the invoice was issued.",
+          "format": "date-time"
+        },
+        "dueDate": {
+          "type": "string",
+          "description": "The due date for payment of the invoice.",
+          "format": "date-time"
+        },
+        "lineItems": {
+          "type": "array",
+          "description": "An array of objects, each representing a line item in the invoice (e.g., name, description, quantity, unitPrice, amount).",
+          "items": {
+            "type": "string"
+          }
+        },
+        "subtotal": {
+          "type": "number",
+          "description": "The total amount of all line items before tax."
+        },
+        "taxRate": {
+          "type": "number",
+          "description": "The tax rate applied to the invoice (e.g., 0.05 for 5% GST)."
+        },
+        "taxAmount": {
+          "type": "number",
+          "description": "The calculated tax amount for the invoice."
+        },
+        "total": {
+          "type": "number",
+          "description": "The grand total amount due for the invoice (subtotal + tax)."
+        },
+        "currency": {
+          "type": "string",
+          "description": "The currency code for the invoice amounts."
+        },
+        "paymentStatus": {
+          "type": "string",
+          "description": "Current payment status of the invoice (e.g., 'unpaid', 'partially_paid', 'paid', 'voided', 'finalized').",
+          "items": {
+            "type": "string"
+          }
+        },
+        "googleDriveFileId": {
+          "type": "string",
+          "description": "The ID of the generated invoice PDF file in Google Drive after finalization."
+        },
+        "googleDriveFileUrl": {
+          "type": "string",
+          "description": "The URL to the generated invoice PDF file in Google Drive.",
+          "format": "uri"
+        },
+        "googleSheetRowIds": {
+          "type": "array",
+          "description": "An array of row IDs in Google Sheets where the invoice's line items were synced.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp when the invoice record was created.",
+          "format": "date-time"
+        },
+        "finalizedAt": {
+          "type": "string",
+          "description": "Timestamp when the invoice was marked as 'finalized' and integration actions were triggered.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "companyId",
+        "invoiceNumber",
+        "clientName",
+        "issueDate",
+        "dueDate",
+        "lineItems",
+        "subtotal",
+        "taxAmount",
+        "total",
+        "currency",
+        "paymentStatus",
+        "createdAt"
+      ]
+    },
+    "Payment": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Payment",
+      "type": "object",
+      "description": "Records individual payments received for invoices.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Payment entity."
+        },
+        "companyId": {
+          "type": "string",
+          "description": "Reference to Company. (Relationship: Company 1:N Payment)"
+        },
+        "invoiceId": {
+          "type": "string",
+          "description": "Reference to the Invoice this payment is for. (Relationship: Invoice 1:N Payment)"
+        },
+        "amount": {
+          "type": "number",
+          "description": "The monetary amount of the payment received."
+        },
+        "paymentDate": {
+          "type": "string",
+          "description": "The date when the payment was received.",
+          "format": "date-time"
+        },
+        "method": {
+          "type": "string",
+          "description": "The payment method used (e.g., 'Bank Transfer', 'Credit Card', 'Cash')."
+        },
+        "transactionId": {
+          "type": "string",
+          "description": "External transaction ID if applicable (e.g., from payment gateway)."
+        },
+        "status": {
+          "type": "string",
+          "description": "Status of the payment (e.g., 'success', 'failed', 'pending').",
+          "items": {
+            "type": "string"
+          }
+        },
+        "notes": {
+          "type": "string",
+          "description": "Any additional notes regarding the payment."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp when the payment record was created.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "companyId",
+        "invoiceId",
+        "amount",
+        "paymentDate",
+        "method",
+        "status",
+        "createdAt"
+      ]
+    },
+    "CompanyIntegration": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "CompanyIntegration",
+      "type": "object",
+      "description": "Stores settings and status for third-party integrations, specifically Google Drive and Sheets.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the CompanyIntegration entity, typically matching the companyId for a 1:1 relationship."
+        },
+        "companyId": {
+          "type": "string",
+          "description": "Reference to Company. (Relationship: Company 1:1 CompanyIntegration)"
+        },
+        "googleConnected": {
+          "type": "boolean",
+          "description": "Indicates if Google services (Drive/Sheets) are connected for the company."
+        },
+        "googleDriveFolderId": {
+          "type": "string",
+          "description": "The ID of the Google Drive folder designated for invoice uploads."
+        },
+        "googleSpreadsheetId": {
+          "type": "string",
+          "description": "The ID of the Google Sheet designated for invoice line item syncing."
+        },
+        "googleOAuthTokensPlaceholder": {
+          "type": "string",
+          "description": "Placeholder for Google OAuth tokens. Actual tokens are managed securely by Cloud Functions and not directly stored here."
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp when the integration settings were last updated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "companyId",
+        "googleConnected",
+        "updatedAt"
+      ]
+    },
+    "InvoiceSyncLog": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "InvoiceSyncLog",
+      "type": "object",
+      "description": "Logs the results of invoice integration actions with Google Drive and Google Sheets.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the InvoiceSyncLog entity."
+        },
+        "companyId": {
+          "type": "string",
+          "description": "Reference to Company. (Relationship: Company 1:N InvoiceSyncLog)"
+        },
+        "invoiceId": {
+          "type": "string",
+          "description": "Reference to the Invoice that was part of the sync operation. (Relationship: Invoice 1:N InvoiceSyncLog)"
+        },
+        "triggerTime": {
+          "type": "string",
+          "description": "Timestamp when the sync operation was triggered.",
+          "format": "date-time"
+        },
+        "status": {
+          "type": "string",
+          "description": "Overall status of the sync operation (e.g., 'success', 'failed', 'pending').",
+          "items": {
+            "type": "string"
+          }
+        },
+        "message": {
+          "type": "string",
+          "description": "A descriptive message about the sync result, especially for failures."
+        },
+        "driveFileId": {
+          "type": "string",
+          "description": "The Google Drive file ID if a PDF was successfully uploaded."
+        },
+        "sheetRowIds": {
+          "type": "array",
+          "description": "An array of Google Sheet row IDs if line items were successfully synced.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "eventType": {
+          "type": "string",
+          "description": "The specific type of event logged (e.g., 'PDF_UPLOAD', 'SHEET_SYNC', 'FULL_INVOICE_SYNC')."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp when the log entry was created.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "companyId",
+        "invoiceId",
+        "triggerTime",
+        "status",
+        "eventType",
+        "createdAt"
+      ]
+    },
+    "MarketResearchSession": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "MarketResearchSession",
+      "type": "object",
+      "description": "Represents a user-initiated market research request and its resulting analysis.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the MarketResearchSession entity."
+        },
+        "companyId": {
+          "type": "string",
+          "description": "Reference to Company. (Relationship: Company 1:N MarketResearchSession)"
+        },
+        "requestedByUserId": {
+          "type": "string",
+          "description": "Reference to the User who initiated this market research session. (Relationship: User 1:N MarketResearchSession)"
+        },
+        "industry": {
+          "type": "string",
+          "description": "The target industry for the market research."
+        },
+        "location": {
+          "type": "string",
+          "description": "The target geographic location for the market research."
+        },
+        "contentType": {
+          "type": "string",
+          "description": "The type of content to analyze trends for (e.g., 'video', 'blog post', 'social media')."
+        },
+        "status": {
+          "type": "string",
+          "description": "Current status of the market research process (e.g., 'pending', 'analyzing', 'complete', 'failed').",
+          "items": {
+            "type": "string"
+          }
+        },
+        "requestedAt": {
+          "type": "string",
+          "description": "Timestamp when the market research was requested.",
+          "format": "date-time"
+        },
+        "completedAt": {
+          "type": "string",
+          "description": "Timestamp when the market research analysis was completed.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "companyId",
+        "requestedByUserId",
+        "industry",
+        "location",
+        "status",
+        "requestedAt"
+      ]
+    },
+    "TrendReport": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "TrendReport",
+      "type": "object",
+      "description": "Stores insights and data related to market trends identified during a market research session.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the TrendReport entity."
+        },
+        "companyId": {
+          "type": "string",
+          "description": "Reference to Company. (Relationship: Company 1:N TrendReport)"
+        },
+        "marketResearchSessionId": {
+          "type": "string",
+          "description": "Reference to the MarketResearchSession that generated this report. (Relationship: MarketResearchSession 1:N TrendReport)"
+        },
+        "title": {
+          "type": "string",
+          "description": "A title for the trend report (e.g., 'Trending Keywords in [Industry] - [Location]')."
+        },
+        "trendingKeywords": {
+          "type": "array",
+          "description": "An array of strings representing popular or emerging keywords.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "contentTrends": {
+          "type": "array",
+          "description": "An array of objects detailing trending content types, formats, or themes.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "generatedAt": {
+          "type": "string",
+          "description": "Timestamp when the trend report was generated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "companyId",
+        "marketResearchSessionId",
+        "title",
+        "trendingKeywords",
+        "contentTrends",
+        "generatedAt"
+      ]
+    },
+    "CompetitorAnalysis": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "CompetitorAnalysis",
+      "type": "object",
+      "description": "Stores analysis and insights regarding competitors for a market research session.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the CompetitorAnalysis entity."
+        },
+        "companyId": {
+          "type": "string",
+          "description": "Reference to Company. (Relationship: Company 1:N CompetitorAnalysis)"
+        },
+        "marketResearchSessionId": {
+          "type": "string",
+          "description": "Reference to the MarketResearchSession that generated this analysis. (Relationship: MarketResearchSession 1:N CompetitorAnalysis)"
+        },
+        "competitorName": {
+          "type": "string",
+          "description": "The name of the competitor analyzed."
+        },
+        "insights": {
+          "type": "string",
+          "description": "A textual summary of key insights from the competitor analysis."
+        },
+        "opportunityScore": {
+          "type": "number",
+          "description": "A score indicating market opportunity relative to the competitor (e.g., 0-100)."
+        },
+        "suggestedPitchAngle": {
+          "type": "string",
+          "description": "An AI-generated suggestion for a pitch angle based on the analysis."
+        },
+        "generatedAt": {
+          "type": "string",
+          "description": "Timestamp when the competitor analysis was generated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "companyId",
+        "marketResearchSessionId",
+        "competitorName",
+        "insights",
+        "opportunityScore",
+        "suggestedPitchAngle",
+        "generatedAt"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "super_admins/{superAdminId}",
+        "definition": {
+          "entityName": "SuperAdminMarker",
+          "schema": {
+            "$ref": "#/backend/entities/SuperAdminMarker"
+          },
+          "description": "Stores a marker document for platform Super Administrators. The document ID is the user's UID, and its mere existence grants global access privileges.",
+          "params": [
+            {
+              "name": "superAdminId",
+              "description": "The unique identifier (UID) of the Super Administrator user."
+            }
+          ]
+        }
+      },
+      {
+        "path": "companies/{companyId}",
+        "definition": {
+          "entityName": "Company",
+          "schema": {
+            "$ref": "#/backend/entities/Company"
+          },
+          "description": "Represents a single company (tenant) within the multi-tenant SaaS platform. All company-specific data is nested under this path.",
+          "params": [
+            {
+              "name": "companyId",
+              "description": "The unique identifier of the company (tenant)."
+            }
+          ]
+        }
+      },
+      {
+        "path": "users/{userId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Stores user profiles, including their company affiliation and assigned role. This is a top-level collection for all users across the platform. Includes denormalized 'companyId' and 'roleId' for authorization lookup.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier (UID) of the user, matching Firebase Authentication UID."
+            }
+          ]
+        }
+      },
+      {
+        "path": "companies/{companyId}/roles/{roleId}",
+        "definition": {
+          "entityName": "Role",
+          "schema": {
+            "$ref": "#/backend/entities/Role"
+          },
+          "description": "Defines specific roles and their permissions for users within a particular company. Includes denormalized 'companyId' for authorization independence.",
+          "params": [
+            {
+              "name": "companyId",
+              "description": "The unique identifier of the company this role belongs to."
+            },
+            {
+              "name": "roleId",
+              "description": "The unique identifier of the role within the company."
+            }
+          ]
+        }
+      },
+      {
+        "path": "companies/{companyId}/company_settings/{companySettingId}",
+        "definition": {
+          "entityName": "CompanySetting",
+          "schema": {
+            "$ref": "#/backend/entities/CompanySetting"
+          },
+          "description": "Stores company-specific configuration and module enablement status. The document ID typically matches the companyId. Includes denormalized 'companyId' for authorization independence.",
+          "params": [
+            {
+              "name": "companyId",
+              "description": "The unique identifier of the company these settings belong to."
+            },
+            {
+              "name": "companySettingId",
+              "description": "The unique identifier for the company's settings document, typically matching 'companyId'."
+            }
+          ]
+        }
+      },
+      {
+        "path": "companies/{companyId}/settings_history/{historyId}",
+        "definition": {
+          "entityName": "SettingsHistory",
+          "schema": {
+            "$ref": "#/backend/entities/SettingsHistory"
+          },
+          "description": "Logs changes to CompanySettings, providing version control. Includes denormalized 'companyId' for authorization independence.",
+          "params": [
+            {
+              "name": "companyId",
+              "description": "The unique identifier of the company whose settings history is recorded."
+            },
+            {
+              "name": "historyId",
+              "description": "The unique identifier for a specific settings history entry."
+            }
+          ]
+        }
+      },
+      {
+        "path": "companies/{companyId}/activity_logs/{logId}",
+        "definition": {
+          "entityName": "ActivityLog",
+          "schema": {
+            "$ref": "#/backend/entities/ActivityLog"
+          },
+          "description": "Records significant user and system actions within a company for auditing. Includes denormalized 'companyId' for authorization independence.",
+          "params": [
+            {
+              "name": "companyId",
+              "description": "The unique identifier of the company where the activity occurred."
+            },
+            {
+              "name": "logId",
+              "description": "The unique identifier for a specific activity log entry."
+            }
+          ]
+        }
+      },
+      {
+        "path": "companies/{companyId}/subscriptions/{subscriptionId}",
+        "definition": {
+          "entityName": "Subscription",
+          "schema": {
+            "$ref": "#/backend/entities/Subscription"
+          },
+          "description": "Manages a company's subscription plan, status, and feature limits. The document ID typically matches the companyId. Includes denormalized 'companyId' for authorization independence.",
+          "params": [
+            {
+              "name": "companyId",
+              "description": "The unique identifier of the company that owns this subscription."
+            },
+            {
+              "name": "subscriptionId",
+              "description": "The unique identifier for the company's subscription document, typically matching 'companyId'."
+            }
+          ]
+        }
+      },
+      {
+        "path": "subscription_plans/{planId}",
+        "definition": {
+          "entityName": "SubscriptionPlan",
+          "schema": {
+            "$ref": "#/backend/entities/SubscriptionPlan"
+          },
+          "description": "Defines the different subscription tiers offered by the platform. This is a global collection, not company-specific.",
+          "params": [
+            {
+              "name": "planId",
+              "description": "The unique identifier of the subscription plan."
+            }
+          ]
+        }
+      },
+      {
+        "path": "modules/{moduleId}",
+        "definition": {
+          "entityName": "Module",
+          "schema": {
+            "$ref": "#/backend/entities/Module"
+          },
+          "description": "Defines an available feature module within the platform. This is a global collection, not company-specific.",
+          "params": [
+            {
+              "name": "moduleId",
+              "description": "The unique programmatic identifier of the module."
+            }
+          ]
+        }
+      },
+      {
+        "path": "companies/{companyId}/projects/{projectId}",
+        "definition": {
+          "entityName": "Project",
+          "schema": {
+            "$ref": "#/backend/entities/Project"
+          },
+          "description": "Manages a media production project from inception to completion. Includes denormalized 'companyId' for authorization independence.",
+          "params": [
+            {
+              "name": "companyId",
+              "description": "The unique identifier of the company that owns this project."
+            },
+            {
+              "name": "projectId",
+              "description": "The unique identifier of the project."
+            }
+          ]
+        }
+      },
+      {
+        "path": "companies/{companyId}/projects/{projectId}/tasks/{taskId}",
+        "definition": {
+          "entityName": "Task",
+          "schema": {
+            "$ref": "#/backend/entities/Task"
+          },
+          "description": "Represents an individual task within a project. Includes denormalized 'companyId' and 'projectId' for authorization independence.",
+          "params": [
+            {
+              "name": "companyId",
+              "description": "The unique identifier of the company that owns the parent project."
+            },
+            {
+              "name": "projectId",
+              "description": "The unique identifier of the parent project."
+            },
+            {
+              "name": "taskId",
+              "description": "The unique identifier of the task."
+            }
+          ]
+        }
+      },
+      {
+        "path": "companies/{companyId}/projects/{projectId}/pre_production_phases/{phaseId}",
+        "definition": {
+          "entityName": "PreProductionPhase",
+          "schema": {
+            "$ref": "#/backend/entities/PreProductionPhase"
+          },
+          "description": "Details for the pre-production phase of a media project. Includes denormalized 'companyId' and 'projectId' for authorization independence.",
+          "params": [
+            {
+              "name": "companyId",
+              "description": "The unique identifier of the company that owns the parent project."
+            },
+            {
+              "name": "projectId",
+              "description": "The unique identifier of the parent project."
+            },
+            {
+              "name": "phaseId",
+              "description": "The unique identifier for a specific pre-production phase."
+            }
+          ]
+        }
+      },
+      {
+        "path": "companies/{companyId}/projects/{projectId}/production_days/{dayId}",
+        "definition": {
+          "entityName": "ProductionDay",
+          "schema": {
+            "$ref": "#/backend/entities/ProductionDay"
+          },
+          "description": "Details for a specific production day within a media project. Includes denormalized 'companyId' and 'projectId' for authorization independence.",
+          "params": [
+            {
+              "name": "companyId",
+              "description": "The unique identifier of the company that owns the parent project."
+            },
+            {
+              "name": "projectId",
+              "description": "The unique identifier of the parent project."
+            },
+            {
+              "name": "dayId",
+              "description": "The unique identifier for a specific production day."
+            }
+          ]
+        }
+      },
+      {
+        "path": "companies/{companyId}/projects/{projectId}/post_production_phases/{phaseId}",
+        "definition": {
+          "entityName": "PostProductionPhase",
+          "schema": {
+            "$ref": "#/backend/entities/PostProductionPhase"
+          },
+          "description": "Details for the post-production phase of a media project. Includes denormalized 'companyId' and 'projectId' for authorization independence.",
+          "params": [
+            {
+              "name": "companyId",
+              "description": "The unique identifier of the company that owns the parent project."
+            },
+            {
+              "name": "projectId",
+              "description": "The unique identifier of the parent project."
+            },
+            {
+              "name": "phaseId",
+              "description": "The unique identifier for a specific post-production phase."
+            }
+          ]
+        }
+      },
+      {
+        "path": "companies/{companyId}/projects/{projectId}/project_talents/{projectTalentId}",
+        "definition": {
+          "entityName": "ProjectTalent",
+          "schema": {
+            "$ref": "#/backend/entities/ProjectTalent"
+          },
+          "description": "A linking entity that associates a talent with a specific project and defines their role. Includes denormalized 'companyId' and 'projectId' for authorization independence.",
+          "params": [
+            {
+              "name": "companyId",
+              "description": "The unique identifier of the company that owns the parent project."
+            },
+            {
+              "name": "projectId",
+              "description": "The unique identifier of the parent project."
+            },
+            {
+              "name": "projectTalentId",
+              "description": "The unique identifier for the ProjectTalent linking document."
+            }
+          ]
+        }
+      },
+      {
+        "path": "companies/{companyId}/projects/{projectId}/budgets/{budgetId}",
+        "definition": {
+          "entityName": "Budget",
+          "schema": {
+            "$ref": "#/backend/entities/Budget"
+          },
+          "description": "Tracks estimated and actual expenditures for a project. Includes denormalized 'companyId' and 'projectId' for authorization independence.",
+          "params": [
+            {
+              "name": "companyId",
+              "description": "The unique identifier of the company that owns the parent project."
+            },
+            {
+              "name": "projectId",
+              "description": "The unique identifier of the parent project."
+            },
+            {
+              "name": "budgetId",
+              "description": "The unique identifier for a specific budget item."
+            }
+          ]
+        }
+      },
+      {
+        "path": "companies/{companyId}/talents/{talentId}",
+        "definition": {
+          "entityName": "Talent",
+          "schema": {
+            "$ref": "#/backend/entities/Talent"
+          },
+          "description": "Represents a talent profile in the network, including personal details, rates, and portfolio. Includes denormalized 'companyId' for authorization independence.",
+          "params": [
+            {
+              "name": "companyId",
+              "description": "The unique identifier of the company that owns this talent profile."
+            },
+            {
+              "name": "talentId",
+              "description": "The unique identifier of the talent."
+            }
+          ]
+        }
+      },
+      {
+        "path": "companies/{companyId}/talents/{talentId}/talent_metrics/{metricId}",
+        "definition": {
+          "entityName": "TalentMetric",
+          "schema": {
+            "$ref": "#/backend/entities/TalentMetric"
+          },
+          "description": "Stores historical or specific metrics for a talent. Includes denormalized 'companyId' and 'talentId' for authorization independence.",
+          "params": [
+            {
+              "name": "companyId",
+              "description": "The unique identifier of the company that owns the parent talent."
+            },
+            {
+              "name": "talentId",
+              "description": "The unique identifier of the parent talent."
+            },
+            {
+              "name": "metricId",
+              "description": "The unique identifier for a specific talent metric."
+            }
+          ]
+        }
+      },
+      {
+        "path": "companies/{companyId}/talents/{talentId}/talent_availability/{availabilityId}",
+        "definition": {
+          "entityName": "TalentAvailability",
+          "schema": {
+            "$ref": "#/backend/entities/TalentAvailability"
+          },
+          "description": "Tracks a talent's availability over specific date ranges. Includes denormalized 'companyId' and 'talentId' for authorization independence.",
+          "params": [
+            {
+              "name": "companyId",
+              "description": "The unique identifier of the company that owns the parent talent."
+            },
+            {
+              "name": "talentId",
+              "description": "The unique identifier of the parent talent."
+            },
+            {
+              "name": "availabilityId",
+              "description": "The unique identifier for a specific availability period."
+            }
+          ]
+        }
+      },
+      {
+        "path": "companies/{companyId}/talents/{talentId}/talent_reviews/{reviewId}",
+        "definition": {
+          "entityName": "TalentReview",
+          "schema": {
+            "$ref": "#/backend/entities/TalentReview"
+          },
+          "description": "Stores reviews and ratings given to talents by company users. Includes denormalized 'companyId' and 'talentId' for authorization independence.",
+          "params": [
+            {
+              "name": "companyId",
+              "description": "The unique identifier of the company that owns the parent talent."
+            },
+            {
+              "name": "talentId",
+              "description": "The unique identifier of the parent talent."
+            },
+            {
+              "name": "reviewId",
+              "description": "The unique identifier for a specific talent review."
+            }
+          ]
+        }
+      },
+      {
+        "path": "companies/{companyId}/bookings/{bookingId}",
+        "definition": {
+          "entityName": "Booking",
+          "schema": {
+            "$ref": "#/backend/entities/Booking"
+          },
+          "description": "Records a booking of a talent for a project or client. Includes denormalized 'companyId' for authorization independence.",
+          "params": [
+            {
+              "name": "companyId",
+              "description": "The unique identifier of the company that owns this booking."
+            },
+            {
+              "name": "bookingId",
+              "description": "The unique identifier of the booking."
+            }
+          ]
+        }
+      },
+      {
+        "path": "companies/{companyId}/contracts/{contractId}",
+        "definition": {
+          "entityName": "Contract",
+          "schema": {
+            "$ref": "#/backend/entities/Contract"
+          },
+          "description": "Stores details and documentation for talent or project contracts. Includes denormalized 'companyId' for authorization independence.",
+          "params": [
+            {
+              "name": "companyId",
+              "description": "The unique identifier of the company that owns this contract."
+            },
+            {
+              "name": "contractId",
+              "description": "The unique identifier of the contract."
+            }
+          ]
+        }
+      },
+      {
+        "path": "companies/{companyId}/leads/{leadId}",
+        "definition": {
+          "entityName": "Lead",
+          "schema": {
+            "$ref": "#/backend/entities/Lead"
+          },
+          "description": "Represents a potential client in the sales pipeline. Includes denormalized 'companyId' for authorization independence.",
+          "params": [
+            {
+              "name": "companyId",
+              "description": "The unique identifier of the company that owns this lead."
+            },
+            {
+              "name": "leadId",
+              "description": "The unique identifier of the lead."
+            }
+          ]
+        }
+      },
+      {
+        "path": "companies/{companyId}/leads/{leadId}/sales_activities/{activityId}",
+        "definition": {
+          "entityName": "SalesActivity",
+          "schema": {
+            "$ref": "#/backend/entities/SalesActivity"
+          },
+          "description": "Records interactions and activities related to a sales lead. Includes denormalized 'companyId' and 'leadId' for authorization independence.",
+          "params": [
+            {
+              "name": "companyId",
+              "description": "The unique identifier of the company that owns the parent lead."
+            },
+            {
+              "name": "leadId",
+              "description": "The unique identifier of the parent lead."
+            },
+            {
+              "name": "activityId",
+              "description": "The unique identifier for a specific sales activity."
+            }
+          ]
+        }
+      },
+      {
+        "path": "companies/{companyId}/proposals/{proposalId}",
+        "definition": {
+          "entityName": "Proposal",
+          "schema": {
+            "$ref": "#/backend/entities/Proposal"
+          },
+          "description": "Manages client proposals, including generation, status, and conversion to projects. Includes denormalized 'companyId' for authorization independence.",
+          "params": [
+            {
+              "name": "companyId",
+              "description": "The unique identifier of the company that owns this proposal."
+            },
+            {
+              "name": "proposalId",
+              "description": "The unique identifier of the proposal."
+            }
+          ]
+        }
+      },
+      {
+        "path": "companies/{companyId}/invoices/{invoiceId}",
+        "definition": {
+          "entityName": "Invoice",
+          "schema": {
+            "$ref": "#/backend/entities/Invoice"
+          },
+          "description": "Manages client invoices, including line items, tax, payment status, and Google Drive/Sheets integration. Includes denormalized 'companyId' for authorization independence.",
+          "params": [
+            {
+              "name": "companyId",
+              "description": "The unique identifier of the company that owns this invoice."
+            },
+            {
+              "name": "invoiceId",
+              "description": "The unique identifier of the invoice."
+            }
+          ]
+        }
+      },
+      {
+        "path": "companies/{companyId}/invoices/{invoiceId}/payments/{paymentId}",
+        "definition": {
+          "entityName": "Payment",
+          "schema": {
+            "$ref": "#/backend/entities/Payment"
+          },
+          "description": "Records individual payments received for invoices. Includes denormalized 'companyId' and 'invoiceId' for authorization independence.",
+          "params": [
+            {
+              "name": "companyId",
+              "description": "The unique identifier of the company that owns the parent invoice."
+            },
+            {
+              "name": "invoiceId",
+              "description": "The unique identifier of the parent invoice."
+            },
+            {
+              "name": "paymentId",
+              "description": "The unique identifier for a specific payment."
+            }
+          ]
+        }
+      },
+      {
+        "path": "companies/{companyId}/company_integrations/{integrationId}",
+        "definition": {
+          "entityName": "CompanyIntegration",
+          "schema": {
+            "$ref": "#/backend/entities/CompanyIntegration"
+          },
+          "description": "Stores settings and status for third-party integrations (e.g., Google Drive/Sheets) for a specific company. The document ID typically matches the companyId. Includes denormalized 'companyId' for authorization independence.",
+          "params": [
+            {
+              "name": "companyId",
+              "description": "The unique identifier of the company these integrations belong to."
+            },
+            {
+              "name": "integrationId",
+              "description": "The unique identifier for the company's integration document, typically matching 'companyId'."
+            }
+          ]
+        }
+      },
+      {
+        "path": "companies/{companyId}/invoice_sync_logs/{logId}",
+        "definition": {
+          "entityName": "InvoiceSyncLog",
+          "schema": {
+            "$ref": "#/backend/entities/InvoiceSyncLog"
+          },
+          "description": "Logs the results of invoice integration actions with Google Drive and Google Sheets. Includes denormalized 'companyId' for authorization independence.",
+          "params": [
+            {
+              "name": "companyId",
+              "description": "The unique identifier of the company associated with this sync log."
+            },
+            {
+              "name": "logId",
+              "description": "The unique identifier for a specific invoice sync log entry."
+            }
+          ]
+        }
+      },
+      {
+        "path": "companies/{companyId}/market_research_sessions/{sessionId}",
+        "definition": {
+          "entityName": "MarketResearchSession",
+          "schema": {
+            "$ref": "#/backend/entities/MarketResearchSession"
+          },
+          "description": "Represents a user-initiated market research request and its resulting analysis. Includes denormalized 'companyId' for authorization independence.",
+          "params": [
+            {
+              "name": "companyId",
+              "description": "The unique identifier of the company that initiated this session."
+            },
+            {
+              "name": "sessionId",
+              "description": "The unique identifier of the market research session."
+            }
+          ]
+        }
+      },
+      {
+        "path": "companies/{companyId}/market_research_sessions/{sessionId}/trend_reports/{reportId}",
+        "definition": {
+          "entityName": "TrendReport",
+          "schema": {
+            "$ref": "#/backend/entities/TrendReport"
+          },
+          "description": "Stores insights and data related to market trends identified during a market research session. Includes denormalized 'companyId' and 'marketResearchSessionId' for authorization independence.",
+          "params": [
+            {
+              "name": "companyId",
+              "description": "The unique identifier of the company that owns the parent session."
+            },
+            {
+              "name": "sessionId",
+              "description": "The unique identifier of the parent market research session."
+            },
+            {
+              "name": "reportId",
+              "description": "The unique identifier for a specific trend report."
+            }
+          ]
+        }
+      },
+      {
+        "path": "companies/{companyId}/market_research_sessions/{sessionId}/competitor_analysis/{analysisId}",
+        "definition": {
+          "entityName": "CompetitorAnalysis",
+          "schema": {
+            "$ref": "#/backend/entities/CompetitorAnalysis"
+          },
+          "description": "Stores analysis and insights regarding competitors for a market research session. Includes denormalized 'companyId' and 'marketResearchSessionId' for authorization independence.",
+          "params": [
+            {
+              "name": "companyId",
+              "description": "The unique identifier of the company that owns the parent session."
+            },
+            {
+              "name": "sessionId",
+              "description": "The unique identifier of the parent market research session."
+            },
+            {
+              "name": "analysisId",
+              "description": "The unique identifier for a specific competitor analysis."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore structure is designed to be a secure, scalable, and debuggable multi-tenant SaaS application, strictly adhering to the core design principles and strategy mandates. The fundamental approach prioritizes 'Authorization Independence via Denormalization' (Mandate A) and 'Structural Segregation' (Mandate B), ensuring robust security rules and efficient queries.\n\n**Multi-Tenancy and Authorization Independence:**\n1.  **Top-Level `companies` Collection:** The root of the multi-tenant architecture is the `/companies/{companyId}` collection. Each document here represents a tenant, storing core company information.\n2.  **Company-Specific Subcollections:** Almost all core application data (e.g., `projects`, `talents`, `leads`, `invoices`, `roles`, `company_settings`) is nested as subcollections directly under `companies/{companyId}`. For example, `/companies/{companyId}/projects/{projectId}`.\n3.  **Denormalized `companyId`:** Every document within these company-specific subcollections explicitly includes a `companyId` field. This is the critical denormalization strategy (Mandate A). This means security rules can directly compare `request.auth.token.companyId` (derived from the user's profile) with `resource.data.companyId` or `request.path.segments[1]` (the wildcard representing `companyId` in the path). This entirely eliminates the need for expensive and complex `get()` calls to parent documents to ascertain ownership or tenancy, thus enabling atomic operations and simplifying rule debugging.\n4.  **User Data (`/users/{userId}`):** User profiles are stored in a top-level `/users/{userId}` collection. This document includes `companyId` and `roleId`. While a `get()` call to this document (`get(/users/$(request.auth.uid))`) is necessary to retrieve the requesting user's `companyId` and `roleId` for rule evaluation, this is a standard, unavoidable pattern for DBAC without custom claims and is not considered a 'hierarchical authorization dependency' in the sense of accessing *application data* based on parent documents. It's about establishing the *user's context*.\n5.  **Global Roles (`/super_admins/{superAdminId}`):** For 'Super Admin' role, a dedicated top-level collection `/super_admins/{superAdminId}` (where `superAdminId` is the user's UID) is used. Access for Super Admins is granted via an `exists(/super_admins/$(request.auth.uid))` check, fulfilling the 'Existence over Content' principle for global roles and ensuring authorization independence.\n\n**QAPs (Queries as Authorization Policies):**\n1.  **Structural Segregation (Mandate B):** By having all company-specific data under `/companies/{companyId}/`, security rules can enforce that any `list` or `get` operation must include a filter or path segment matching the user's `companyId`. This guarantees that users can only query data within their own company, inherently satisfying QAPs for multi-tenancy. For example, a `list` on `/companies/{companyId}/projects` will automatically restrict results to the `projectId` specified in the path, which itself is guarded by `companyId`.\n2.  **Role-Based Access Control (RBAC):** Roles are stored per company in `/companies/{companyId}/roles/{roleId}` documents, containing explicit `permissions` objects. After retrieving the user's `companyId` and `roleId` from their `/users/{userId}` document, security rules can then perform a `get()` on the corresponding role document to check specific module permissions (e.g., `roleDoc.data.permissions.projects.view`). This second `get()` is acceptable for fetching user-centric authorization metadata (role definitions) as per the interpretation of the 'Authorization Independence' mandate not applying to fetching the requesting user's *own* foundational data/roles. It still allows the `list` operation to be pre-filtered by `companyId` first.\n3.  **Module Enablement:** `company_settings` documents at `/companies/{companyId}/company_settings/{companyId}` contain an `enabledModules` array. Rules can fetch this document to enforce module-level access, ensuring operations are only permitted if a module is enabled for that company.\n\nThis structure ensures that each document clearly states its `companyId`, allowing for straightforward, efficient security rules that prevent cross-company data access and simplify debugging by making the authorization intent explicit at the data's location and within its fields."
+  }
+}
