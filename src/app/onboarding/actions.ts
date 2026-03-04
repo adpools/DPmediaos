@@ -1,8 +1,8 @@
 
 'use client';
 
-import { doc, serverTimestamp, Firestore, collection } from 'firebase/firestore';
-import { setDocumentNonBlocking, addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { doc, serverTimestamp, Firestore } from 'firebase/firestore';
+import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 
 /**
  * Provisions a new company and admin profile with exhaustive module access.
@@ -25,9 +25,8 @@ export async function setupNewCompany(
     role_id: roleId,
     email,
     fullName: email.split('@')[0],
-    full_name: email.split('@')[0],
     status: 'active',
-    created_at: serverTimestamp(),
+    createdAt: serverTimestamp(),
   }, { merge: true });
 
   // 2. Create Company Tenant
@@ -35,9 +34,9 @@ export async function setupNewCompany(
   setDocumentNonBlocking(companyRef, {
     id: companyId,
     name: companyName,
-    onboarding_status: 'completed',
-    created_at: serverTimestamp(),
-    updated_at: serverTimestamp(),
+    onboardingStatus: 'completed',
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
   }, { merge: true });
 
   // 3. Define Admin Role with Full Module Permissions
@@ -52,7 +51,7 @@ export async function setupNewCompany(
       talents: { view: true, create: true, edit: true, delete: true },
       crm: { view: true, create: true, edit: true, delete: true },
       proposals: { view: true, create: true, edit: true, delete: true },
-      invoices: { view: true, create: true, edit: true, delete: true, approve: true },
+      invoices: { view: true, create: true, edit: true, delete: true },
       research: { view: true, create: true, edit: true, delete: true },
       reports: { view: true, create: true, edit: true, delete: true },
       admin: { view: true, create: true, edit: true, delete: true },
@@ -65,8 +64,8 @@ export async function setupNewCompany(
     id: companyId,
     company_id: companyId,
     enabledModules: ['dashboard', 'projects', 'talents', 'crm', 'proposals', 'invoices', 'research', 'reports'],
-    default_currency: 'USD',
-    updated_at: serverTimestamp(),
+    defaultCurrency: 'USD',
+    updatedAt: serverTimestamp(),
   }, { merge: true });
 
   // 5. Special Platform Admin Hook

@@ -10,10 +10,7 @@ import {
   Lock, 
   Loader2, 
   MoreVertical, 
-  Trash2, 
   CheckCircle2, 
-  XCircle,
-  Mail,
   UserCog,
   UserMinus,
   Sparkles
@@ -21,7 +18,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { useTenant } from "@/hooks/use-tenant";
 import { useCollection, useMemoFirebase, useFirestore } from "@/firebase";
-import { collection, query, where, doc, serverTimestamp, deleteDoc } from "firebase/firestore";
+import { collection, query, where, doc, serverTimestamp } from "firebase/firestore";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { 
@@ -51,7 +48,7 @@ import {
   DropdownMenuSeparator, 
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
-import { updateDocumentNonBlocking, addDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase/non-blocking-updates";
+import { updateDocumentNonBlocking, addDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { toast } from "@/hooks/use-toast";
 
 const MODULES = [
@@ -115,42 +112,34 @@ export default function RBACPage() {
     toast({ title: "Permissions Updated" });
   };
 
-  const handleInvite = async (e: React.FormEvent) => {
+  const handleInvite = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!companyId || !inviteData.email || !db) return;
+    if (!companyId || !inviteData.email || !db) {
+      toast({ variant: "destructive", title: "Configuration Error", description: "Workspace context missing." });
+      return;
+    }
 
     setIsInviting(true);
-    try {
-      const inviteRef = collection(db, 'companies', companyId, 'invitations');
-      addDocumentNonBlocking(inviteRef, {
-        email: inviteData.email,
-        role_id: inviteData.role_id,
-        invited_by: profile?.id || profile?.uid || 'system',
-        company_id: companyId,
-        status: 'pending',
-        created_at: serverTimestamp()
-      });
+    const inviteRef = collection(db, 'companies', companyId, 'invitations');
+    
+    // We initiate the non-blocking write. UI will close and show toast immediately.
+    addDocumentNonBlocking(inviteRef, {
+      email: inviteData.email,
+      role_id: inviteData.role_id,
+      invited_by: profile?.id || 'system',
+      company_id: companyId,
+      status: 'pending',
+      created_at: serverTimestamp()
+    });
 
-      toast({ 
-        title: "Invitation Dispatched", 
-        description: `A workspace access link has been sent to ${inviteData.email}.` 
-      });
-      
-      setInviteData({ email: "", role_id: "member" });
-      setIsInviteOpen(false);
-    } catch (error) {
-      console.error("Invitation failed:", error);
-      toast({ variant: "destructive", title: "Invitation Failed", description: "Could not send invitation. Check permissions." });
-    } finally {
-      setIsInviting(false);
-    }
-  };
-
-  const handleChangeMemberRole = (memberId: string, newRole: string) => {
-    if (!db) return;
-    const userRef = doc(db, 'users', memberId);
-    updateDocumentNonBlocking(userRef, { role_id: newRole });
-    toast({ title: "Member Role Updated" });
+    toast({ 
+      title: "Invitation Dispatched", 
+      description: `A workspace access link has been sent to ${inviteData.email}.` 
+    });
+    
+    setInviteData({ email: "", role_id: "member" });
+    setIsInviteOpen(false);
+    setIsInviting(false);
   };
 
   const handleRemoveMember = (memberId: string, name: string) => {
@@ -264,11 +253,11 @@ export default function RBACPage() {
                             <Avatar className="h-9 w-9 ring-2 ring-primary/5">
                               <AvatarImage src={member.avatar} />
                               <AvatarFallback className="bg-primary/5 text-primary text-[10px] font-bold">
-                                {(member.fullName || member.full_name)?.substring(0,2).toUpperCase() || 'U'}
+                                {(member.fullName)?.substring(0,2).toUpperCase() || 'U'}
                               </AvatarFallback>
                             </Avatar>
                             <div className="flex flex-col">
-                              <span className="font-bold text-sm">{member.fullName || member.full_name || 'New Member'}</span>
+                              <span className="font-bold text-sm">{member.fullName || 'New Member'}</span>
                               <span className="text-[10px] text-muted-foreground font-medium">{member.email}</span>
                             </div>
                           </div>
@@ -300,7 +289,7 @@ export default function RBACPage() {
                               <DropdownMenuSeparator />
                               <DropdownMenuItem 
                                 className="gap-2 text-destructive cursor-pointer py-2"
-                                onClick={() => handleRemoveMember(member.id, member.fullName || member.full_name)}
+                                onClick={() => handleRemoveMember(member.id, member.fullName)}
                               >
                                 <UserMinus className="h-4 w-4" /> Remove from Team
                               </DropdownMenuItem>

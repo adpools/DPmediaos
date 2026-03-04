@@ -1,20 +1,47 @@
+
 "use client";
 
+import { useEffect } from "react";
 import { AppSidebar } from "@/components/layout/app-sidebar";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { Toaster } from "@/components/ui/toaster";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Search, Calendar, LayoutGrid, MoreHorizontal, Phone, Smile, ArrowRight, Plus } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
+import { Calendar, LayoutGrid, MoreHorizontal, Phone, Smile, ArrowRight, Plus, ShieldCheck, Zap } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
 import { MOCK_SCHEDULE } from "@/lib/mock-data";
+import { useTenant } from "@/hooks/use-tenant";
+import { doc, serverTimestamp } from "firebase/firestore";
+import { useFirestore } from "@/firebase";
+import { updateDocumentNonBlocking, setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 
 export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const { profile, user, companyId, isSuperAdmin } = useTenant();
+  const db = useFirestore();
+
+  // Bootstrap Promotion Logic for Global Administrators
+  useEffect(() => {
+    if (user?.email === 'arundevv.com@gmail.com' && db) {
+      // 1. Promote to Workspace Admin if needed
+      if (profile && profile.role_id !== 'admin') {
+        const userRef = doc(db, 'users', user.uid);
+        updateDocumentNonBlocking(userRef, { role_id: 'admin' });
+      }
+
+      // 2. Promote to Platform Super Admin
+      const superAdminRef = doc(db, 'super_admins', user.uid);
+      setDocumentNonBlocking(superAdminRef, {
+        uid: user.uid,
+        email: user.email,
+        granted_at: serverTimestamp()
+      }, { merge: true });
+    }
+  }, [user, profile, db]);
+
   return (
     <SidebarProvider>
       <div className="flex min-h-screen w-full bg-[#F0F1F4]">
