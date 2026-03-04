@@ -3,25 +3,11 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * DP MEDIA OS - SECURITY RULES ARCHITECTURE (PROTOTYPING MODE)
+     * DP MEDIA OS - SECURITY RULES ARCHITECTURE
      * 
      * Core Philosophy: 
      * This ruleset implements a robust multi-tenant SaaS security model. Data isolation is 
      * enforced at the company level using a hybrid of path-based and field-based authorization.
-     * 
-     * Data Structure:
-     * - Global Collections: /users, /super_admins, /subscription_plans, /modules.
-     * - Tenant Collections: All production data is nested under /companies/{companyId}/.
-     * 
-     * Key Security Decisions:
-     * 1. Multi-Tenancy: Access to any data under a company path requires the user's 
-     *    profile (in /users/{uid}) to have a matching companyId.
-     * 2. Super Admin: A global override exists for users present in the /super_admins collection.
-     * 3. Denormalization: All tenant-specific documents are expected to have a `companyId` 
-     *    field for relational integrity and query safety.
-     * 4. Prototyping Flexibility: Logic enforces "Who" can access data (Authorization) 
-     *    and "Relational Integrity" (Company ID consistency), but does not enforce 
-     *    strict data types or optional/required field schemas for non-auth fields.
      */
 
     // --- GLOBAL HELPER FUNCTIONS ---
@@ -60,27 +46,12 @@ service cloud.firestore {
 
     // --- COLLECTION RULES ---
 
-    /**
-     * @description Marker collection for global platform administrators.
-     * @path /super_admins/{adminId}
-     * @allow (get) Any signed-in user to check existence.
-     * @deny (write) Any client-side request; managed via Admin SDK/Console.
-     * @principle Existence-based global authorization.
-     */
     match /super_admins/{adminId} {
       allow get: if isSignedIn();
       allow list: if isSuperAdmin();
       allow create, update, delete: if false; 
     }
 
-    /**
-     * @description User profiles containing company affiliation and role IDs.
-     * @path /users/{userId}
-     * @allow (get) The user themselves or a Super Admin.
-     * @allow (create) A user creating their own initial profile.
-     * @deny (list) General listing to prevent user enumeration.
-     * @principle Self-ownership and platform-wide user indexing.
-     */
     match /users/{userId} {
       allow get: if isSignedIn() && (request.auth.uid == userId || isSuperAdmin());
       allow list: if isSuperAdmin();
@@ -89,37 +60,16 @@ service cloud.firestore {
       allow delete: if isSuperAdmin();
     }
 
-    /**
-     * @description Global list of available modules for the platform.
-     * @path /modules/{moduleId}
-     * @allow (get, list) All signed-in users for UI rendering.
-     * @deny (write) All client-side requests.
-     * @principle Read-only global configuration.
-     */
     match /modules/{moduleId} {
       allow get, list: if isSignedIn();
       allow create, update, delete: if false;
     }
 
-    /**
-     * @description Global subscription tiers and pricing info.
-     * @path /subscription_plans/{planId}
-     * @allow (get, list) All signed-in users for billing UI.
-     * @deny (write) All client-side requests.
-     * @principle Read-only global reference data.
-     */
     match /subscription_plans/{planId} {
       allow get, list: if isSignedIn();
       allow create, update, delete: if false;
     }
 
-    /**
-     * @description The root tenant document for a company.
-     * @path /companies/{companyId}
-     * @allow (get) Members of the company or Super Admins.
-     * @deny (create) Client-side creation; typically handled by a Cloud Function onboarding flow.
-     * @principle Tenant isolation.
-     */
     match /companies/{companyId} {
       allow get: if isMember(companyId);
       allow list: if isSuperAdmin();
@@ -129,10 +79,6 @@ service cloud.firestore {
 
       // --- TENANT SUBCOLLECTIONS ---
 
-      /**
-       * @description Company-specific roles and permission definitions.
-       * @path /companies/{companyId}/roles/{roleId}
-       */
       match /roles/{roleId} {
         allow get, list: if isMember(companyId);
         allow create: if isMember(companyId) && hasValidCompanyContext(companyId);
@@ -140,10 +86,6 @@ service cloud.firestore {
         allow delete: if isExistingMember(companyId);
       }
 
-      /**
-       * @description Company configuration and enabled modules.
-       * @path /companies/{companyId}/company_settings/{settingId}
-       */
       match /company_settings/{settingId} {
         allow get, list: if isMember(companyId);
         allow create: if isMember(companyId) && hasValidCompanyContext(companyId);
@@ -151,79 +93,57 @@ service cloud.firestore {
         allow delete: if isExistingMember(companyId);
       }
 
-      /**
-       * @description Historical log of settings changes.
-       * @path /companies/{companyId}/settings_history/{historyId}
-       */
       match /settings_history/{historyId} {
         allow get, list: if isMember(companyId);
         allow create: if isMember(companyId) && hasValidCompanyContext(companyId);
         allow update, delete: if isSuperAdmin();
       }
 
-      /**
-       * @description Audit logs for significant system and user actions.
-       * @path /companies/{companyId}/activity_logs/{logId}
-       */
       match /activity_logs/{logId} {
         allow get, list: if isMember(companyId);
         allow create: if isMember(companyId) && hasValidCompanyContext(companyId);
         allow update, delete: if isSuperAdmin();
       }
 
-      /**
-       * @description Company subscription status and Stripe references.
-       * @path /companies/{companyId}/subscriptions/{subId}
-       */
       match /subscriptions/{subId} {
         allow get: if isMember(companyId);
         allow list: if isMember(companyId);
         allow create, update, delete: if isSuperAdmin();
       }
 
-      /**
-       * @description Project management root collection.
-       * @path /companies/{companyId}/projects/{projectId}
-       */
+      // Project Management
       match /projects/{projectId} {
         allow get, list: if isMember(companyId);
         allow create: if isMember(companyId) && hasValidCompanyContext(companyId);
         allow update: if isExistingMember(companyId) && isCompanyImmutable();
         allow delete: if isExistingMember(companyId);
 
-        // Project Subcollections
-        match /tasks/{taskId} {
-          allow get, list: if isMember(companyId);
-          allow create: if isMember(companyId) && hasValidCompanyContext(companyId);
-          allow update: if isExistingMember(companyId) && isCompanyImmutable();
-          allow delete: if isExistingMember(companyId);
-        }
         match /pre_production_phases/{id} {
-          allow get, list: if isMember(companyId);
-          allow create, update, delete: if isMember(companyId);
+          allow read, write: if isMember(companyId);
         }
         match /production_days/{id} {
-          allow get, list: if isMember(companyId);
-          allow create, update, delete: if isMember(companyId);
+          allow read, write: if isMember(companyId);
         }
         match /post_production_phases/{id} {
-          allow get, list: if isMember(companyId);
-          allow create, update, delete: if isMember(companyId);
+          allow read, write: if isMember(companyId);
         }
         match /project_talents/{id} {
-          allow get, list: if isMember(companyId);
-          allow create, update, delete: if isMember(companyId);
+          allow read, write: if isMember(companyId);
         }
         match /budgets/{id} {
-          allow get, list: if isMember(companyId);
-          allow create, update, delete: if isMember(companyId);
+          allow read, write: if isMember(companyId);
         }
       }
 
-      /**
-       * @description Talent profiles and portfolio data.
-       * @path /companies/{companyId}/talents/{talentId}
-       */
+      // Company-wide Tasks
+      match /tasks/{taskId} {
+        allow get, list: if isMember(companyId);
+        allow create: if isMember(companyId) && hasValidCompanyContext(companyId);
+        allow update: if isExistingMember(companyId) && isCompanyImmutable();
+        allow delete: if isExistingMember(companyId);
+      }
+
+      // Talent Marketplace
       match /talents/{talentId} {
         allow get, list: if isMember(companyId);
         allow create: if isMember(companyId) && hasValidCompanyContext(companyId);
@@ -241,10 +161,6 @@ service cloud.firestore {
         }
       }
 
-      /**
-       * @description Talent bookings and scheduling.
-       * @path /companies/{companyId}/bookings/{bookingId}
-       */
       match /bookings/{bookingId} {
         allow get, list: if isMember(companyId);
         allow create: if isMember(companyId) && hasValidCompanyContext(companyId);
@@ -252,10 +168,6 @@ service cloud.firestore {
         allow delete: if isExistingMember(companyId);
       }
 
-      /**
-       * @description Legal documents and talent contracts.
-       * @path /companies/{companyId}/contracts/{contractId}
-       */
       match /contracts/{contractId} {
         allow get, list: if isMember(companyId);
         allow create: if isMember(companyId) && hasValidCompanyContext(companyId);
@@ -263,10 +175,7 @@ service cloud.firestore {
         allow delete: if isExistingMember(companyId);
       }
 
-      /**
-       * @description CRM sales leads and pipeline tracking.
-       * @path /companies/{companyId}/leads/{leadId}
-       */
+      // Sales CRM
       match /leads/{leadId} {
         allow get, list: if isMember(companyId);
         allow create: if isMember(companyId) && hasValidCompanyContext(companyId);
@@ -278,10 +187,6 @@ service cloud.firestore {
         }
       }
 
-      /**
-       * @description Sales proposals and generation metadata.
-       * @path /companies/{companyId}/proposals/{proposalId}
-       */
       match /proposals/{proposalId} {
         allow get, list: if isMember(companyId);
         allow create: if isMember(companyId) && hasValidCompanyContext(companyId);
@@ -289,10 +194,7 @@ service cloud.firestore {
         allow delete: if isExistingMember(companyId);
       }
 
-      /**
-       * @description Financial invoices and billing status.
-       * @path /companies/{companyId}/invoices/{invoiceId}
-       */
+      // Finance & Invoices
       match /invoices/{invoiceId} {
         allow get, list: if isMember(companyId);
         allow create: if isMember(companyId) && hasValidCompanyContext(companyId);
@@ -304,10 +206,6 @@ service cloud.firestore {
         }
       }
 
-      /**
-       * @description Third-party integration tokens and settings (e.g., Google).
-       * @path /companies/{companyId}/company_integrations/{id}
-       */
       match /company_integrations/{id} {
         allow get, list: if isMember(companyId);
         allow create: if isMember(companyId) && hasValidCompanyContext(companyId);
@@ -315,19 +213,12 @@ service cloud.firestore {
         allow delete: if isSuperAdmin();
       }
 
-      /**
-       * @description Logs of external service synchronization (Google Drive/Sheets).
-       * @path /companies/{companyId}/invoice_sync_logs/{id}
-       */
       match /invoice_sync_logs/{id} {
         allow get, list: if isMember(companyId);
         allow create, update, delete: if isSuperAdmin(); 
       }
 
-      /**
-       * @description Market research sessions and AI-generated insights.
-       * @path /companies/{companyId}/market_research_sessions/{id}
-       */
+      // Market Research
       match /market_research_sessions/{id} {
         allow get, list: if isMember(companyId);
         allow create: if isMember(companyId) && hasValidCompanyContext(companyId);
