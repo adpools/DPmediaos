@@ -4,8 +4,7 @@ import { doc, serverTimestamp, Firestore, collection } from 'firebase/firestore'
 import { setDocumentNonBlocking, addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 
 /**
- * Handles the creation of a new company and the initial admin user.
- * Standardizes on snake_case fields as per PRD requirements.
+ * Provisions a new company and admin profile with exhaustive module access.
  */
 export async function setupNewCompany(
   db: Firestore, 
@@ -17,7 +16,7 @@ export async function setupNewCompany(
   const companyId = `comp_${Math.random().toString(36).substr(2, 9)}`;
   const roleId = 'admin';
 
-  // 1. Create User Profile FIRST to establish company_id link for Security Rules
+  // 1. Establish User Context
   const userRef = doc(db, 'users', userId);
   setDocumentNonBlocking(userRef, {
     id: userId,
@@ -29,7 +28,7 @@ export async function setupNewCompany(
     created_at: serverTimestamp(),
   }, { merge: true });
 
-  // 2. Create Company
+  // 2. Create Company Tenant
   const companyRef = doc(db, 'companies', companyId);
   setDocumentNonBlocking(companyRef, {
     id: companyId,
@@ -39,7 +38,7 @@ export async function setupNewCompany(
     updated_at: serverTimestamp(),
   }, { merge: true });
 
-  // 3. Create Admin Role with exhaustive module permissions
+  // 3. Define Admin Role with Full Module Permissions
   const roleRef = doc(db, 'companies', companyId, 'roles', roleId);
   setDocumentNonBlocking(roleRef, {
     id: roleId,
@@ -58,7 +57,7 @@ export async function setupNewCompany(
     }
   }, { merge: true });
 
-  // 4. Create Company Settings
+  // 4. Enable All Request Modules for New Workspaces
   const settingsRef = doc(db, 'companies', companyId, 'company_settings', companyId);
   setDocumentNonBlocking(settingsRef, {
     id: companyId,
@@ -68,20 +67,7 @@ export async function setupNewCompany(
     updated_at: serverTimestamp(),
   }, { merge: true });
 
-  // 5. Seed initial lead
-  const leadsRef = collection(db, 'companies', companyId, 'leads');
-  addDocumentNonBlocking(leadsRef, {
-    company_id: companyId,
-    company_name: 'Sample Client Corp',
-    contact_person: 'Jane Doe',
-    industry: industry || 'Media',
-    email: 'jane@sample.com',
-    stage: 'lead',
-    deal_value: 50000,
-    created_at: serverTimestamp(),
-  });
-
-  // 6. If administrator email, also create a super_admin marker
+  // 5. Special Platform Admin Hook
   if (email === 'arundevv.com@gmail.com') {
     const adminMarkerRef = doc(db, 'super_admins', userId);
     setDocumentNonBlocking(adminMarkerRef, {

@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect } from "react";
@@ -13,26 +12,22 @@ export default function RootPage() {
   const router = useRouter();
 
   useEffect(() => {
-    // Wait for auth to finish loading
     if (!isUserLoading) {
       if (!user) {
-        // User not signed in
         router.push("/login");
         return;
       }
 
-      // If user is signed in, wait for tenant/profile loading to finish
       if (!isTenantLoading) {
-        if (!profile || !companyId) {
-          // User signed in but has no profile/company (needs onboarding)
+        // Redirection based on standardized snake_case company_id
+        if (!profile || !profile.company_id) {
           router.push("/onboarding");
         } else {
-          // User signed in and has a company
           router.push("/dashboard");
         }
       }
     }
-  }, [user, isUserLoading, companyId, isTenantLoading, profile, router]);
+  }, [user, isUserLoading, isTenantLoading, profile, router]);
 
   return (
     <div className="flex h-screen w-full items-center justify-center bg-[#F0F1F4]">

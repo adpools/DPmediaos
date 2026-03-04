@@ -36,7 +36,7 @@ import { useTenant } from "@/hooks/use-tenant";
 import { useAuth } from "@/firebase";
 import { signOut } from "firebase/auth";
 
-// Module registry must match the IDs in settings page exactly
+// Module registry for dynamic navigation
 const workspaceItems = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutGrid, module: "dashboard", isCore: true },
   { title: "Projects", url: "/projects", icon: Film, module: "projects", isCore: true },
@@ -84,7 +84,7 @@ export function AppSidebar() {
           {state !== "collapsed" && (
             <div className="flex flex-col">
               <span className="text-sm font-bold font-headline">{profile?.full_name}</span>
-              <span className="text-[10px] text-muted-foreground font-medium">{company?.name}</span>
+              <span className="text-[10px] text-muted-foreground font-medium">{company?.name || 'Workspace'}</span>
             </div>
           )}
         </div>
@@ -97,7 +97,7 @@ export function AppSidebar() {
           </div>
           <SidebarMenu>
             {workspaceItems.map((item) => {
-              // Real-time module filtering: Check if core, or enabled in settings, AND user has permission
+              // Check if module is enabled in workspace and user has permission
               const isEnabled = item.isCore || isModuleEnabled(item.module);
               const isAllowed = item.isCore || hasPermission(item.module, 'view');
               
