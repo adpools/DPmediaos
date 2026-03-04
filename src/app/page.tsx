@@ -1,20 +1,13 @@
-"use client";
+import { redirect } from "next/navigation";
 
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+export default function RootPage() {
+  // In a real application, logic to check if a user is authenticated or onboarded would go here.
+  // For now, we redirect to the dashboard.
+  const onboarded = true;
 
-export default function Home() {
-  const router = useRouter();
+  if (!onboarded) {
+    redirect("/onboarding");
+  }
 
-  useEffect(() => {
-    // In a real app, check if company is onboarded
-    const onboarded = true; 
-    if (onboarded) {
-      router.push('/(dashboard)');
-    } else {
-      router.push('/onboarding');
-    }
-  }, [router]);
-
-  return null;
+  redirect("/dashboard");
 }

@@ -39,7 +39,7 @@ import { usePathname } from "next/navigation";
 const navItems = [
   {
     title: "Dashboard",
-    url: "/",
+    url: "/dashboard",
     icon: LayoutDashboard,
     module: "core",
   },
@@ -132,7 +132,7 @@ export function AppSidebar() {
               <SidebarMenuItem key={item.title}>
                 <SidebarMenuButton
                   asChild
-                  isActive={pathname === item.url}
+                  isActive={pathname === item.url || (item.url !== "/" && pathname.startsWith(item.url))}
                   tooltip={item.title}
                 >
                   <Link href={item.url}>
@@ -161,7 +161,7 @@ export function AppSidebar() {
           <SidebarMenu>
             {adminItems.map((item) => (
               <SidebarMenuItem key={item.title}>
-                <SidebarMenuButton asChild tooltip={item.title}>
+                <SidebarMenuButton asChild tooltip={item.title} isActive={pathname === item.url}>
                   <Link href={item.url}>
                     <item.icon />
                     <span>{item.title}</span>

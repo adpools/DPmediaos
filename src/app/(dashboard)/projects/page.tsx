@@ -1,7 +1,8 @@
 "use client";
 
+import Image from "next/image";
 import { MOCK_PROJECTS } from "@/lib/mock-data";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Plus, Filter, LayoutGrid, List as ListIcon, Calendar, MoreVertical, ExternalLink } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
@@ -108,5 +109,3 @@ export default function ProjectsPage() {
     </div>
   );
 }
-
-import Image from "next/image";
