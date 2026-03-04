@@ -19,10 +19,11 @@ export default function RootPage() {
       }
 
       if (!isTenantLoading) {
-        // Redirection based on standardized snake_case company_id or Super Admin status
+        // Redirection logic standardizing on Super Admin authority or company presence
         const cId = profile?.company_id || (profile as any)?.companyId;
+        const isHardcodedAdmin = user.email === 'arundevv.com@gmail.com';
         
-        if (isSuperAdmin) {
+        if (isSuperAdmin || isHardcodedAdmin) {
           router.push("/dashboard");
         } else if (!cId) {
           router.push("/onboarding");

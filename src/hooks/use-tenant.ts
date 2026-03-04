@@ -22,7 +22,6 @@ export function useTenant() {
 
   // 2. Get the Company data
   const companyRef = useMemoFirebase(() => {
-    // Standardize on snake_case
     const cId = profile?.company_id || (profile as any)?.companyId;
     if (!db || !cId) return null;
     return doc(db, 'companies', cId);
@@ -63,11 +62,14 @@ export function useTenant() {
   const hasContext = !!(profile?.company_id || (profile as any)?.companyId);
   const isContextLoading = hasContext && (isCompanyLoading || isRoleLoading || isSettingsLoading);
 
+  // Combined Super Admin check including hardcoded bootstrap email
+  const isSuperAdminValue = !!superAdmin || user?.email === 'arundevv.com@gmail.com';
+
   /**
    * Checks if the user has a specific permission for a module.
    */
   const hasPermission = (module: string, action: 'view' | 'create' | 'edit' | 'delete' | 'approve' = 'view') => {
-    if (!!superAdmin || profile?.role_id === 'admin' || (profile as any)?.roleId === 'admin') return true;
+    if (isSuperAdminValue || profile?.role_id === 'admin' || (profile as any)?.roleId === 'admin') return true;
     if (!role?.permissions) return false;
     const perms = role.permissions[module];
     return perms ? perms[action] : false;
@@ -77,7 +79,7 @@ export function useTenant() {
    * Checks if a module is enabled globally for the company.
    */
   const isModuleEnabled = (moduleName: string) => {
-    if (!!superAdmin) return true;
+    if (isSuperAdminValue) return true;
     if (!settings) return ['dashboard', 'projects'].includes(moduleName);
     return settings?.enabledModules?.includes(moduleName) || settings?.enabled_modules?.includes(moduleName) || false;
   };
@@ -90,7 +92,7 @@ export function useTenant() {
     settings,
     isLoading: isLoading || isContextLoading,
     companyId: profile?.company_id || (profile as any)?.companyId,
-    isSuperAdmin: !!superAdmin,
+    isSuperAdmin: isSuperAdminValue,
     hasPermission,
     isModuleEnabled,
   };

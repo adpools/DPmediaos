@@ -28,12 +28,14 @@ export default function DashboardLayout({
   useEffect(() => {
     if (!isLoading) {
       const cId = profile?.company_id || (profile as any)?.companyId;
-      if (!cId && !isSuperAdmin) {
-        // If we're not loading, have no company, and aren't a Super Admin, send to onboarding
+      const isHardcodedAdmin = user?.email === 'arundevv.com@gmail.com';
+      
+      if (!cId && !isSuperAdmin && !isHardcodedAdmin) {
+        // Only redirect to onboarding if user has NO company AND NO super admin authority
         router.push("/onboarding");
       }
     }
-  }, [isLoading, profile, isSuperAdmin, router]);
+  }, [isLoading, profile, isSuperAdmin, router, user]);
 
   // 2. Bootstrap Promotion Logic for Global Administrators
   useEffect(() => {
@@ -63,8 +65,9 @@ export default function DashboardLayout({
     );
   }
 
-  // Only render if we have a company context or are a platform admin
-  const hasAccess = !!companyId || isSuperAdmin;
+  // Only render if we have access (company context or platform admin)
+  const isHardcodedAdmin = user?.email === 'arundevv.com@gmail.com';
+  const hasAccess = !!companyId || isSuperAdmin || isHardcodedAdmin;
   if (!hasAccess) {
     return null;
   }
