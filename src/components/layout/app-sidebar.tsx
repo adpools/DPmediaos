@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from "react";
@@ -37,8 +38,8 @@ import { useAuth } from "@/firebase";
 import { signOut } from "firebase/auth";
 
 const workspaceItems = [
-  { title: "Dashboard", url: "/dashboard", icon: LayoutGrid, module: "dashboard" },
-  { title: "Projects", url: "/projects", icon: Film, module: "projects" },
+  { title: "Dashboard", url: "/dashboard", icon: LayoutGrid, module: "dashboard", isCore: true },
+  { title: "Projects", url: "/projects", icon: Film, module: "projects", isCore: true },
   { title: "Talent Network", url: "/talents", icon: Users, module: "talents" },
   { title: "Sales CRM", url: "/crm", icon: Briefcase, module: "crm" },
   { title: "Proposals", url: "/proposals", icon: FileText, module: "proposals" },
@@ -96,8 +97,9 @@ export function AppSidebar() {
           </div>
           <SidebarMenu>
             {workspaceItems.map((item) => {
-              const enabled = isModuleEnabled(item.module);
-              const allowed = hasPermission(item.module, 'view');
+              // Core modules (Dashboard, Projects) are always shown to everyone in the company
+              const enabled = item.isCore || isModuleEnabled(item.module);
+              const allowed = item.isCore || hasPermission(item.module, 'view');
               
               if (!enabled || !allowed) return null;
 

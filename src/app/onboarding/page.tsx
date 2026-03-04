@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -52,9 +53,9 @@ export default function OnboardingPage() {
 
   const modules = [
     { id: 'projects', name: 'Project Management', icon: Film, desc: 'Workflows, schedules & budgets' },
-    { id: 'talent', name: 'Talent Marketplace', icon: Users, desc: 'Find & book actors or models' },
+    { id: 'talents', name: 'Talent Marketplace', icon: Users, desc: 'Find & book actors or models' },
     { id: 'crm', name: 'Sales CRM', icon: Briefcase, desc: 'Manage leads & proposals' },
-    { id: 'finance', name: 'Finance Hub', icon: Receipt, desc: 'Automated invoices & sync' },
+    { id: 'invoices', name: 'Finance Hub', icon: Receipt, desc: 'Automated invoices & sync' },
     { id: 'research', name: 'Market Intelligence', icon: Search, desc: 'AI research & trends' },
   ];
 
