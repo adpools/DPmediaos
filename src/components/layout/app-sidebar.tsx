@@ -12,7 +12,8 @@ import {
   UserCircle,
   Plus,
   ShieldCheck,
-  LogOut
+  LogOut,
+  Settings2
 } from "lucide-react";
 import {
   Sidebar,
@@ -43,7 +44,8 @@ const workspaceItems = [
 ];
 
 const configurationItems = [
-  { title: "Account Center", url: "/settings", icon: UserCircle },
+  { title: "Account Center", url: "/settings?tab=profile", icon: UserCircle },
+  { title: "Preferences", url: "/settings?tab=preferences", icon: Settings2 },
   { title: "Access Control", url: "/settings/rbac", icon: ShieldCheck },
 ];
 
@@ -101,14 +103,14 @@ export function AppSidebar() {
 
         <SidebarGroup className="mt-6">
           <div className="mb-4 px-2">
-            <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">Configuration</span>
+            <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">Settings</span>
           </div>
           <SidebarMenu>
             {configurationItems.map((item) => (
               <SidebarMenuItem key={item.title}>
                 <SidebarMenuButton
                   asChild
-                  isActive={pathname === item.url}
+                  isActive={pathname === item.url || (pathname === '/settings' && item.url.includes(pathname))}
                   tooltip={item.title}
                   className="rounded-xl h-10 px-3 hover:bg-accent/5 data-[active=true]:bg-primary/5 data-[active=true]:text-primary"
                 >

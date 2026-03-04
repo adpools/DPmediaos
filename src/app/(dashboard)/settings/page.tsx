@@ -1,21 +1,22 @@
-
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, Suspense, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { 
   User, 
   Lock, 
   Settings2, 
   Building2, 
-  ShieldCheck, 
   Puzzle, 
   Sparkles, 
   History, 
   RefreshCcw, 
   LogOut,
   Save,
-  Plus
+  Moon,
+  Sun,
+  Palette,
+  Check
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -27,6 +28,33 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { MOCK_COMPANY } from "@/lib/mock-data";
 import { toast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
+
+// Helper to convert hex to HSL components for CSS variables
+function hexToHslComponents(hex: string): string {
+  hex = hex.replace(/^#/, '');
+  const r = parseInt(hex.substring(0, 2), 16) / 255;
+  const g = parseInt(hex.substring(2, 4), 16) / 255;
+  const b = parseInt(hex.substring(4, 6), 16) / 255;
+
+  const max = Math.max(r, g, b), min = Math.min(r, g, b);
+  let h = 0, s, l = (max + min) / 2;
+
+  if (max === min) {
+    h = s = 0;
+  } else {
+    const d = max - min;
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+    switch (max) {
+      case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+      case g: h = (b - r) / d + 2; break;
+      case b: h = (r - g) / d + 4; break;
+    }
+    h /= 6;
+  }
+
+  return `${Math.round(h * 360)} ${Math.round(s * 100)}% ${Math.round(l * 100)}%`;
+}
 
 function AccountCenterContent() {
   const searchParams = useSearchParams();
@@ -43,8 +71,19 @@ function AccountCenterContent() {
     email: "shakir@dpstudios.com",
     bio: ""
   });
-  
-  const [isAdmin] = useState(true);
+
+  // Preference State
+  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [accentColor, setAccentColor] = useState("#FF4B82");
+
+  const colorPresets = [
+    { name: "Pink", hex: "#FF4B82" },
+    { name: "Purple", hex: "#B199FF" },
+    { name: "Blue", hex: "#3b82f6" },
+    { name: "Emerald", hex: "#10b981" },
+    { name: "Amber", hex: "#f59e0b" },
+    { name: "Indigo", hex: "#6366f1" }
+  ];
 
   useEffect(() => {
     const tab = searchParams.get("tab");
@@ -63,19 +102,33 @@ function AccountCenterContent() {
   };
 
   const handleSaveProfile = () => {
-    // In a real app, this would be an API call or Firestore update
     toast({
       title: "Profile Updated",
       description: `Changes for ${profile.name} have been saved successfully.`,
     });
   };
 
-  const handleSaveSecurity = () => {
+  const toggleDarkMode = (checked: boolean) => {
+    setIsDarkMode(checked);
+    if (checked) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
     toast({
-      title: "Security Updated",
-      description: "Your password and security preferences are now active.",
+      title: checked ? "Dark Mode Enabled" : "Light Mode Enabled",
+      description: "Your visual preferences have been updated.",
     });
   };
+
+  const updateAccentColor = useCallback((hex: string) => {
+    setAccentColor(hex);
+    const hsl = hexToHslComponents(hex);
+    document.documentElement.style.setProperty('--accent', hsl);
+    document.documentElement.style.setProperty('--sidebar-primary', hsl);
+    document.documentElement.style.setProperty('--sidebar-accent-foreground', hsl);
+    document.documentElement.style.setProperty('--sidebar-ring', hsl);
+  }, []);
 
   const handleRestore = () => {
     toast({
@@ -105,22 +158,18 @@ function AccountCenterContent() {
           <TabsTrigger value="profile" className="rounded-xl px-4 py-2 gap-2 data-[state=active]:bg-primary data-[state=active]:text-white">
             <User className="h-4 w-4" /> Profile
           </TabsTrigger>
+          <TabsTrigger value="preferences" className="rounded-xl px-4 py-2 gap-2 data-[state=active]:bg-primary data-[state=active]:text-white">
+            <Settings2 className="h-4 w-4" /> Preferences
+          </TabsTrigger>
           <TabsTrigger value="security" className="rounded-xl px-4 py-2 gap-2 data-[state=active]:bg-primary data-[state=active]:text-white">
             <Lock className="h-4 w-4" /> Security
           </TabsTrigger>
-          <TabsTrigger value="personal" className="rounded-xl px-4 py-2 gap-2 data-[state=active]:bg-primary data-[state=active]:text-white">
-            <Settings2 className="h-4 w-4" /> Preferences
+          <TabsTrigger value="company" className="rounded-xl px-4 py-2 gap-2 data-[state=active]:bg-primary data-[state=active]:text-white">
+            <Building2 className="h-4 w-4" /> Company
           </TabsTrigger>
-          {isAdmin && (
-            <>
-              <TabsTrigger value="company" className="rounded-xl px-4 py-2 gap-2 data-[state=active]:bg-primary data-[state=active]:text-white">
-                <Building2 className="h-4 w-4" /> Company
-              </TabsTrigger>
-              <TabsTrigger value="modules" className="rounded-xl px-4 py-2 gap-2 data-[state=active]:bg-primary data-[state=active]:text-white">
-                <Puzzle className="h-4 w-4" /> Modules
-              </TabsTrigger>
-            </>
-          )}
+          <TabsTrigger value="modules" className="rounded-xl px-4 py-2 gap-2 data-[state=active]:bg-primary data-[state=active]:text-white">
+            <Puzzle className="h-4 w-4" /> Modules
+          </TabsTrigger>
           <TabsTrigger value="activity" className="rounded-xl px-4 py-2 gap-2 data-[state=active]:bg-primary data-[state=active]:text-white">
             <History className="h-4 w-4" /> Activity
           </TabsTrigger>
@@ -190,78 +239,69 @@ function AccountCenterContent() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="security" className="animate-in fade-in-50 duration-300">
-          <Card className="border-none shadow-soft rounded-[2rem] p-8">
-            <CardHeader className="px-0 pt-0">
-              <CardTitle className="font-headline text-2xl">Password & Security</CardTitle>
-              <CardDescription>Update your credentials to keep your account secure.</CardDescription>
-            </CardHeader>
-            <CardContent className="px-0 space-y-6">
-              <div className="space-y-4 max-w-md">
-                <div className="space-y-2">
-                  <Label htmlFor="currentPass">Current Password</Label>
-                  <Input id="currentPass" type="password" placeholder="••••••••" className="rounded-xl h-12" />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="newPass">New Password</Label>
-                  <Input id="newPass" type="password" placeholder="••••••••" className="rounded-xl h-12" />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="confirmPass">Confirm New Password</Label>
-                  <Input id="confirmPass" type="password" placeholder="••••••••" className="rounded-xl h-12" />
-                </div>
-              </div>
-              <div className="flex items-center justify-between p-4 bg-amber-50 rounded-2xl border border-amber-100">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-amber-200 rounded-lg text-amber-700">
-                    <Lock className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-sm">Two-Factor Authentication</h4>
-                    <p className="text-xs text-amber-600">Add an extra layer of security to your account.</p>
-                  </div>
-                </div>
-                <Switch />
-              </div>
-              <div className="flex justify-end pt-4">
-                <Button onClick={handleSaveSecurity} className="gap-2 rounded-xl h-11 px-8">
-                  <RefreshCcw className="h-4 w-4" /> Update Security
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Other Tabs remain functionally consistent */}
-        <TabsContent value="company" className="animate-in fade-in-50 duration-300">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <Card className="lg:col-span-2 border-none shadow-soft rounded-[2rem] p-8">
+        <TabsContent value="preferences" className="animate-in fade-in-50 duration-300">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card className="border-none shadow-soft rounded-[2rem] p-8">
               <CardHeader className="px-0 pt-0">
-                <CardTitle className="font-headline text-2xl">Company Information</CardTitle>
-                <CardDescription>Global workspace settings for {MOCK_COMPANY.name}</CardDescription>
-              </CardHeader>
-              <CardContent className="px-0 space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <Label>Studio Name</Label>
-                    <Input defaultValue={MOCK_COMPANY.name} className="rounded-xl h-12" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Industry Focus</Label>
-                    <Input defaultValue="Media Production" className="rounded-xl h-12" />
-                  </div>
+                <div className="flex items-center gap-3 mb-2">
+                  <Palette className="h-5 w-5 text-accent" />
+                  <CardTitle className="font-headline text-2xl">Appearance</CardTitle>
                 </div>
-                <div className="flex justify-between items-center p-6 bg-primary/5 rounded-[1.5rem] border border-primary/10">
+                <CardDescription>Customize the look and feel of your workspace.</CardDescription>
+              </CardHeader>
+              <CardContent className="px-0 space-y-8 pt-4">
+                <div className="flex items-center justify-between p-4 bg-muted/20 rounded-2xl">
                   <div className="flex items-center gap-4">
-                    <div className="h-16 w-16 bg-white rounded-2xl flex items-center justify-center shadow-sm">
-                      <Building2 className="h-8 w-8 text-primary" />
-                    </div>
+                    {isDarkMode ? <Moon className="h-6 w-6 text-primary" /> : <Sun className="h-6 w-6 text-amber-500" />}
                     <div>
-                      <h4 className="font-bold">Studio Branding</h4>
-                      <p className="text-sm text-muted-foreground">Logo and colors used for invoices and reports.</p>
+                      <h4 className="font-bold text-sm">Theme Mode</h4>
+                      <p className="text-xs text-muted-foreground">Switch between light and dark themes.</p>
                     </div>
                   </div>
-                  <Button variant="outline" className="rounded-xl">Upload New</Button>
+                  <Switch checked={isDarkMode} onCheckedChange={toggleDarkMode} />
+                </div>
+
+                <div className="space-y-4">
+                  <div className="flex flex-col gap-1">
+                    <Label className="text-sm font-bold">Highlight Color</Label>
+                    <p className="text-xs text-muted-foreground">Choose your brand's primary highlight accent.</p>
+                  </div>
+                  
+                  <div className="grid grid-cols-6 gap-3">
+                    {colorPresets.map((color) => (
+                      <button
+                        key={color.name}
+                        onClick={() => updateAccentColor(color.hex)}
+                        className={cn(
+                          "h-10 w-full rounded-xl flex items-center justify-center transition-all hover:scale-110",
+                          accentColor === color.hex ? "ring-2 ring-primary ring-offset-2" : "opacity-80 hover:opacity-100"
+                        )}
+                        style={{ backgroundColor: color.hex }}
+                      >
+                        {accentColor === color.hex && <Check className="h-4 w-4 text-white" />}
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="flex items-center gap-4 pt-2">
+                    <div className="flex-1 space-y-2">
+                      <Label className="text-[10px] uppercase font-bold text-muted-foreground">Custom Hex Code</Label>
+                      <Input 
+                        value={accentColor} 
+                        onChange={(e) => updateAccentColor(e.target.value)}
+                        className="font-mono text-xs h-10 rounded-xl"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-[10px] uppercase font-bold text-muted-foreground">Picker</Label>
+                      <input 
+                        type="color" 
+                        value={accentColor} 
+                        onChange={(e) => updateAccentColor(e.target.value)}
+                        className="h-10 w-10 p-0 border-none bg-transparent cursor-pointer rounded-xl overflow-hidden"
+                      />
+                    </div>
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -283,6 +323,69 @@ function AccountCenterContent() {
               </CardContent>
             </Card>
           </div>
+        </TabsContent>
+
+        <TabsContent value="security" className="animate-in fade-in-50 duration-300">
+          <Card className="border-none shadow-soft rounded-[2rem] p-8">
+            <CardHeader className="px-0 pt-0">
+              <CardTitle className="font-headline text-2xl">Password & Security</CardTitle>
+              <CardDescription>Update your credentials to keep your account secure.</CardDescription>
+            </CardHeader>
+            <CardContent className="px-0 space-y-6">
+              <div className="space-y-4 max-w-md">
+                <div className="space-y-2">
+                  <Label htmlFor="currentPass">Current Password</Label>
+                  <Input id="currentPass" type="password" placeholder="••••••••" className="rounded-xl h-12" />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="newPass">New Password</Label>
+                  <Input id="newPass" type="password" placeholder="••••••••" className="rounded-xl h-12" />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="confirmPass">Confirm New Password</Label>
+                  <Input id="confirmPass" type="password" placeholder="••••••••" className="rounded-xl h-12" />
+                </div>
+              </div>
+              <div className="flex justify-end pt-4">
+                <Button onClick={() => toast({ title: "Security Updated" })} className="gap-2 rounded-xl h-11 px-8">
+                  <RefreshCcw className="h-4 w-4" /> Update Security
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="company" className="animate-in fade-in-50 duration-300">
+          <Card className="border-none shadow-soft rounded-[2rem] p-8">
+            <CardHeader className="px-0 pt-0">
+              <CardTitle className="font-headline text-2xl">Company Information</CardTitle>
+              <CardDescription>Global workspace settings for {MOCK_COMPANY.name}</CardDescription>
+            </CardHeader>
+            <CardContent className="px-0 space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label>Studio Name</Label>
+                  <Input defaultValue={MOCK_COMPANY.name} className="rounded-xl h-12" />
+                </div>
+                <div className="space-y-2">
+                  <Label>Industry Focus</Label>
+                  <Input defaultValue="Media Production" className="rounded-xl h-12" />
+                </div>
+              </div>
+              <div className="flex justify-between items-center p-6 bg-primary/5 rounded-[1.5rem] border border-primary/10">
+                <div className="flex items-center gap-4">
+                  <div className="h-16 w-16 bg-white rounded-2xl flex items-center justify-center shadow-sm">
+                    <Building2 className="h-8 w-8 text-primary" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold">Studio Branding</h4>
+                    <p className="text-sm text-muted-foreground">Logo and colors used for invoices and reports.</p>
+                  </div>
+                </div>
+                <Button variant="outline" className="rounded-xl">Upload New</Button>
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="modules" className="animate-in fade-in-50 duration-300">
