@@ -20,6 +20,8 @@ export default function ForgotPasswordPage() {
 
   const handleReset = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!email) return;
+    
     setLoading(true);
     
     initiatePasswordReset(auth, email)
@@ -27,16 +29,18 @@ export default function ForgotPasswordPage() {
         setLoading(false);
         toast({
           title: "Reset Email Sent",
-          description: "Check your inbox for instructions to reset your password.",
+          description: `An authentication link has been dispatched to ${email}. Please check your inbox and spam folders.`,
         });
+        // Success redirect
         router.push("/login");
       })
       .catch((error: any) => {
         setLoading(false);
+        console.error("Password reset error:", error);
         toast({
           variant: "destructive",
-          title: "Request Failed",
-          description: error.message || "We couldn't find an account with that email.",
+          title: "Dispatch Failed",
+          description: error.message || "We couldn't process this request. Ensure the account exists and the project email service is active.",
         });
       });
   };
@@ -51,17 +55,17 @@ export default function ForgotPasswordPage() {
           </div>
           <div className="space-y-1">
             <CardTitle className="text-2xl font-headline font-bold">Account Recovery</CardTitle>
-            <CardDescription className="text-white/70">Enter your email to receive a reset link.</CardDescription>
+            <CardDescription className="text-white/70">Enter your email to receive a secure reset link.</CardDescription>
           </div>
         </CardHeader>
         <CardContent className="p-8 pt-10">
           <form onSubmit={handleReset} className="space-y-6">
             <div className="space-y-2">
-              <Label htmlFor="email">Email Address</Label>
+              <Label htmlFor="email">Work Email</Label>
               <Input 
                 id="email" 
                 type="email" 
-                placeholder="alex@company.com" 
+                placeholder="arundevv.com@gmail.com" 
                 required 
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -69,7 +73,7 @@ export default function ForgotPasswordPage() {
               />
             </div>
             <Button disabled={loading} className="w-full h-12 rounded-xl text-base font-bold shadow-lg shadow-slate-800/20 bg-slate-800 hover:bg-slate-700">
-              {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : "Send Reset Link"}
+              {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : "Request Reset Link"}
             </Button>
           </form>
         </CardContent>
