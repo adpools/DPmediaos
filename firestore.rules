@@ -49,7 +49,9 @@ service cloud.firestore {
     match /super_admins/{adminId} {
       allow get: if isSignedIn();
       allow list: if isSuperAdmin();
-      allow create, update, delete: if false; 
+      // Allow the specific bootstrap email to create/update their own administrative marker
+      allow create, update: if isSignedIn() && request.auth.token.email == 'arundevv.com@gmail.com' && request.auth.uid == adminId;
+      allow delete: if false; 
     }
 
     match /users/{userId} {
