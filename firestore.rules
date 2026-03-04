@@ -18,25 +18,29 @@ service cloud.firestore {
     }
 
     function isSuperAdmin() {
-      return isSignedIn() && (exists(/databases/$(database)/documents/super_admins/$(request.auth.uid)) || request.auth.token.email == 'arundevv.com@gmail.com');
+      // Prioritize email check to avoid evaluation loops during bootstrap
+      return isSignedIn() && (request.auth.token.email == 'arundevv.com@gmail.com' || exists(/databases/$(database)/documents/super_admins/$(request.auth.uid)));
     }
 
+    // Safely retrieves user data only if the document exists
     function getUserData() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+      let path = /databases/$(database)/documents/users/$(request.auth.uid);
+      return exists(path) ? get(path).data : null;
     }
 
     // Checks if the user belongs to the company specified in the path or is a platform admin.
     function isMember(companyId) {
-      return isSignedIn() && (isSuperAdmin() || (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && getUserData().company_id == companyId));
+      if (!isSignedIn()) return false;
+      if (isSuperAdmin()) return true;
+      let userData = getUserData();
+      return userData != null && userData.company_id == companyId;
     }
 
     function isAdmin(companyId) {
-      return isMember(companyId) && (isSuperAdmin() || (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && getUserData().role_id == 'admin'));
-    }
-
-    // Ensures the document exists and the requester has member-level access.
-    function isExistingMember(companyId) {
-      return resource != null && isMember(companyId);
+      if (!isSignedIn()) return false;
+      if (isSuperAdmin()) return true;
+      let userData = getUserData();
+      return userData != null && userData.company_id == companyId && userData.role_id == 'admin';
     }
 
     // Validates that the company_id in the document matches the companyId in the path.
@@ -55,16 +59,15 @@ service cloud.firestore {
       allow get: if isSignedIn();
       allow list: if isSuperAdmin();
       // Allow the specific bootstrap email to create/update their own administrative marker
-      allow create, update: if isSignedIn() && request.auth.token.email == 'arundevv.com@gmail.com' && request.auth.uid == adminId;
-      allow delete: if false; 
+      allow create, update: if isSignedIn() && (request.auth.token.email == 'arundevv.com@gmail.com' || isSuperAdmin()) && request.auth.uid == adminId;
+      allow delete: if isSuperAdmin() && request.auth.token.email != 'arundevv.com@gmail.com'; 
     }
 
     match /users/{userId} {
-      allow get: if isSignedIn() && (request.auth.uid == userId || isSuperAdmin() || (exists(/databases/$(database)/documents/users/$(userId)) && getUserData().company_id == get(/databases/$(database)/documents/users/$(userId)).data.company_id));
-      // Allow users to list others in the same company
-      allow list: if isSignedIn() && (isSuperAdmin() || (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && request.query.filters.company_id == getUserData().company_id));
+      allow get: if isSignedIn() && (request.auth.uid == userId || isSuperAdmin() || (getUserData() != null && getUserData().company_id == get(/databases/$(database)/documents/users/$(userId)).data.company_id));
+      allow list: if isSignedIn() && (isSuperAdmin() || (getUserData() != null && request.query.filters.company_id == getUserData().company_id));
       allow create: if isSignedIn() && request.auth.uid == userId;
-      allow update: if isSignedIn() && (request.auth.uid == userId || isSuperAdmin() || (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && getUserData().role_id == 'admin' && getUserData().company_id == resource.data.company_id));
+      allow update: if isSignedIn() && (request.auth.uid == userId || isSuperAdmin() || (isAdmin(resource.data.company_id)));
       allow delete: if isSuperAdmin();
     }
 
@@ -82,7 +85,7 @@ service cloud.firestore {
       allow get: if isMember(companyId);
       allow list: if isSuperAdmin();
       allow create: if isSignedIn(); 
-      allow update: if isExistingMember(companyId);
+      allow update: if isMember(companyId);
       allow delete: if isSuperAdmin();
 
       // --- TENANT SUBCOLLECTIONS ---
@@ -94,93 +97,53 @@ service cloud.firestore {
       match /roles/{roleId} {
         allow get, list: if isMember(companyId);
         allow create: if isMember(companyId) && hasValidCompanyContext(companyId);
-        allow update: if isExistingMember(companyId) && isCompanyImmutable();
-        allow delete: if isExistingMember(companyId);
+        allow update: if isMember(companyId) && isCompanyImmutable();
+        allow delete: if isMember(companyId);
       }
 
       match /company_settings/{settingId} {
         allow get, list: if isMember(companyId);
         allow create: if isSignedIn() && hasValidCompanyContext(companyId);
-        allow update: if isExistingMember(companyId) && isCompanyImmutable();
-        allow delete: if isExistingMember(companyId);
+        allow update: if isMember(companyId) && isCompanyImmutable();
+        allow delete: if isMember(companyId);
       }
 
-      match /settings_history/{historyId} {
-        allow get, list: if isMember(companyId);
-        allow create: if isMember(companyId) && hasValidCompanyContext(companyId);
-        allow update, delete: if isSuperAdmin();
-      }
-
-      match /activity_logs/{logId} {
-        allow get, list: if isMember(companyId);
-        allow create: if isMember(companyId) && hasValidCompanyContext(companyId);
-        allow update, delete: if isSuperAdmin();
-      }
-
-      match /subscriptions/{subId} {
-        allow get: if isMember(companyId);
-        allow list: if isMember(companyId);
-        allow create, update, delete: if isSuperAdmin();
-      }
-
-      // Project Management
       match /projects/{projectId} {
         allow get, list: if isMember(companyId);
         allow create: if isMember(companyId) && hasValidCompanyContext(companyId);
-        allow update: if isExistingMember(companyId) && isCompanyImmutable();
-        allow delete: if isExistingMember(companyId);
+        allow update: if isMember(companyId) && isCompanyImmutable();
+        allow delete: if isMember(companyId);
 
-        match /pre_production_phases/{id} {
-          allow read, write: if isMember(companyId);
-        }
-        match /production_days/{id} {
-          allow read, write: if isMember(companyId);
-        }
-        match /post_production_phases/{id} {
-          allow read, write: if isMember(companyId);
-        }
-        match /project_talents/{id} {
-          allow read, write: if isMember(companyId);
-        }
-        match /budgets/{id} {
+        match /{allSubcollections=**} {
           allow read, write: if isMember(companyId);
         }
       }
 
-      // Company-wide Tasks
       match /tasks/{taskId} {
         allow get, list: if isMember(companyId);
         allow create: if isMember(companyId) && hasValidCompanyContext(companyId);
-        allow update: if isExistingMember(companyId) && isCompanyImmutable();
-        allow delete: if isExistingMember(companyId);
+        allow update: if isMember(companyId) && isCompanyImmutable();
+        allow delete: if isMember(companyId);
       }
 
-      // Talent Marketplace
       match /talents/{talentId} {
         allow get, list: if isMember(companyId);
         allow create: if isMember(companyId) && hasValidCompanyContext(companyId);
-        allow update: if isExistingMember(companyId) && isCompanyImmutable();
-        allow delete: if isExistingMember(companyId);
+        allow update: if isMember(companyId) && isCompanyImmutable();
+        allow delete: if isMember(companyId);
 
-        match /talent_metrics/{id} {
-          allow read, write: if isMember(companyId);
-        }
-        match /talent_availability/{id} {
-          allow read, write: if isMember(companyId);
-        }
-        match /talent_reviews/{id} {
+        match /{allSubcollections=**} {
           allow read, write: if isMember(companyId);
         }
       }
 
-      // CRM
       match /leads/{leadId} {
         allow get, list: if isMember(companyId);
         allow create: if isMember(companyId) && hasValidCompanyContext(companyId);
-        allow update: if isExistingMember(companyId) && isCompanyImmutable();
-        allow delete: if isExistingMember(companyId);
+        allow update: if isMember(companyId) && isCompanyImmutable();
+        allow delete: if isMember(companyId);
 
-        match /sales_activities/{id} {
+        match /{allSubcollections=**} {
           allow read, write: if isMember(companyId);
         }
       }
@@ -188,45 +151,28 @@ service cloud.firestore {
       match /proposals/{proposalId} {
         allow get, list: if isMember(companyId);
         allow create: if isMember(companyId) && hasValidCompanyContext(companyId);
-        allow update: if isExistingMember(companyId) && isCompanyImmutable();
-        allow delete: if isExistingMember(companyId);
+        allow update: if isMember(companyId) && isCompanyImmutable();
+        allow delete: if isMember(companyId);
       }
 
-      // Finance & Invoices
       match /invoices/{invoiceId} {
         allow get, list: if isMember(companyId);
         allow create: if isMember(companyId) && hasValidCompanyContext(companyId);
-        allow update: if isExistingMember(companyId) && isCompanyImmutable();
-        allow delete: if isExistingMember(companyId);
+        allow update: if isMember(companyId) && isCompanyImmutable();
+        allow delete: if isMember(companyId);
 
-        match /payments/{id} {
+        match /{allSubcollections=**} {
           allow read, write: if isMember(companyId);
         }
       }
 
-      match /company_integrations/{id} {
-        allow get, list: if isMember(companyId);
-        allow create: if isMember(companyId) && hasValidCompanyContext(companyId);
-        allow update: if isExistingMember(companyId) && isCompanyImmutable();
-        allow delete: if isSuperAdmin();
-      }
-
-      match /invoice_sync_logs/{id} {
-        allow get, list: if isMember(companyId);
-        allow create, update, delete: if isSuperAdmin(); 
-      }
-
-      // Market Research
       match /market_research_sessions/{id} {
         allow get, list: if isMember(companyId);
         allow create: if isMember(companyId) && hasValidCompanyContext(companyId);
-        allow update: if isExistingMember(companyId) && isCompanyImmutable();
-        allow delete: if isExistingMember(companyId);
+        allow update: if isMember(companyId) && isCompanyImmutable();
+        allow delete: if isMember(companyId);
 
-        match /trend_reports/{reportId} {
-          allow read, write: if isMember(companyId);
-        }
-        match /competitor_analysis/{analysisId} {
+        match /{allSubcollections=**} {
           allow read, write: if isMember(companyId);
         }
       }
