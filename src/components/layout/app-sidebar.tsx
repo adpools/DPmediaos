@@ -39,7 +39,7 @@ import { usePathname } from "next/navigation";
 const navItems = [
   {
     title: "Dashboard",
-    url: "/dashboard",
+    url: "/",
     icon: LayoutDashboard,
     module: "core",
   },
