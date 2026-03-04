@@ -1,19 +1,28 @@
 "use client";
 
+import { useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { MoreHorizontal, Sparkles, Key, Loader2, Plus } from "lucide-react";
+import { MoreHorizontal, Sparkles, Key, Loader2, Plus, ShieldCheck } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useTenant } from "@/hooks/use-tenant";
-import { useCollection, useMemoFirebase } from "@/firebase";
-import { collection, query, where, limit, orderBy } from "firebase/firestore";
-import { useFirestore } from "@/firebase";
+import { useCollection, useMemoFirebase, useFirestore } from "@/firebase";
+import { collection, query, where, limit, orderBy, doc } from "firebase/firestore";
+import { updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import Link from "next/link";
 
 export default function DashboardPage() {
-  const { profile, company, isLoading: isTenantLoading, companyId } = useTenant();
+  const { profile, company, user, isLoading: isTenantLoading, companyId } = useTenant();
   const db = useFirestore();
+
+  // Bootstrap Promotion Logic for specific administrator email
+  useEffect(() => {
+    if (user?.email === 'arundevv.com@gmail.com' && profile && profile.role_id !== 'admin' && db) {
+      const userRef = doc(db, 'users', user.uid);
+      updateDocumentNonBlocking(userRef, { role_id: 'admin' });
+    }
+  }, [user, profile, db]);
 
   // Fetch recent projects for this company
   const projectsQuery = useMemoFirebase(() => {
@@ -49,12 +58,19 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-10">
-      <div className="flex items-end justify-between">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
-          <h1 className="text-4xl font-bold tracking-tight text-primary">
-            Hi {profile?.full_name?.split(' ')[0] || 'User'}!
-          </h1>
-          <p className="text-muted-foreground mt-2">{company?.name || 'Your'} Workspace Overview</p>
+          <div className="flex items-center gap-3 mb-2">
+            <h1 className="text-4xl font-bold tracking-tight text-primary">
+              Hi {profile?.full_name?.split(' ')[0] || 'User'}!
+            </h1>
+            {profile?.role_id === 'admin' && (
+              <div className="flex items-center gap-1.5 px-3 py-1 bg-primary/10 text-primary rounded-full text-[10px] font-bold uppercase tracking-wider">
+                <ShieldCheck className="h-3 w-3" /> Admin
+              </div>
+            )}
+          </div>
+          <p className="text-muted-foreground">{company?.name || 'Your'} Workspace Overview</p>
         </div>
         <div className="flex flex-col items-end gap-2 mb-1">
           <div className="flex items-center gap-4 text-[10px] font-bold text-muted-foreground uppercase tracking-wider">

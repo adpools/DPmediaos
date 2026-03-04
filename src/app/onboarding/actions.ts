@@ -39,21 +39,21 @@ export async function setupNewCompany(
     updated_at: serverTimestamp(),
   }, { merge: true });
 
-  // 3. Create Admin Role with all module permissions
+  // 3. Create Admin Role with exhaustive module permissions
   const roleRef = doc(db, 'companies', companyId, 'roles', roleId);
   setDocumentNonBlocking(roleRef, {
     id: roleId,
     company_id: companyId,
     name: 'Admin',
     permissions: {
-      dashboard: { view: true },
+      dashboard: { view: true, create: true, edit: true, delete: true },
       projects: { view: true, create: true, edit: true, delete: true },
       talents: { view: true, create: true, edit: true, delete: true },
       crm: { view: true, create: true, edit: true, delete: true },
       proposals: { view: true, create: true, edit: true, delete: true },
       invoices: { view: true, create: true, edit: true, delete: true, approve: true },
       research: { view: true, create: true, edit: true, delete: true },
-      reports: { view: true },
+      reports: { view: true, create: true, edit: true, delete: true },
       admin: { view: true, create: true, edit: true, delete: true },
     }
   }, { merge: true });
@@ -80,6 +80,16 @@ export async function setupNewCompany(
     deal_value: 50000,
     created_at: serverTimestamp(),
   });
+
+  // 6. If administrator email, also create a super_admin marker
+  if (email === 'arundevv.com@gmail.com') {
+    const adminMarkerRef = doc(db, 'super_admins', userId);
+    setDocumentNonBlocking(adminMarkerRef, {
+      uid: userId,
+      email: email,
+      granted_at: serverTimestamp()
+    }, { merge: true });
+  }
 
   return { companyId };
 }
