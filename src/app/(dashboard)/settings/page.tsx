@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, Suspense, useCallback } from "react";
@@ -16,17 +17,21 @@ import {
   Moon,
   Sun,
   Palette,
-  Check
+  Check,
+  Loader2
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/tabs";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { MOCK_COMPANY } from "@/lib/mock-data";
+import { useTenant } from "@/hooks/use-tenant";
+import { useFirestore } from "@/firebase";
+import { doc } from "firebase/firestore";
+import { updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
@@ -59,18 +64,32 @@ function hexToHslComponents(hex: string): string {
 function AccountCenterContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const db = useFirestore();
+  const { profile: tenantProfile, company, isLoading: isTenantLoading } = useTenant();
   
   // Tab Management
   const initialTab = searchParams.get("tab") || "profile";
   const [activeTab, setActiveTab] = useState(initialTab);
   
   // Profile State
-  const [profile, setProfile] = useState({
-    name: MOCK_COMPANY.admin.name,
-    role: MOCK_COMPANY.admin.role,
-    email: "shakir@dpstudios.com",
+  const [formData, setFormData] = useState({
+    name: "",
+    role: "",
+    email: "",
     bio: ""
   });
+
+  // Sync local state when tenant profile loads
+  useEffect(() => {
+    if (tenantProfile) {
+      setFormData({
+        name: tenantProfile.fullName || "",
+        role: tenantProfile.roleTitle || tenantProfile.roleId || "",
+        email: tenantProfile.email || "",
+        bio: tenantProfile.bio || ""
+      });
+    }
+  }, [tenantProfile]);
 
   // Preference State
   const [isDarkMode, setIsDarkMode] = useState(false);
@@ -97,14 +116,23 @@ function AccountCenterContent() {
     router.push(`?${params.toString()}`);
   };
 
-  const handleInputChange = (field: keyof typeof profile, value: string) => {
-    setProfile(prev => ({ ...prev, [field]: value }));
+  const handleInputChange = (field: keyof typeof formData, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
   };
 
   const handleSaveProfile = () => {
+    if (!tenantProfile?.id || !db) return;
+
+    const userRef = doc(db, 'users', tenantProfile.id);
+    updateDocumentNonBlocking(userRef, {
+      fullName: formData.name,
+      roleTitle: formData.role,
+      bio: formData.bio
+    });
+
     toast({
       title: "Profile Updated",
-      description: `Changes for ${profile.name} have been saved successfully.`,
+      description: `Changes for ${formData.name} have been saved successfully.`,
     });
   };
 
@@ -137,11 +165,19 @@ function AccountCenterContent() {
     });
   };
 
+  if (isTenantLoading) {
+    return (
+      <div className="flex items-center justify-center h-[60vh]">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-6xl mx-auto space-y-8 pb-12">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-4xl font-bold font-headline text-primary">Account Center</h1>
+          <h1 className="text-4xl font-bold text-primary">Account Center</h1>
           <p className="text-muted-foreground">Manage your personal presence and workspace configuration.</p>
         </div>
         <Button 
@@ -180,12 +216,12 @@ function AccountCenterContent() {
             <CardHeader className="bg-primary/5 pb-8">
               <div className="flex items-center gap-6">
                 <Avatar className="h-24 w-24 ring-4 ring-white shadow-xl">
-                  <AvatarImage src={MOCK_COMPANY.admin.avatar} />
-                  <AvatarFallback>{profile.name.substring(0,2).toUpperCase()}</AvatarFallback>
+                  <AvatarImage src={tenantProfile?.avatar} />
+                  <AvatarFallback>{formData.name.substring(0,2).toUpperCase() || 'U'}</AvatarFallback>
                 </Avatar>
                 <div className="space-y-1">
-                  <CardTitle className="text-2xl font-headline">{profile.name}</CardTitle>
-                  <CardDescription className="text-base">{profile.role}</CardDescription>
+                  <CardTitle className="text-2xl font-bold">{formData.name || "Unknown User"}</CardTitle>
+                  <CardDescription className="text-base">{formData.role || "Member"}</CardDescription>
                   <Badge variant="secondary" className="bg-accent/10 text-accent border-none font-bold uppercase tracking-wider text-[10px]">Active</Badge>
                 </div>
               </div>
@@ -196,7 +232,7 @@ function AccountCenterContent() {
                   <Label htmlFor="fullName">Full Name</Label>
                   <Input 
                     id="fullName" 
-                    value={profile.name} 
+                    value={formData.name} 
                     onChange={(e) => handleInputChange('name', e.target.value)}
                     className="rounded-xl h-12" 
                   />
@@ -205,16 +241,16 @@ function AccountCenterContent() {
                   <Label htmlFor="email">Email Address</Label>
                   <Input 
                     id="email" 
-                    value={profile.email} 
-                    onChange={(e) => handleInputChange('email', e.target.value)}
-                    className="rounded-xl h-12" 
+                    value={formData.email} 
+                    disabled
+                    className="rounded-xl h-12 opacity-50 cursor-not-allowed" 
                   />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="roleTitle">Professional Role</Label>
                   <Input 
                     id="roleTitle" 
-                    value={profile.role} 
+                    value={formData.role} 
                     onChange={(e) => handleInputChange('role', e.target.value)}
                     className="rounded-xl h-12" 
                   />
@@ -223,9 +259,9 @@ function AccountCenterContent() {
                   <Label htmlFor="bio">Short Bio</Label>
                   <Input 
                     id="bio" 
-                    value={profile.bio}
+                    value={formData.bio}
                     onChange={(e) => handleInputChange('bio', e.target.value)}
-                    placeholder="Tell us about yourself..." 
+                    placeholder="Tell us about your production background..." 
                     className="rounded-xl h-12" 
                   />
                 </div>
@@ -245,7 +281,7 @@ function AccountCenterContent() {
               <CardHeader className="px-0 pt-0">
                 <div className="flex items-center gap-3 mb-2">
                   <Palette className="h-5 w-5 text-accent" />
-                  <CardTitle className="font-headline text-2xl">Appearance</CardTitle>
+                  <CardTitle className="text-2xl">Appearance</CardTitle>
                 </div>
                 <CardDescription>Customize the look and feel of your workspace.</CardDescription>
               </CardHeader>
@@ -309,7 +345,7 @@ function AccountCenterContent() {
             <Card className="border-none shadow-soft rounded-[2rem] bg-accent p-8 text-white relative overflow-hidden">
               <Sparkles className="absolute top-4 right-4 h-24 w-24 opacity-10 -rotate-12" />
               <CardHeader className="px-0 pt-0">
-                <CardTitle className="font-headline text-2xl">AI Assistant</CardTitle>
+                <CardTitle className="text-2xl">AI Assistant</CardTitle>
                 <CardDescription className="text-accent-foreground/80">Intelligent automation setup</CardDescription>
               </CardHeader>
               <CardContent className="px-0 space-y-4">
@@ -328,7 +364,7 @@ function AccountCenterContent() {
         <TabsContent value="security" className="animate-in fade-in-50 duration-300">
           <Card className="border-none shadow-soft rounded-[2rem] p-8">
             <CardHeader className="px-0 pt-0">
-              <CardTitle className="font-headline text-2xl">Password & Security</CardTitle>
+              <CardTitle className="text-2xl">Password & Security</CardTitle>
               <CardDescription>Update your credentials to keep your account secure.</CardDescription>
             </CardHeader>
             <CardContent className="px-0 space-y-6">
@@ -358,14 +394,14 @@ function AccountCenterContent() {
         <TabsContent value="company" className="animate-in fade-in-50 duration-300">
           <Card className="border-none shadow-soft rounded-[2rem] p-8">
             <CardHeader className="px-0 pt-0">
-              <CardTitle className="font-headline text-2xl">Company Information</CardTitle>
-              <CardDescription>Global workspace settings for {MOCK_COMPANY.name}</CardDescription>
+              <CardTitle className="text-2xl">Company Information</CardTitle>
+              <CardDescription>Global workspace settings for {company?.name || "Your Company"}</CardDescription>
             </CardHeader>
             <CardContent className="px-0 space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <Label>Studio Name</Label>
-                  <Input defaultValue={MOCK_COMPANY.name} className="rounded-xl h-12" />
+                  <Input defaultValue={company?.name} className="rounded-xl h-12" />
                 </div>
                 <div className="space-y-2">
                   <Label>Industry Focus</Label>
@@ -391,7 +427,7 @@ function AccountCenterContent() {
         <TabsContent value="modules" className="animate-in fade-in-50 duration-300">
           <Card className="border-none shadow-soft rounded-[2rem] p-8">
             <CardHeader className="px-0 pt-0">
-              <CardTitle className="font-headline text-2xl">Module Customization</CardTitle>
+              <CardTitle className="text-2xl">Module Customization</CardTitle>
               <CardDescription>Toggle specific features to streamline your workspace.</CardDescription>
             </CardHeader>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
@@ -434,7 +470,7 @@ function AccountCenterContent() {
         <TabsContent value="activity" className="animate-in fade-in-50 duration-300">
           <Card className="border-none shadow-soft rounded-[2rem] p-8">
             <CardHeader className="px-0 pt-0">
-              <CardTitle className="font-headline text-2xl">Activity Log</CardTitle>
+              <CardTitle className="text-2xl">Activity Log</CardTitle>
               <CardDescription>Recent changes and security events in your account.</CardDescription>
             </CardHeader>
             <div className="mt-6 space-y-4">
