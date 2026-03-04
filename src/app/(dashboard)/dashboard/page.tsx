@@ -12,30 +12,30 @@ import { useFirestore } from "@/firebase";
 import Link from "next/link";
 
 export default function DashboardPage() {
-  const { profile, company, isLoading: isTenantLoading } = useTenant();
+  const { profile, company, isLoading: isTenantLoading, companyId } = useTenant();
   const db = useFirestore();
 
   // Fetch recent projects for this company
   const projectsQuery = useMemoFirebase(() => {
-    if (!db || !profile?.companyId) return null;
+    if (!db || !companyId) return null;
     return query(
-      collection(db, 'companies', profile.companyId, 'projects'),
-      orderBy('createdAt', 'desc'),
+      collection(db, 'companies', companyId, 'projects'),
+      orderBy('created_at', 'desc'),
       limit(5)
     );
-  }, [db, profile?.companyId]);
+  }, [db, companyId]);
 
   const { data: projects, isLoading: isProjectsLoading } = useCollection(projectsQuery);
 
   // Fetch today's tasks
   const tasksQuery = useMemoFirebase(() => {
-    if (!db || !profile?.companyId) return null;
+    if (!db || !companyId) return null;
     return query(
-      collection(db, 'companies', profile.companyId, 'tasks'),
+      collection(db, 'companies', companyId, 'tasks'),
       where('status', '!=', 'done'),
       limit(10)
     );
-  }, [db, profile?.companyId]);
+  }, [db, companyId]);
 
   const { data: tasks, isLoading: isTasksLoading } = useCollection(tasksQuery);
 
@@ -52,7 +52,7 @@ export default function DashboardPage() {
       <div className="flex items-end justify-between">
         <div>
           <h1 className="text-4xl font-bold tracking-tight text-primary">
-            Hi {profile?.fullName?.split(' ')[0]}!
+            Hi {profile?.full_name?.split(' ')[0]}!
           </h1>
           <p className="text-muted-foreground mt-2">{company?.name} Workspace Overview</p>
         </div>
@@ -81,7 +81,7 @@ export default function DashboardPage() {
                     <MoreHorizontal className="h-5 w-5 opacity-50 group-hover:opacity-100 transition-opacity" />
                   </div>
                   <div className="space-y-4">
-                    <h3 className="font-bold text-lg leading-tight w-2/3">{proj.name}</h3>
+                    <h3 className="font-bold text-lg leading-tight w-2/3">{proj.project_name}</h3>
                     <div className="flex -space-x-2">
                       {[1, 2, 3].map(i => (
                         <Avatar key={i} className="h-6 w-6 border-2 border-white/20">

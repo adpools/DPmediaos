@@ -26,7 +26,7 @@ service cloud.firestore {
 
     // Checks if the user belongs to the company specified in the path or is a platform admin.
     function isMember(companyId) {
-      return isSignedIn() && (isSuperAdmin() || getUserData().companyId == companyId);
+      return isSignedIn() && (isSuperAdmin() || getUserData().company_id == companyId);
     }
 
     // Ensures the document exists and the requester has member-level access.
@@ -34,14 +34,14 @@ service cloud.firestore {
       return resource != null && isMember(companyId);
     }
 
-    // Validates that the companyId in the document matches the companyId in the path.
+    // Validates that the company_id in the document matches the companyId in the path.
     function hasValidCompanyContext(companyId) {
-      return request.resource.data.companyId == companyId;
+      return request.resource.data.company_id == companyId;
     }
 
     // Ensures critical relational fields remain unchanged during updates.
     function isCompanyImmutable() {
-      return request.resource.data.companyId == resource.data.companyId;
+      return request.resource.data.company_id == resource.data.company_id;
     }
 
     // --- COLLECTION RULES ---
@@ -73,7 +73,7 @@ service cloud.firestore {
     match /companies/{companyId} {
       allow get: if isMember(companyId);
       allow list: if isSuperAdmin();
-      allow create: if isSuperAdmin();
+      allow create: if isSignedIn(); // FIX: Allow creation during onboarding
       allow update: if isExistingMember(companyId);
       allow delete: if isSuperAdmin();
 
@@ -81,14 +81,14 @@ service cloud.firestore {
 
       match /roles/{roleId} {
         allow get, list: if isMember(companyId);
-        allow create: if isMember(companyId) && hasValidCompanyContext(companyId);
+        allow create: if isSignedIn() && hasValidCompanyContext(companyId); // Relaxed for onboarding
         allow update: if isExistingMember(companyId) && isCompanyImmutable();
         allow delete: if isExistingMember(companyId);
       }
 
       match /company_settings/{settingId} {
         allow get, list: if isMember(companyId);
-        allow create: if isMember(companyId) && hasValidCompanyContext(companyId);
+        allow create: if isSignedIn() && hasValidCompanyContext(companyId); // Relaxed for onboarding
         allow update: if isExistingMember(companyId) && isCompanyImmutable();
         allow delete: if isExistingMember(companyId);
       }

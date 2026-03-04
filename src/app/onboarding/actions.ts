@@ -1,4 +1,3 @@
-
 'use client';
 
 import { doc, serverTimestamp, Firestore, collection } from 'firebase/firestore';
@@ -6,6 +5,7 @@ import { setDocumentNonBlocking, addDocumentNonBlocking } from '@/firebase/non-b
 
 /**
  * Handles the creation of a new company and the initial admin user.
+ * Standardizes on snake_case fields as per PRD requirements.
  */
 export async function setupNewCompany(
   db: Firestore, 
@@ -17,21 +17,33 @@ export async function setupNewCompany(
   const companyId = `comp_${Math.random().toString(36).substr(2, 9)}`;
   const roleId = 'admin';
 
-  // 1. Create Company
+  // 1. Create User Profile FIRST to establish company_id link for Security Rules
+  const userRef = doc(db, 'users', userId);
+  setDocumentNonBlocking(userRef, {
+    id: userId,
+    company_id: companyId,
+    role_id: roleId,
+    email,
+    full_name: email.split('@')[0],
+    status: 'active',
+    created_at: serverTimestamp(),
+  }, { merge: true });
+
+  // 2. Create Company
   const companyRef = doc(db, 'companies', companyId);
   setDocumentNonBlocking(companyRef, {
     id: companyId,
     name: companyName,
-    onboardingStatus: 'completed',
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
+    onboarding_status: 'completed',
+    created_at: serverTimestamp(),
+    updated_at: serverTimestamp(),
   }, { merge: true });
 
-  // 2. Create Admin Role with all module permissions
+  // 3. Create Admin Role with all module permissions
   const roleRef = doc(db, 'companies', companyId, 'roles', roleId);
   setDocumentNonBlocking(roleRef, {
     id: roleId,
-    companyId,
+    company_id: companyId,
     name: 'Admin',
     permissions: {
       dashboard: { view: true },
@@ -46,39 +58,27 @@ export async function setupNewCompany(
     }
   }, { merge: true });
 
-  // 3. Create Company Settings
+  // 4. Create Company Settings
   const settingsRef = doc(db, 'companies', companyId, 'company_settings', companyId);
   setDocumentNonBlocking(settingsRef, {
     id: companyId,
-    companyId,
-    enabledModules: ['dashboard', 'projects', 'talents', 'crm', 'proposals', 'invoices', 'research', 'reports'],
-    defaultCurrency: 'USD',
-    updatedAt: serverTimestamp(),
-  }, { merge: true });
-
-  // 4. Create User Profile
-  const userRef = doc(db, 'users', userId);
-  setDocumentNonBlocking(userRef, {
-    id: userId,
-    companyId,
-    roleId,
-    email,
-    fullName: email.split('@')[0],
-    status: 'active',
-    createdAt: serverTimestamp(),
+    company_id: companyId,
+    enabled_modules: ['dashboard', 'projects', 'talents', 'crm', 'proposals', 'invoices', 'research', 'reports'],
+    default_currency: 'USD',
+    updated_at: serverTimestamp(),
   }, { merge: true });
 
   // 5. Seed initial lead
   const leadsRef = collection(db, 'companies', companyId, 'leads');
   addDocumentNonBlocking(leadsRef, {
-    companyId,
-    companyName: 'Sample Client Corp',
-    contactPerson: 'Jane Doe',
-    industry: 'Technology',
+    company_id: companyId,
+    company_name: 'Sample Client Corp',
+    contact_person: 'Jane Doe',
+    industry: industry || 'Media',
     email: 'jane@sample.com',
     stage: 'lead',
-    dealValue: 50000,
-    createdAt: serverTimestamp(),
+    deal_value: 50000,
+    created_at: serverTimestamp(),
   });
 
   return { companyId };
