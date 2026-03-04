@@ -29,6 +29,10 @@ service cloud.firestore {
       return isSignedIn() && (isSuperAdmin() || getUserData().company_id == companyId);
     }
 
+    function isAdmin(companyId) {
+      return isMember(companyId) && (isSuperAdmin() || getUserData().role_id == 'admin');
+    }
+
     // Ensures the document exists and the requester has member-level access.
     function isExistingMember(companyId) {
       return resource != null && isMember(companyId);
@@ -81,6 +85,10 @@ service cloud.firestore {
       allow delete: if isSuperAdmin();
 
       // --- TENANT SUBCOLLECTIONS ---
+
+      match /invitations/{invId} {
+        allow read, write: if isAdmin(companyId);
+      }
 
       match /roles/{roleId} {
         allow get, list: if isMember(companyId);

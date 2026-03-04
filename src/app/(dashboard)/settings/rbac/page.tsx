@@ -3,18 +3,53 @@
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ShieldCheck, UserPlus, Lock, Loader2, MoreVertical, Trash2, CheckCircle2, XCircle } from "lucide-react";
+import { 
+  ShieldCheck, 
+  UserPlus, 
+  Lock, 
+  Loader2, 
+  MoreVertical, 
+  Trash2, 
+  CheckCircle2, 
+  XCircle,
+  Mail,
+  UserCog,
+  UserMinus
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTenant } from "@/hooks/use-tenant";
 import { useCollection, useMemoFirebase, useFirestore } from "@/firebase";
-import { collection, query, where, doc, serverTimestamp } from "firebase/firestore";
+import { collection, query, where, doc, serverTimestamp, deleteDoc } from "firebase/firestore";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogDescription, 
+  DialogFooter, 
+  DialogHeader, 
+  DialogTitle, 
+  DialogTrigger 
+} from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
-import { updateDocumentNonBlocking, setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from "@/components/ui/select";
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuLabel, 
+  DropdownMenuSeparator, 
+  DropdownMenuTrigger 
+} from "@/components/ui/dropdown-menu";
+import { updateDocumentNonBlocking, addDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { toast } from "@/hooks/use-toast";
 
 const MODULES = [
@@ -29,10 +64,18 @@ const MODULES = [
 ];
 
 export default function RBACPage() {
-  const { companyId, isLoading: isTenantLoading } = useTenant();
+  const { companyId, isLoading: isTenantLoading, profile } = useTenant();
   const db = useFirestore();
   const [selectedRole, setSelectedRole] = useState<any>(null);
   const [isEditRoleOpen, setIsEditRoleOpen] = useState(false);
+  const [isInviteOpen, setIsInviteOpen] = useState(false);
+  const [isInviting, setIsInviting] = useState(false);
+
+  // Invite State
+  const [inviteData, setInviteData] = useState({
+    email: "",
+    role_id: "member"
+  });
 
   // Fetch Roles
   const rolesQuery = useMemoFirebase(() => {
@@ -70,6 +113,55 @@ export default function RBACPage() {
     toast({ title: "Permissions Updated" });
   };
 
+  const handleInvite = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!companyId || !inviteData.email) return;
+
+    setIsInviting(true);
+    try {
+      const inviteRef = collection(db, 'companies', companyId, 'invitations');
+      addDocumentNonBlocking(inviteRef, {
+        email: inviteData.email,
+        role_id: inviteData.role_id,
+        invited_by: profile?.id,
+        company_id: companyId,
+        status: 'pending',
+        created_at: serverTimestamp()
+      });
+
+      toast({ 
+        title: "Invitation Dispatched", 
+        description: `A workspace access link has been sent to ${inviteData.email}.` 
+      });
+      
+      setInviteData({ email: "", role_id: "member" });
+      setIsInviteOpen(false);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsInviting(false);
+    }
+  };
+
+  const handleChangeMemberRole = (memberId: string, newRole: string) => {
+    if (!db) return;
+    const userRef = doc(db, 'users', memberId);
+    updateDocumentNonBlocking(userRef, { role_id: newRole });
+    toast({ title: "Member Role Updated" });
+  };
+
+  const handleRemoveMember = (memberId: string, name: string) => {
+    if (memberId === profile?.id) {
+      toast({ variant: "destructive", title: "Action blocked", description: "You cannot remove yourself." });
+      return;
+    }
+    if (!db) return;
+    const userRef = doc(db, 'users', memberId);
+    // In multi-tenant, we usually just clear the company_id or delete the record
+    updateDocumentNonBlocking(userRef, { company_id: null, role_id: null });
+    toast({ title: "Member Removed", description: `${name} no longer has access to this workspace.` });
+  };
+
   if (isTenantLoading || isRolesLoading || isUsersLoading) {
     return (
       <div className="flex items-center justify-center h-[80vh]">
@@ -85,22 +177,71 @@ export default function RBACPage() {
           <h1 className="text-3xl font-bold text-primary">Team & Access Control</h1>
           <p className="text-muted-foreground">Manage your production crew and their workspace permissions.</p>
         </div>
-        <Button className="gap-2 rounded-xl shadow-lg shadow-primary/20">
-          <UserPlus className="h-4 w-4" /> Invite Member
-        </Button>
+        
+        <Dialog open={isInviteOpen} onOpenChange={setIsInviteOpen}>
+          <DialogTrigger asChild>
+            <Button className="gap-2 rounded-xl shadow-lg shadow-primary/20">
+              <UserPlus className="h-4 w-4" /> Invite Member
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[425px] rounded-[2rem]">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Mail className="h-5 w-5 text-accent" />
+                Invite to Workspace
+              </DialogTitle>
+              <DialogDescription>
+                Grant access to your secure production environment.
+              </DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handleInvite} className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="email">Work Email</Label>
+                <Input 
+                  id="email" 
+                  type="email" 
+                  placeholder="name@company.com" 
+                  required 
+                  value={inviteData.email}
+                  onChange={(e) => setInviteData({...inviteData, email: e.target.value})}
+                  className="rounded-xl h-11"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="role">Assign Initial Role</Label>
+                <Select onValueChange={(val) => setInviteData({...inviteData, role_id: val})} defaultValue="member">
+                  <SelectTrigger className="rounded-xl h-11">
+                    <SelectValue placeholder="Select role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {roles?.map(r => <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>)}
+                    <SelectItem value="admin">Administrator</SelectItem>
+                    <SelectItem value="member">Standard Member</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <DialogFooter className="pt-4">
+                <Button type="submit" disabled={isInviting} className="w-full rounded-xl h-11 font-bold">
+                  {isInviting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                  Send Invitation
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
       </div>
 
       <Tabs defaultValue="members" className="space-y-6">
         <TabsList className="bg-white/50 border p-1 h-auto rounded-2xl">
-          <TabsTrigger value="members" className="rounded-xl px-6 py-2 data-[state=active]:bg-primary data-[state=active]:text-white">Team Members</TabsTrigger>
-          <TabsTrigger value="roles" className="rounded-xl px-6 py-2 data-[state=active]:bg-primary data-[state=active]:text-white">Role Definitions</TabsTrigger>
+          <TabsTrigger value="members" className="rounded-xl px-6 py-2 data-[state=active]:bg-primary data-[state=active]:text-white font-bold text-xs uppercase tracking-widest">Team Members</TabsTrigger>
+          <TabsTrigger value="roles" className="rounded-xl px-6 py-2 data-[state=active]:bg-primary data-[state=active]:text-white font-bold text-xs uppercase tracking-widest">Role Definitions</TabsTrigger>
         </TabsList>
 
         <TabsContent value="members">
           <Card className="border-none shadow-sm rounded-[2rem] overflow-hidden">
             <CardHeader className="bg-white border-b px-8 py-6">
               <CardTitle className="text-xl">Active Workspace Members</CardTitle>
-              <CardDescription>Users currently affiliated with {companyId}.</CardDescription>
+              <CardDescription>Users currently affiliated with this company.</CardDescription>
             </CardHeader>
             <CardContent className="p-0 bg-white">
               <div className="overflow-x-auto">
@@ -118,27 +259,51 @@ export default function RBACPage() {
                       <tr key={member.id} className="hover:bg-slate-50 transition-colors group">
                         <td className="p-4">
                           <div className="flex items-center gap-3">
-                            <Avatar className="h-9 w-9">
+                            <Avatar className="h-9 w-9 ring-2 ring-primary/5">
                               <AvatarImage src={member.avatar} />
-                              <AvatarFallback>{member.full_name?.substring(0,2).toUpperCase()}</AvatarFallback>
+                              <AvatarFallback className="bg-primary/5 text-primary text-[10px] font-bold">
+                                {member.full_name?.substring(0,2).toUpperCase() || 'U'}
+                              </AvatarFallback>
                             </Avatar>
                             <div className="flex flex-col">
-                              <span className="font-bold">{member.full_name}</span>
-                              <span className="text-[10px] text-muted-foreground">{member.email}</span>
+                              <span className="font-bold text-sm">{member.full_name || 'New Member'}</span>
+                              <span className="text-[10px] text-muted-foreground font-medium">{member.email}</span>
                             </div>
                           </div>
                         </td>
                         <td className="p-4">
-                          <Badge variant="outline" className="text-[10px] font-bold uppercase py-0">{member.role_id}</Badge>
+                          <Badge variant="secondary" className="text-[9px] font-bold uppercase py-0 bg-primary/5 text-primary border-none">
+                            {member.role_id}
+                          </Badge>
                         </td>
                         <td className="p-4">
                           <div className="flex items-center gap-1.5 text-emerald-600">
                             <CheckCircle2 className="h-3 w-3" />
-                            <span className="text-[10px] font-bold">Active</span>
+                            <span className="text-[10px] font-bold uppercase tracking-widest">Active</span>
                           </div>
                         </td>
                         <td className="p-4 text-right">
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground opacity-0 group-hover:opacity-100"><MoreVertical className="h-4 w-4" /></Button>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:bg-white rounded-xl">
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="rounded-xl w-48">
+                              <DropdownMenuLabel className="text-[10px] uppercase font-bold text-muted-foreground px-2">Manage User</DropdownMenuLabel>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem className="gap-2 cursor-pointer py-2">
+                                <UserCog className="h-4 w-4" /> Change Role
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem 
+                                className="gap-2 text-destructive cursor-pointer py-2"
+                                onClick={() => handleRemoveMember(member.id, member.full_name)}
+                              >
+                                <UserMinus className="h-4 w-4" /> Remove from Team
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </td>
                       </tr>
                     ))}
@@ -157,10 +322,10 @@ export default function RBACPage() {
                   <div className="p-2 bg-white rounded-xl shadow-sm text-primary">
                     <ShieldCheck className="h-5 w-5" />
                   </div>
-                  <Badge variant="secondary" className="text-[9px] uppercase font-bold">Custom Role</Badge>
+                  <Badge variant="secondary" className="text-[9px] uppercase font-bold">Workspace Role</Badge>
                 </div>
                 <CardTitle className="text-xl font-bold">{role.name}</CardTitle>
-                <CardDescription className="text-xs">Managed workspace capabilities for this profile.</CardDescription>
+                <CardDescription className="text-xs">Managed capabilities for this profile.</CardDescription>
               </CardHeader>
               <CardContent className="p-6 space-y-4 bg-white">
                 <div className="space-y-2">
@@ -169,7 +334,7 @@ export default function RBACPage() {
                     {MODULES.map(m => {
                       const canView = role.permissions?.[m.id]?.view;
                       return canView ? (
-                        <Badge key={m.id} variant="secondary" className="bg-primary/5 text-primary text-[9px] border-none">
+                        <Badge key={m.id} variant="secondary" className="bg-primary/5 text-primary text-[9px] border-none font-bold">
                           {m.name}
                         </Badge>
                       ) : null;
@@ -179,9 +344,9 @@ export default function RBACPage() {
                 
                 <div className="pt-4 flex items-center justify-between border-t border-slate-50">
                   <div className="flex flex-col">
-                    <span className="text-[10px] font-bold text-muted-foreground uppercase">Protection</span>
+                    <span className="text-[10px] font-bold text-muted-foreground uppercase">Status</span>
                     <div className="flex items-center gap-1 text-[10px] font-bold text-emerald-600">
-                      <Lock className="h-3 w-3" /> Secure
+                      <Lock className="h-3 w-3" /> System Verified
                     </div>
                   </div>
                   <Button 
@@ -248,7 +413,7 @@ export default function RBACPage() {
           </div>
 
           <DialogFooter className="bg-slate-50 -mx-6 -mb-6 p-6 rounded-b-[2rem]">
-            <Button onClick={() => setIsEditRoleOpen(false)} className="w-full rounded-xl h-11 font-bold">
+            <Button onClick={() => setIsEditRoleOpen(false)} className="w-full rounded-xl h-11 font-bold shadow-lg shadow-primary/10">
               Finalize Role Configuration
             </Button>
           </DialogFooter>
