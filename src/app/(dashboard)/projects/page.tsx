@@ -1,10 +1,11 @@
 "use client";
 
+import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, Filter, LayoutGrid, List as ListIcon, Calendar, MoreVertical, ExternalLink, Loader2 } from "lucide-react";
+import { Plus, Filter, LayoutGrid, List as ListIcon, Calendar, MoreVertical, ExternalLink, Loader2, Sparkles } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { 
@@ -13,14 +14,37 @@ import {
   DropdownMenuItem, 
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { useTenant } from "@/hooks/use-tenant";
 import { useCollection, useMemoFirebase } from "@/firebase";
-import { collection, query, orderBy } from "firebase/firestore";
+import { collection, query, orderBy, serverTimestamp } from "firebase/firestore";
 import { useFirestore } from "@/firebase";
+import { addDocumentNonBlocking } from "@/firebase/non-blocking-updates";
+import { toast } from "@/hooks/use-toast";
 
 export default function ProjectsPage() {
   const { profile, isLoading: isTenantLoading } = useTenant();
   const db = useFirestore();
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Form State
+  const [newProject, setNewProject] = useState({
+    name: "",
+    clientName: "",
+    budget: "",
+    deadline: ""
+  });
 
   const projectsQuery = useMemoFirebase(() => {
     if (!db || !profile?.companyId) return null;
@@ -31,6 +55,38 @@ export default function ProjectsPage() {
   }, [db, profile?.companyId]);
 
   const { data: projects, isLoading: isProjectsLoading } = useCollection(projectsQuery);
+
+  const handleCreateProject = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!profile?.companyId || !newProject.name) return;
+
+    setIsSubmitting(true);
+    const projectsRef = collection(db, 'companies', profile.companyId, 'projects');
+    
+    const colors = ['card-pink', 'card-purple'];
+    const randomColor = colors[Math.floor(Math.random() * colors.length)];
+
+    addDocumentNonBlocking(projectsRef, {
+      companyId: profile.companyId,
+      name: newProject.name,
+      clientName: newProject.clientName,
+      budget: parseFloat(newProject.budget) || 0,
+      deadline: newProject.deadline,
+      status: 'in_progress',
+      progress: 0,
+      color: randomColor,
+      createdAt: serverTimestamp(),
+    });
+
+    toast({
+      title: "Project Created",
+      description: `${newProject.name} has been added to your production queue.`,
+    });
+
+    setNewProject({ name: "", clientName: "", budget: "", deadline: "" });
+    setIsCreateOpen(false);
+    setIsSubmitting(false);
+  };
 
   if (isTenantLoading || isProjectsLoading) {
     return (
@@ -47,9 +103,78 @@ export default function ProjectsPage() {
           <h1 className="text-3xl font-bold text-primary">Media Projects</h1>
           <p className="text-muted-foreground">Manage your production lifecycle from pre to post.</p>
         </div>
-        <Button className="gap-2">
-          <Plus className="h-4 w-4" /> New Project
-        </Button>
+        
+        <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+          <DialogTrigger asChild>
+            <Button className="gap-2 rounded-xl shadow-lg shadow-primary/20">
+              <Plus className="h-4 w-4" /> New Project
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[425px] rounded-[2rem]">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Sparkles className="h-5 w-5 text-accent" />
+                Start New Production
+              </DialogTitle>
+              <DialogDescription>
+                Define the core details for your upcoming media project.
+              </DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handleCreateProject} className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="name">Project Name</Label>
+                <Input 
+                  id="name" 
+                  placeholder="e.g. Summer Campaign 2024" 
+                  value={newProject.name}
+                  onChange={(e) => setNewProject({...newProject, name: e.target.value})}
+                  required
+                  className="rounded-xl"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="client">Client Name</Label>
+                <Input 
+                  id="client" 
+                  placeholder="e.g. Nike Global" 
+                  value={newProject.clientName}
+                  onChange={(e) => setNewProject({...newProject, clientName: e.target.value})}
+                  required
+                  className="rounded-xl"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="budget">Budget (USD)</Label>
+                  <Input 
+                    id="budget" 
+                    type="number"
+                    placeholder="50000" 
+                    value={newProject.budget}
+                    onChange={(e) => setNewProject({...newProject, budget: e.target.value})}
+                    className="rounded-xl"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="deadline">Deadline</Label>
+                  <Input 
+                    id="deadline" 
+                    type="date"
+                    value={newProject.deadline}
+                    onChange={(e) => setNewProject({...newProject, deadline: e.target.value})}
+                    className="rounded-xl"
+                  />
+                </div>
+              </div>
+              <DialogFooter className="pt-4">
+                <Button type="submit" disabled={isSubmitting} className="w-full rounded-xl h-11 font-bold">
+                  {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                  Create Workspace
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
       </div>
 
       <div className="flex items-center justify-between bg-white p-2 rounded-xl border shadow-sm">
@@ -76,43 +201,43 @@ export default function ProjectsPage() {
         {projects?.length === 0 ? (
           <div className="text-center py-20 bg-white rounded-3xl border-2 border-dashed">
             <p className="text-muted-foreground">No projects found. Start your first production today!</p>
-            <Button variant="link" className="mt-2">Create Project</Button>
+            <Button variant="link" className="mt-2" onClick={() => setIsCreateOpen(true)}>Create Project</Button>
           </div>
         ) : (
           projects?.map((proj) => (
-            <Card key={proj.id} className="border-none shadow-sm hover:shadow-md transition-shadow group">
+            <Card key={proj.id} className="border-none shadow-sm hover:shadow-md transition-shadow group overflow-hidden">
               <CardContent className="p-0">
                 <div className="flex flex-col md:flex-row md:items-center">
-                  <div className="p-6 md:w-1/3 flex flex-col gap-1.5">
+                  <div className="p-6 md:w-1/3 flex flex-col gap-1.5 border-l-4 border-l-primary" style={{ borderLeftColor: proj.color === 'card-pink' ? '#FF4B82' : '#B199FF' }}>
                     <div className="flex items-center gap-2">
                       <h3 className="font-bold text-lg leading-none group-hover:text-primary transition-colors">{proj.name}</h3>
-                      <ExternalLink className="h-3 w-3" />
+                      <ExternalLink className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
                     </div>
                     <div className="flex items-center gap-2">
                       <Badge variant="secondary" className="text-[10px] uppercase font-bold tracking-wider py-0 px-2">
-                        {proj.status}
+                        {proj.status?.replace('_', ' ')}
                       </Badge>
                       <span className="text-xs text-muted-foreground">Client: {proj.clientName}</span>
                     </div>
                   </div>
 
                   <div className="flex-1 p-6 flex flex-col justify-center gap-2">
-                    <div className="flex justify-between text-xs font-medium">
-                      <span>Overall Progress</span>
+                    <div className="flex justify-between text-xs font-bold text-muted-foreground uppercase tracking-widest">
+                      <span>Production Progress</span>
                       <span>{proj.progress || 0}%</span>
                     </div>
-                    <Progress value={proj.progress || 0} className="h-2" />
+                    <Progress value={proj.progress || 0} className="h-1.5" />
                   </div>
 
-                  <div className="p-6 md:w-1/4 flex items-center justify-end gap-6">
+                  <div className="p-6 md:w-1/4 flex items-center justify-end gap-6 bg-slate-50/50">
                     <div className="flex flex-col items-end">
-                      <span className="text-[10px] uppercase font-bold text-muted-foreground">Deadline</span>
-                      <span className="text-sm font-semibold">{proj.deadline?.split('T')[0] || 'TBD'}</span>
+                      <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">Deadline</span>
+                      <span className="text-sm font-bold text-primary">{proj.deadline || 'TBD'}</span>
                     </div>
                     
                     <div className="flex -space-x-2">
                       {[1,2,3].map(i => (
-                        <div key={i} className="h-8 w-8 rounded-full border-2 border-white bg-muted flex items-center justify-center text-[10px] font-bold overflow-hidden">
+                        <div key={i} className="h-8 w-8 rounded-full border-2 border-white bg-muted flex items-center justify-center text-[10px] font-bold overflow-hidden shadow-sm">
                           <Image src={`https://picsum.photos/seed/${proj.id+i}/50/50`} width={32} height={32} alt="member" />
                         </div>
                       ))}
@@ -120,17 +245,18 @@ export default function ProjectsPage() {
 
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
+                        <Button variant="ghost" size="icon" className="rounded-xl">
                           <MoreVertical className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
+                      <DropdownMenuContent align="end" className="rounded-xl">
                         <DropdownMenuItem asChild>
                           <Link href={`/projects/budgets`}>Budget Tracking</Link>
                         </DropdownMenuItem>
                         <DropdownMenuItem asChild>
                           <Link href={`/projects/schedule`}>Daily Call Sheets</Link>
                         </DropdownMenuItem>
+                        <DropdownMenuSeparator />
                         <DropdownMenuItem>Edit Project</DropdownMenuItem>
                         <DropdownMenuItem className="text-destructive">Archive</DropdownMenuItem>
                       </DropdownMenuContent>
@@ -145,3 +271,5 @@ export default function ProjectsPage() {
     </div>
   );
 }
+
+import { DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
