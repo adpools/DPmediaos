@@ -10,6 +10,7 @@ import { initiateEmailSignIn } from "@/firebase/non-blocking-login";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Sparkles, Loader2 } from "lucide-react";
+import { toast } from "@/hooks/use-toast";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -21,8 +22,17 @@ export default function LoginPage() {
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    initiateEmailSignIn(auth, email, password);
-    // Redirection is handled by the root page/layout listeners
+    
+    initiateEmailSignIn(auth, email, password)
+      .catch((error: any) => {
+        setLoading(false);
+        toast({
+          variant: "destructive",
+          title: "Authentication Failed",
+          description: error.message || "Invalid email or password. Please try again.",
+        });
+      });
+    // Successful redirection is handled by the root page/layout listeners
   };
 
   return (

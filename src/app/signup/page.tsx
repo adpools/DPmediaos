@@ -9,6 +9,7 @@ import { useAuth } from "@/firebase";
 import { initiateEmailSignUp } from "@/firebase/non-blocking-login";
 import Link from "next/link";
 import { Sparkles, Loader2, ShieldCheck } from "lucide-react";
+import { toast } from "@/hooks/use-toast";
 
 export default function SignupPage() {
   const [email, setEmail] = useState("");
@@ -19,7 +20,16 @@ export default function SignupPage() {
   const handleSignup = (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    initiateEmailSignUp(auth, email, password);
+    
+    initiateEmailSignUp(auth, email, password)
+      .catch((error: any) => {
+        setLoading(false);
+        toast({
+          variant: "destructive",
+          title: "Account Creation Failed",
+          description: error.message || "Could not create your account at this time.",
+        });
+      });
   };
 
   return (
