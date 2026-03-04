@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, Suspense } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { 
   User, 
   Lock, 
@@ -13,7 +14,6 @@ import {
   RefreshCcw, 
   LogOut,
   Save,
-  Trash2,
   Plus
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -25,9 +25,40 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { MOCK_COMPANY } from "@/lib/mock-data";
+import { toast } from "@/hooks/use-toast";
 
-export default function AccountCenterPage() {
-  const [isAdmin] = useState(true); // Mocking admin status
+function AccountCenterContent() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const initialTab = searchParams.get("tab") || "profile";
+  const [activeTab, setActiveTab] = useState(initialTab);
+  const [isAdmin] = useState(true);
+
+  useEffect(() => {
+    const tab = searchParams.get("tab");
+    if (tab) setActiveTab(tab);
+  }, [searchParams]);
+
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("tab", value);
+    router.push(`?${params.toString()}`);
+  };
+
+  const handleSave = () => {
+    toast({
+      title: "Settings Saved",
+      description: "Your account preferences have been updated successfully.",
+    });
+  };
+
+  const handleRestore = () => {
+    toast({
+      title: "System Restore Initiated",
+      description: "Rolling back configuration to the last stable backup.",
+    });
+  };
 
   return (
     <div className="max-w-6xl mx-auto space-y-8 pb-12">
@@ -36,12 +67,16 @@ export default function AccountCenterPage() {
           <h1 className="text-4xl font-bold font-headline text-primary">Account Center</h1>
           <p className="text-muted-foreground">Manage your personal presence and workspace configuration.</p>
         </div>
-        <Button variant="destructive" className="gap-2 rounded-xl h-11 px-6 shadow-lg shadow-rose-500/20">
+        <Button 
+          variant="destructive" 
+          className="gap-2 rounded-xl h-11 px-6 shadow-lg shadow-rose-500/20"
+          onClick={() => toast({ title: "Session terminated" })}
+        >
           <LogOut className="h-4 w-4" /> Logout
         </Button>
       </div>
 
-      <Tabs defaultValue="profile" className="space-y-6">
+      <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
         <TabsList className="bg-white/50 border p-1 h-auto flex-wrap gap-1 rounded-2xl">
           <TabsTrigger value="profile" className="rounded-xl px-4 py-2 gap-2 data-[state=active]:bg-primary data-[state=active]:text-white">
             <User className="h-4 w-4" /> Profile
@@ -56,9 +91,6 @@ export default function AccountCenterPage() {
             <>
               <TabsTrigger value="company" className="rounded-xl px-4 py-2 gap-2 data-[state=active]:bg-primary data-[state=active]:text-white">
                 <Building2 className="h-4 w-4" /> Company
-              </TabsTrigger>
-              <TabsTrigger value="roles" className="rounded-xl px-4 py-2 gap-2 data-[state=active]:bg-primary data-[state=active]:text-white">
-                <ShieldCheck className="h-4 w-4" /> Role Builder
               </TabsTrigger>
               <TabsTrigger value="modules" className="rounded-xl px-4 py-2 gap-2 data-[state=active]:bg-primary data-[state=active]:text-white">
                 <Puzzle className="h-4 w-4" /> Modules
@@ -105,7 +137,7 @@ export default function AccountCenterPage() {
                 </div>
               </div>
               <div className="flex justify-end pt-4 border-t">
-                <Button className="gap-2 rounded-xl h-11 px-8 shadow-lg shadow-primary/20">
+                <Button onClick={handleSave} className="gap-2 rounded-xl h-11 px-8 shadow-lg shadow-primary/20">
                   <Save className="h-4 w-4" /> Save Profile
                 </Button>
               </div>
@@ -147,7 +179,7 @@ export default function AccountCenterPage() {
                 <Switch />
               </div>
               <div className="flex justify-end pt-4">
-                <Button className="gap-2 rounded-xl h-11 px-8">
+                <Button onClick={handleSave} className="gap-2 rounded-xl h-11 px-8">
                   <RefreshCcw className="h-4 w-4" /> Update Security
                 </Button>
               </div>
@@ -196,49 +228,15 @@ export default function AccountCenterPage() {
               </CardHeader>
               <CardContent className="px-0 space-y-4">
                 <p className="text-sm">Configure your GenAI endpoints and behavior models for market research and proposal writing.</p>
-                <Button className="w-full bg-white text-accent hover:bg-white/90 rounded-xl h-11 font-bold">
+                <Button 
+                  className="w-full bg-white text-accent hover:bg-white/90 rounded-xl h-11 font-bold"
+                  onClick={() => toast({ title: "AI Setup Helper Launched" })}
+                >
                   Launch AI Setup Helper
                 </Button>
               </CardContent>
             </Card>
           </div>
-        </TabsContent>
-
-        <TabsContent value="roles" className="animate-in fade-in-50 duration-300">
-          <Card className="border-none shadow-soft rounded-[2rem] p-8">
-            <div className="flex items-center justify-between mb-8">
-              <div>
-                <CardTitle className="font-headline text-2xl">Role Builder</CardTitle>
-                <CardDescription>Define custom permissions for your production team.</CardDescription>
-              </div>
-              <Button className="gap-2 rounded-xl">
-                <Plus className="h-4 w-4" /> Create Role
-              </Button>
-            </div>
-            <div className="space-y-4">
-              {[
-                { name: "Executive Producer", users: 2, perms: "Full Admin", color: "bg-purple-100 text-purple-700" },
-                { name: "Production Manager", users: 5, perms: "Projects & CRM", color: "bg-blue-100 text-blue-700" },
-                { name: "Editor", users: 12, perms: "Asset Library Only", color: "bg-emerald-100 text-emerald-700" },
-              ].map(role => (
-                <div key={role.name} className="flex items-center justify-between p-4 bg-white border rounded-2xl hover:border-primary/50 transition-colors group">
-                  <div className="flex items-center gap-4">
-                    <div className={`p-3 rounded-xl ${role.color}`}>
-                      <ShieldCheck className="h-5 w-5" />
-                    </div>
-                    <div>
-                      <h4 className="font-bold text-sm">{role.name}</h4>
-                      <p className="text-xs text-muted-foreground">{role.users} active members</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <Badge variant="outline" className="text-[10px] uppercase font-bold">{role.perms}</Badge>
-                    <Button variant="ghost" size="sm" className="opacity-0 group-hover:opacity-100 transition-opacity">Edit</Button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </Card>
         </TabsContent>
 
         <TabsContent value="modules" className="animate-in fade-in-50 duration-300">
@@ -273,7 +271,11 @@ export default function AccountCenterPage() {
                 <RefreshCcw className="h-5 w-5" />
                 <span className="text-sm font-medium">Backup and Data Recovery</span>
               </div>
-              <Button variant="outline" className="rounded-xl gap-2 h-11 px-6">
+              <Button 
+                variant="outline" 
+                className="rounded-xl gap-2 h-11 px-6"
+                onClick={handleRestore}
+              >
                 <RefreshCcw className="h-4 w-4" /> Restore Configuration
               </Button>
             </div>
@@ -312,5 +314,13 @@ export default function AccountCenterPage() {
         </TabsContent>
       </Tabs>
     </div>
+  );
+}
+
+export default function AccountCenterPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <AccountCenterContent />
+    </Suspense>
   );
 }

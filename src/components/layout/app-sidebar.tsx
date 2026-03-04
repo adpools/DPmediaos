@@ -10,7 +10,9 @@ import {
   Search,
   PieChart,
   UserCircle,
-  Plus
+  Plus,
+  ShieldCheck,
+  LogOut
 } from "lucide-react";
 import {
   Sidebar,
@@ -28,6 +30,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { toast } from "@/hooks/use-toast";
 
 const workspaceItems = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutGrid },
@@ -41,11 +44,19 @@ const workspaceItems = [
 
 const configurationItems = [
   { title: "Account Center", url: "/settings", icon: UserCircle },
+  { title: "Access Control", url: "/settings/rbac", icon: ShieldCheck },
 ];
 
 export function AppSidebar() {
   const pathname = usePathname();
   const { state } = useSidebar();
+
+  const handleLogout = () => {
+    toast({
+      title: "Logging out...",
+      description: "You are being safely signed out of DP Media OS.",
+    });
+  };
 
   return (
     <Sidebar collapsible="icon" className="border-none bg-white">
@@ -108,6 +119,18 @@ export function AppSidebar() {
                 </SidebarMenuButton>
               </SidebarMenuItem>
             ))}
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                onClick={handleLogout}
+                tooltip="Logout"
+                className="rounded-xl h-10 px-3 hover:bg-rose-50 text-rose-500"
+              >
+                <div className="flex items-center gap-3">
+                  <LogOut className="h-4 w-4" />
+                  <span className="font-semibold text-xs flex-1">Logout</span>
+                </div>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
           </SidebarMenu>
         </SidebarGroup>
       </SidebarContent>

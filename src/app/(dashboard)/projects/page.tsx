@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { MOCK_PROJECTS } from "@/lib/mock-data";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -76,7 +77,7 @@ export default function ProjectsPage() {
                 <div className="p-6 md:w-1/4 flex items-center justify-end gap-6">
                   <div className="flex flex-col items-end">
                     <span className="text-[10px] uppercase font-bold text-muted-foreground">Deadline</span>
-                    <span className="text-sm font-semibold">{proj.dueDate}</span>
+                    <span className="text-sm font-semibold">Dec 15, 2024</span>
                   </div>
                   
                   <div className="flex -space-x-2">
@@ -94,9 +95,13 @@ export default function ProjectsPage() {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
+                      <DropdownMenuItem asChild>
+                        <Link href={`/projects/budgets`}>Budget Tracking</Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild>
+                        <Link href={`/projects/schedule`}>Daily Call Sheets</Link>
+                      </DropdownMenuItem>
                       <DropdownMenuItem>Edit Project</DropdownMenuItem>
-                      <DropdownMenuItem>Budget Tracking</DropdownMenuItem>
-                      <DropdownMenuItem>Daily Call Sheets</DropdownMenuItem>
                       <DropdownMenuItem className="text-destructive">Archive</DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
