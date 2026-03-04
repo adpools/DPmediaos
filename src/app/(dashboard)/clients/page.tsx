@@ -107,8 +107,8 @@ export default function ClientsPage() {
                   </div>
                   <div className="flex gap-2">
                     <Button variant="ghost" size="icon" className="h-8 w-8 rounded-xl"><MoreHorizontal className="h-4 w-4" /></Button>
-                    <Link href="/crm">
-                      <Button size="sm" variant="secondary" className="h-8 text-[10px] font-bold uppercase rounded-xl">View Details</Button>
+                    <Link href={`/clients/${client.id}`}>
+                      <Button size="sm" variant="secondary" className="h-8 text-[10px] font-bold uppercase rounded-xl">View Portfolio</Button>
                     </Link>
                   </div>
                 </div>

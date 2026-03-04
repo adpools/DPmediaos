@@ -1,9 +1,10 @@
+
 "use client";
 
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, MoreHorizontal, Building2, Calendar, Search, Loader2, DollarSign, Sparkles } from "lucide-react";
+import { Plus, MoreHorizontal, Building2, Calendar, Search, Loader2, DollarSign, Sparkles, ExternalLink } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { useTenant } from "@/hooks/use-tenant";
@@ -16,6 +17,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { addDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { toast } from "@/hooks/use-toast";
+import Link from "next/link";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 export default function CRMPage() {
   const { profile, isLoading: isTenantLoading, companyId } = useTenant();
@@ -185,9 +188,21 @@ export default function CRMPage() {
                     <CardContent className="p-5 space-y-4">
                       <div className="flex items-start justify-between gap-2">
                         <span className="text-sm font-bold leading-tight group-hover:text-primary transition-colors">{lead.company_name}</span>
-                        <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="rounded-xl">
+                            <DropdownMenuItem asChild>
+                              <Link href={`/clients/${lead.id}`} className="flex items-center gap-2">
+                                <ExternalLink className="h-3.5 w-3.5" /> View Portfolio
+                              </Link>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem>Edit Lead</DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </div>
                       
                       <div className="space-y-2">
