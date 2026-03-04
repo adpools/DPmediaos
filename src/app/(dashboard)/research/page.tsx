@@ -9,8 +9,14 @@ import { Label } from "@/components/ui/label";
 import { Loader2, Search, TrendingUp, Target, Sparkles, MapPin, Briefcase } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { useTenant } from "@/hooks/use-tenant";
+import { useFirestore } from "@/firebase";
+import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { addDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 
 export default function MarketResearchPage() {
+  const { profile } = useTenant();
+  const db = useFirestore();
   const [industry, setIndustry] = useState("");
   const [location, setLocation] = useState("");
   const [loading, setLoading] = useState(false);
@@ -18,12 +24,27 @@ export default function MarketResearchPage() {
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!industry || !location) return;
+    if (!industry || !location || !profile?.companyId) return;
 
     setLoading(true);
     try {
       const data = await analyzeMarketAndSuggestPitch({ industry, location });
       setResult(data);
+
+      // Save to Firestore history
+      const sessionsRef = collection(db, 'companies', profile.companyId, 'market_research_sessions');
+      addDocumentNonBlocking(sessionsRef, {
+        companyId: profile.companyId,
+        requestedByUserId: profile.id,
+        industry,
+        location,
+        status: 'complete',
+        opportunityScore: data.opportunityScore,
+        marketTrends: data.marketTrends,
+        suggestedPitchAngles: data.suggestedPitchAngles,
+        requestedAt: serverTimestamp(),
+      });
+
     } catch (error) {
       console.error("Research failed:", error);
     } finally {
@@ -34,7 +55,7 @@ export default function MarketResearchPage() {
   return (
     <div className="max-w-6xl mx-auto space-y-8">
       <div className="flex flex-col gap-1">
-        <h1 className="text-3xl font-bold font-headline text-primary">Market Intelligence</h1>
+        <h1 className="text-3xl font-bold text-primary">Market Intelligence</h1>
         <p className="text-muted-foreground">AI-powered research for media production opportunities and trends.</p>
       </div>
 
@@ -42,7 +63,7 @@ export default function MarketResearchPage() {
         <div className="bg-primary p-6 text-primary-foreground">
           <div className="flex items-center gap-3 mb-4">
             <Sparkles className="h-6 w-6 text-accent" />
-            <h2 className="text-xl font-headline font-semibold">New Research Campaign</h2>
+            <h2 className="text-xl font-semibold">New Research Campaign</h2>
           </div>
           <form onSubmit={handleSearch} className="grid grid-cols-1 md:grid-cols-5 gap-4">
             <div className="md:col-span-2 space-y-1.5">
@@ -85,7 +106,7 @@ export default function MarketResearchPage() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <Card className="md:col-span-1 border-none shadow-sm">
             <CardHeader className="pb-2">
-              <CardTitle className="text-lg font-headline flex items-center gap-2">
+              <CardTitle className="text-lg flex items-center gap-2">
                 <Target className="h-5 w-5 text-accent" />
                 Opportunity Score
               </CardTitle>
@@ -114,7 +135,7 @@ export default function MarketResearchPage() {
                     className="text-primary transition-all duration-1000"
                   />
                 </svg>
-                <span className="absolute text-3xl font-bold font-headline">{result.opportunityScore}</span>
+                <span className="absolute text-3xl font-bold">{result.opportunityScore}</span>
               </div>
               <p className="text-center text-sm text-muted-foreground">
                 Market readiness and entry potential based on current media saturation.
@@ -125,7 +146,7 @@ export default function MarketResearchPage() {
           <div className="md:col-span-2 space-y-6">
             <Card className="border-none shadow-sm">
               <CardHeader className="pb-2">
-                <CardTitle className="text-lg font-headline flex items-center gap-2">
+                <CardTitle className="text-lg flex items-center gap-2">
                   <TrendingUp className="h-5 w-5 text-primary" />
                   Key Market Trends
                 </CardTitle>
@@ -141,7 +162,7 @@ export default function MarketResearchPage() {
 
             <Card className="border-none shadow-sm">
               <CardHeader className="pb-2">
-                <CardTitle className="text-lg font-headline flex items-center gap-2">
+                <CardTitle className="text-lg flex items-center gap-2">
                   <Sparkles className="h-5 w-5 text-accent" />
                   Suggested Pitch Angles
                 </CardTitle>
@@ -159,23 +180,6 @@ export default function MarketResearchPage() {
               </CardContent>
             </Card>
           </div>
-
-          <Card className="md:col-span-3 border-none shadow-sm">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-lg font-headline">Content Opportunities</CardTitle>
-              <CardDescription>Specific campaigns you could propose to clients</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ul className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {result.contentOpportunities.map((opp, idx) => (
-                  <li key={idx} className="flex items-start gap-3 p-3 rounded-lg bg-accent/5">
-                    <div className="mt-1 h-1.5 w-1.5 rounded-full bg-accent shrink-0" />
-                    <span className="text-sm">{opp}</span>
-                  </li>
-                ))}
-              </ul>
-            </CardContent>
-          </Card>
         </div>
       ) : (
         <div className="flex flex-col items-center justify-center h-64 border-2 border-dashed rounded-xl bg-white/50 text-muted-foreground">

@@ -1,9 +1,7 @@
-
 'use client';
 
-import { doc, setDoc, serverTimestamp, Firestore } from 'firebase/firestore';
-import { Auth } from 'firebase/auth';
-import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { doc, serverTimestamp, Firestore, collection } from 'firebase/firestore';
+import { setDocumentNonBlocking, addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 
 /**
  * Handles the creation of a new company and the initial admin user.
@@ -50,7 +48,7 @@ export async function setupNewCompany(
   setDocumentNonBlocking(settingsRef, {
     id: companyId,
     companyId,
-    enabledModules: ['projects', 'talents', 'crm', 'finance', 'research'],
+    enabledModules: ['dashboard', 'projects', 'talents', 'crm', 'finance', 'research', 'reports'],
     defaultCurrency: 'USD',
     updatedAt: serverTimestamp(),
   }, { merge: true });
@@ -66,6 +64,19 @@ export async function setupNewCompany(
     status: 'active',
     createdAt: serverTimestamp(),
   }, { merge: true });
+
+  // 5. Seed initial data (optional but helpful for evaluation)
+  const leadsRef = collection(db, 'companies', companyId, 'leads');
+  addDocumentNonBlocking(leadsRef, {
+    companyId,
+    companyName: 'Sample Client Corp',
+    contactPerson: 'Jane Doe',
+    industry: 'Technology',
+    email: 'jane@sample.com',
+    stage: 'lead',
+    dealValue: 50000,
+    createdAt: serverTimestamp(),
+  });
 
   return { companyId };
 }
