@@ -55,10 +55,11 @@ service cloud.firestore {
     }
 
     match /users/{userId} {
-      allow get: if isSignedIn() && (request.auth.uid == userId || isSuperAdmin());
-      allow list: if isSuperAdmin();
+      allow get: if isSignedIn() && (request.auth.uid == userId || isSuperAdmin() || getUserData().company_id == resource.data.company_id);
+      // Allow users to list others in the same company
+      allow list: if isSignedIn() && (isSuperAdmin() || request.query.filters.company_id == getUserData().company_id);
       allow create: if isSignedIn() && request.auth.uid == userId;
-      allow update: if isSignedIn() && (request.auth.uid == userId || isSuperAdmin());
+      allow update: if isSignedIn() && (request.auth.uid == userId || isSuperAdmin() || (getUserData().role_id == 'admin' && getUserData().company_id == resource.data.company_id));
       allow delete: if isSuperAdmin();
     }
 
@@ -83,7 +84,7 @@ service cloud.firestore {
 
       match /roles/{roleId} {
         allow get, list: if isMember(companyId);
-        allow create: if isSignedIn() && hasValidCompanyContext(companyId);
+        allow create: if isMember(companyId) && hasValidCompanyContext(companyId);
         allow update: if isExistingMember(companyId) && isCompanyImmutable();
         allow delete: if isExistingMember(companyId);
       }
