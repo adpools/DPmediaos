@@ -1,4 +1,3 @@
-
 "use client";
 
 import * as React from "react";
@@ -30,22 +29,23 @@ import {
 } from "@/components/ui/sidebar";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/avatar";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
 import { useTenant } from "@/hooks/use-tenant";
 import { useAuth } from "@/firebase";
 import { signOut } from "firebase/auth";
 
+// Module registry must match the IDs in settings page
 const workspaceItems = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutGrid, module: "dashboard", isCore: true },
   { title: "Projects", url: "/projects", icon: Film, module: "projects", isCore: true },
   { title: "Talent Network", url: "/talents", icon: Users, module: "talents" },
   { title: "Sales CRM", url: "/crm", icon: Briefcase, module: "crm" },
   { title: "Proposals", url: "/proposals", icon: FileText, module: "proposals" },
-  { title: "Finance & Invoices", url: "/invoices", icon: Receipt, module: "invoices" },
-  { title: "Market Intelligence", url: "/research", icon: Search, module: "research" },
-  { title: "Analytics & Reports", url: "/reports", icon: PieChart, module: "reports" },
+  { title: "Finance Hub", url: "/invoices", icon: Receipt, module: "invoices" },
+  { title: "Market Research", url: "/research", icon: Search, module: "research" },
+  { title: "Analytics", url: "/reports", icon: PieChart, module: "reports" },
 ];
 
 export function AppSidebar() {
@@ -130,7 +130,7 @@ export function AppSidebar() {
             <SidebarMenuItem>
               <SidebarMenuButton
                 asChild
-                isActive={pathname === '/settings'}
+                isActive={pathname?.startsWith('/settings') && !pathname?.includes('/rbac')}
                 tooltip="Account Center"
                 className="rounded-xl h-10 px-3 hover:bg-accent/5 data-[active=true]:bg-primary/5 data-[active=true]:text-primary"
               >
