@@ -12,7 +12,8 @@ import {
   DropdownMenu, 
   DropdownMenuContent, 
   DropdownMenuItem, 
-  DropdownMenuTrigger 
+  DropdownMenuTrigger,
+  DropdownMenuSeparator
 } from "@/components/ui/dropdown-menu";
 import {
   Dialog,
@@ -40,50 +41,50 @@ export default function ProjectsPage() {
 
   // Form State
   const [newProject, setNewProject] = useState({
-    name: "",
-    clientName: "",
+    project_name: "",
+    client_name: "",
     budget: "",
     deadline: ""
   });
 
   const projectsQuery = useMemoFirebase(() => {
-    if (!db || !profile?.companyId) return null;
+    if (!db || !profile?.company_id) return null;
     return query(
-      collection(db, 'companies', profile.companyId, 'projects'),
-      orderBy('createdAt', 'desc')
+      collection(db, 'companies', profile.company_id, 'projects'),
+      orderBy('created_at', 'desc')
     );
-  }, [db, profile?.companyId]);
+  }, [db, profile?.company_id]);
 
   const { data: projects, isLoading: isProjectsLoading } = useCollection(projectsQuery);
 
   const handleCreateProject = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!profile?.companyId || !newProject.name) return;
+    if (!profile?.company_id || !newProject.project_name) return;
 
     setIsSubmitting(true);
-    const projectsRef = collection(db, 'companies', profile.companyId, 'projects');
+    const projectsRef = collection(db, 'companies', profile.company_id, 'projects');
     
     const colors = ['card-pink', 'card-purple'];
     const randomColor = colors[Math.floor(Math.random() * colors.length)];
 
     addDocumentNonBlocking(projectsRef, {
-      companyId: profile.companyId,
-      name: newProject.name,
-      clientName: newProject.clientName,
+      company_id: profile.company_id,
+      project_name: newProject.project_name,
+      client_name: newProject.client_name,
       budget: parseFloat(newProject.budget) || 0,
       deadline: newProject.deadline,
       status: 'in_progress',
       progress: 0,
       color: randomColor,
-      createdAt: serverTimestamp(),
+      created_at: serverTimestamp(),
     });
 
     toast({
       title: "Project Created",
-      description: `${newProject.name} has been added to your production queue.`,
+      description: `${newProject.project_name} has been added to your production queue.`,
     });
 
-    setNewProject({ name: "", clientName: "", budget: "", deadline: "" });
+    setNewProject({ project_name: "", client_name: "", budget: "", deadline: "" });
     setIsCreateOpen(false);
     setIsSubmitting(false);
   };
@@ -126,8 +127,8 @@ export default function ProjectsPage() {
                 <Input 
                   id="name" 
                   placeholder="e.g. Summer Campaign 2024" 
-                  value={newProject.name}
-                  onChange={(e) => setNewProject({...newProject, name: e.target.value})}
+                  value={newProject.project_name}
+                  onChange={(e) => setNewProject({...newProject, project_name: e.target.value})}
                   required
                   className="rounded-xl"
                 />
@@ -137,8 +138,8 @@ export default function ProjectsPage() {
                 <Input 
                   id="client" 
                   placeholder="e.g. Nike Global" 
-                  value={newProject.clientName}
-                  onChange={(e) => setNewProject({...newProject, clientName: e.target.value})}
+                  value={newProject.client_name}
+                  onChange={(e) => setNewProject({...newProject, client_name: e.target.value})}
                   required
                   className="rounded-xl"
                 />
@@ -210,14 +211,14 @@ export default function ProjectsPage() {
                 <div className="flex flex-col md:flex-row md:items-center">
                   <div className="p-6 md:w-1/3 flex flex-col gap-1.5 border-l-4 border-l-primary" style={{ borderLeftColor: proj.color === 'card-pink' ? '#FF4B82' : '#B199FF' }}>
                     <div className="flex items-center gap-2">
-                      <h3 className="font-bold text-lg leading-none group-hover:text-primary transition-colors">{proj.name}</h3>
+                      <h3 className="font-bold text-lg leading-none group-hover:text-primary transition-colors">{proj.project_name}</h3>
                       <ExternalLink className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
                     </div>
                     <div className="flex items-center gap-2">
                       <Badge variant="secondary" className="text-[10px] uppercase font-bold tracking-wider py-0 px-2">
                         {proj.status?.replace('_', ' ')}
                       </Badge>
-                      <span className="text-xs text-muted-foreground">Client: {proj.clientName}</span>
+                      <span className="text-xs text-muted-foreground">Client: {proj.client_name}</span>
                     </div>
                   </div>
 
@@ -271,5 +272,3 @@ export default function ProjectsPage() {
     </div>
   );
 }
-
-import { DropdownMenuSeparator } from "@/components/ui/dropdown-menu";

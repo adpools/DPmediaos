@@ -73,7 +73,7 @@ service cloud.firestore {
     match /companies/{companyId} {
       allow get: if isMember(companyId);
       allow list: if isSuperAdmin();
-      allow create: if isSignedIn(); // FIX: Allow creation during onboarding
+      allow create: if isSignedIn(); 
       allow update: if isExistingMember(companyId);
       allow delete: if isSuperAdmin();
 
@@ -81,14 +81,14 @@ service cloud.firestore {
 
       match /roles/{roleId} {
         allow get, list: if isMember(companyId);
-        allow create: if isSignedIn() && hasValidCompanyContext(companyId); // Relaxed for onboarding
+        allow create: if isSignedIn() && hasValidCompanyContext(companyId);
         allow update: if isExistingMember(companyId) && isCompanyImmutable();
         allow delete: if isExistingMember(companyId);
       }
 
       match /company_settings/{settingId} {
         allow get, list: if isMember(companyId);
-        allow create: if isSignedIn() && hasValidCompanyContext(companyId); // Relaxed for onboarding
+        allow create: if isSignedIn() && hasValidCompanyContext(companyId);
         allow update: if isExistingMember(companyId) && isCompanyImmutable();
         allow delete: if isExistingMember(companyId);
       }
