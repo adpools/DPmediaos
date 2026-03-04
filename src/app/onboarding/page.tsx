@@ -9,22 +9,46 @@ import {
   Building2, 
   ChevronRight, 
   ChevronLeft, 
-  Upload, 
-  LayoutGrid, 
-  Users, 
-  Cloud,
   CheckCircle2,
-  Sparkles
+  Sparkles,
+  Loader2,
+  Film,
+  Users,
+  Briefcase,
+  Receipt,
+  Search
 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useRouter } from "next/navigation";
+import { useFirestore, useUser } from "@/firebase";
+import { setupNewCompany } from "./actions";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 
 export default function OnboardingPage() {
   const [step, setStep] = useState(1);
+  const [loading, setLoading] = useState(false);
+  const [companyName, setCompanyName] = useState("");
+  const [industry, setIndustry] = useState("");
   const router = useRouter();
+  const db = useFirestore();
+  const { user } = useUser();
 
   const nextStep = () => setStep(prev => Math.min(prev + 1, 6));
   const prevStep = () => setStep(prev => Math.max(prev - 1, 1));
+
+  const handleComplete = async () => {
+    if (!user || !companyName) return;
+    setLoading(true);
+    try {
+      await setupNewCompany(db, user.uid, user.email!, companyName, industry);
+      router.push('/dashboard');
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const modules = [
     { id: 'projects', name: 'Project Management', icon: Film, desc: 'Workflows, schedules & budgets' },
@@ -66,7 +90,7 @@ export default function OnboardingPage() {
              <Card className="bg-primary text-primary-foreground border-none overflow-hidden relative">
                <CardContent className="p-6">
                  <Sparkles className="h-10 w-10 text-accent mb-4 opacity-50" />
-                 <h4 className="font-headline font-semibold text-lg mb-2">Almost there!</h4>
+                 <h4 className="font-headline font-semibold text-lg mb-2">Security First</h4>
                  <p className="text-sm text-primary-foreground/70">Setting up your secure workspace with data isolation and RBAC enabled by default.</p>
                </CardContent>
              </Card>
@@ -74,8 +98,8 @@ export default function OnboardingPage() {
         </div>
 
         <div className="md:col-span-2">
-          <Card className="border-none shadow-xl min-h-[500px] flex flex-col">
-            <CardHeader className="border-b bg-white/50">
+          <Card className="border-none shadow-xl min-h-[500px] flex flex-col rounded-[2rem] overflow-hidden">
+            <CardHeader className="border-b bg-white/50 p-8">
               <CardTitle className="font-headline text-2xl">
                 {step === 1 && "Basic Company Info"}
                 {step === 2 && "Setup Your Branding"}
@@ -99,12 +123,18 @@ export default function OnboardingPage() {
                 <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
                   <div className="space-y-2">
                     <Label htmlFor="companyName">Company Name</Label>
-                    <Input id="companyName" placeholder="e.g. DP Global Productions" />
+                    <Input 
+                      id="companyName" 
+                      placeholder="e.g. DP Global Productions" 
+                      value={companyName}
+                      onChange={(e) => setCompanyName(e.target.value)}
+                      className="rounded-xl h-12"
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="industry">Primary Industry</Label>
-                    <Select>
-                      <SelectTrigger>
+                    <Select onValueChange={setIndustry} value={industry}>
+                      <SelectTrigger className="h-12 rounded-xl">
                         <SelectValue placeholder="Select industry" />
                       </SelectTrigger>
                       <SelectContent>
@@ -117,7 +147,7 @@ export default function OnboardingPage() {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="address">Official Address</Label>
-                    <Textarea id="address" placeholder="Business street address..." />
+                    <Textarea id="address" placeholder="Business street address..." className="rounded-xl" />
                   </div>
                 </div>
               )}
@@ -131,8 +161,8 @@ export default function OnboardingPage() {
                         <Label htmlFor={mod.id} className="font-bold text-sm cursor-pointer">{mod.name}</Label>
                         <p className="text-xs text-muted-foreground">{mod.desc}</p>
                       </div>
-                      <div className="p-2 rounded-lg bg-muted group-hover:bg-primary/10 transition-colors">
-                        <mod.icon className="h-5 w-5 text-primary/70" />
+                      <div className="p-2 rounded-lg bg-muted group-hover:bg-primary/10 transition-colors text-primary">
+                        <mod.icon className="h-5 w-5" />
                       </div>
                     </div>
                   ))}
@@ -148,46 +178,54 @@ export default function OnboardingPage() {
                      <h3 className="text-2xl font-bold font-headline">Setup Complete!</h3>
                      <p className="text-muted-foreground max-w-sm">Your multi-tenant workspace is provisioned and ready for your team.</p>
                    </div>
-                   <div className="w-full bg-muted/50 p-4 rounded-lg text-left space-y-2">
+                   <div className="w-full bg-muted/50 p-6 rounded-[1.5rem] text-left space-y-3">
                      <div className="flex justify-between text-xs">
-                       <span className="text-muted-foreground">Tenant ID:</span>
-                       <span className="font-mono font-semibold">TEN_8829_XP</span>
+                       <span className="text-muted-foreground font-bold uppercase tracking-wider">Workspace</span>
+                       <span className="font-semibold">{companyName || "DP Studio"}</span>
                      </div>
                      <div className="flex justify-between text-xs">
-                       <span className="text-muted-foreground">Modules Enabled:</span>
+                       <span className="text-muted-foreground font-bold uppercase tracking-wider">Modules</span>
                        <span className="font-semibold">5 Active</span>
                      </div>
                      <div className="flex justify-between text-xs">
-                       <span className="text-muted-foreground">Admin:</span>
-                       <span className="font-semibold">alex@dpstudios.com</span>
+                       <span className="text-muted-foreground font-bold uppercase tracking-wider">Admin</span>
+                       <span className="font-semibold">{user?.email}</span>
                      </div>
                    </div>
                 </div>
               )}
 
-              {/* Steps 2, 4, 5 would be similarly implemented */}
               {[2,4,5].includes(step) && (
-                <div className="flex items-center justify-center h-full text-muted-foreground animate-pulse">
-                  Step {step} details coming soon...
+                <div className="flex flex-col items-center justify-center h-full text-muted-foreground space-y-4">
+                  <Loader2 className="h-10 w-10 animate-spin opacity-20" />
+                  <p className="text-sm font-medium">Provisioning step {step}...</p>
                 </div>
               )}
             </CardContent>
 
-            <CardFooter className="border-t bg-muted/30 p-4 flex items-center justify-between">
+            <CardFooter className="border-t bg-muted/30 p-6 flex items-center justify-between">
               <Button 
                 variant="ghost" 
                 onClick={prevStep} 
-                disabled={step === 1}
-                className="gap-2"
+                disabled={step === 1 || loading}
+                className="gap-2 rounded-xl"
               >
                 <ChevronLeft className="h-4 w-4" /> Back
               </Button>
               {step === 6 ? (
-                <Button onClick={() => router.push('/')} className="bg-primary hover:bg-primary/90 gap-2">
-                  Launch DP Media OS <ChevronRight className="h-4 w-4" />
+                <Button 
+                  onClick={handleComplete} 
+                  disabled={loading}
+                  className="bg-primary hover:bg-primary/90 gap-2 rounded-xl px-8 h-12 shadow-lg shadow-primary/20"
+                >
+                  {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : "Launch DP Media OS"} <ChevronRight className="h-4 w-4" />
                 </Button>
               ) : (
-                <Button onClick={nextStep} className="bg-primary hover:bg-primary/90 gap-2">
+                <Button 
+                  onClick={nextStep} 
+                  disabled={step === 1 && !companyName}
+                  className="bg-primary hover:bg-primary/90 gap-2 rounded-xl px-8 h-12 shadow-lg shadow-primary/20"
+                >
                   Continue <ChevronRight className="h-4 w-4" />
                 </Button>
               )}
@@ -198,7 +236,3 @@ export default function OnboardingPage() {
     </div>
   );
 }
-
-import { Film, Briefcase, Receipt, Search } from "lucide-react";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
