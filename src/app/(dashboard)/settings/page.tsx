@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, Suspense, useCallback } from "react";
@@ -17,7 +18,15 @@ import {
   Sun,
   Palette,
   Check,
-  Loader2
+  Loader2,
+  LayoutGrid,
+  Film,
+  Users,
+  Briefcase,
+  FileText,
+  Receipt,
+  Search,
+  PieChart
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -64,7 +73,7 @@ function AccountCenterContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const db = useFirestore();
-  const { profile: tenantProfile, company, isLoading: isTenantLoading } = useTenant();
+  const { profile: tenantProfile, company, settings, companyId, isLoading: isTenantLoading } = useTenant();
   
   // Tab Management
   const initialTab = searchParams.get("tab") || "profile";
@@ -82,8 +91,8 @@ function AccountCenterContent() {
   useEffect(() => {
     if (tenantProfile) {
       setFormData({
-        name: tenantProfile.fullName || "",
-        role: tenantProfile.roleTitle || tenantProfile.roleId || "",
+        name: tenantProfile.full_name || "",
+        role: tenantProfile.role_id || "Member",
         email: tenantProfile.email || "",
         bio: tenantProfile.bio || ""
       });
@@ -101,6 +110,17 @@ function AccountCenterContent() {
     { name: "Emerald", hex: "#10b981" },
     { name: "Amber", hex: "#f59e0b" },
     { name: "Indigo", hex: "#6366f1" }
+  ];
+
+  const modulesList = [
+    { id: "dashboard", name: "Dashboard", desc: "Workspace overview and task summary", icon: LayoutGrid, isCore: true },
+    { id: "projects", name: "Project Management", desc: "Production workflows, budgets, and schedules", icon: Film, isCore: true },
+    { id: "talents", name: "Talent Network", desc: "Global actor and influencer booking database", icon: Users },
+    { id: "crm", name: "Sales CRM", desc: "Client relationship and pipeline tracking", icon: Briefcase },
+    { id: "proposals", name: "Proposal Wizard", desc: "AI-assisted production proposal generation", icon: FileText },
+    { id: "invoices", name: "Finance Hub", desc: "Automated invoicing and cloud sync", icon: Receipt },
+    { id: "research", name: "Market Intelligence", desc: "AI market trends and pitch suggestions", icon: Search },
+    { id: "reports", name: "Analytics", desc: "Revenue trends and performance reports", icon: PieChart },
   ];
 
   useEffect(() => {
@@ -124,14 +144,37 @@ function AccountCenterContent() {
 
     const userRef = doc(db, 'users', tenantProfile.id);
     updateDocumentNonBlocking(userRef, {
-      fullName: formData.name,
-      roleTitle: formData.role,
+      full_name: formData.name,
       bio: formData.bio
     });
 
     toast({
       title: "Profile Updated",
       description: `Changes for ${formData.name} have been saved successfully.`,
+    });
+  };
+
+  const handleToggleModule = (moduleId: string, enabled: boolean) => {
+    if (!companyId || !db || !settings) return;
+
+    const currentModules = settings.enabled_modules || [];
+    let updatedModules;
+
+    if (enabled) {
+      updatedModules = Array.from(new Set([...currentModules, moduleId]));
+    } else {
+      updatedModules = currentModules.filter((id: string) => id !== moduleId);
+    }
+
+    const settingsRef = doc(db, 'companies', companyId, 'company_settings', companyId);
+    updateDocumentNonBlocking(settingsRef, {
+      enabled_modules: updatedModules,
+      updated_at: new Date().toISOString()
+    });
+
+    toast({
+      title: enabled ? "Module Enabled" : "Module Disabled",
+      description: `${moduleId.charAt(0).toUpperCase() + moduleId.slice(1)} settings have been updated workspace-wide.`,
     });
   };
 
@@ -250,8 +293,8 @@ function AccountCenterContent() {
                   <Input 
                     id="roleTitle" 
                     value={formData.role} 
-                    onChange={(e) => handleInputChange('role', e.target.value)}
-                    className="rounded-xl h-12" 
+                    disabled
+                    className="rounded-xl h-12 bg-muted" 
                   />
                 </div>
                 <div className="space-y-2">
@@ -427,28 +470,33 @@ function AccountCenterContent() {
           <Card className="border-none shadow-soft rounded-[2rem] p-8">
             <CardHeader className="px-0 pt-0">
               <CardTitle className="text-2xl">Module Customization</CardTitle>
-              <CardDescription>Toggle specific features to streamline your workspace.</CardDescription>
+              <CardDescription>Enable or disable workspace features. Core modules cannot be disabled.</CardDescription>
             </CardHeader>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-              {[
-                { name: "Market Intelligence", desc: "AI-powered market trends and pitch suggestions", icon: Sparkles },
-                { name: "Finance Hub", desc: "Invoicing and Google Sheets integration", icon: Building2 },
-                { name: "Talent Marketplace", desc: "Global actor and influencer booking database", icon: User },
-                { name: "Sales CRM", desc: "Pipeline tracking and proposal automation", icon: RefreshCcw },
-              ].map(mod => (
-                <div key={mod.name} className="flex items-center justify-between p-4 bg-muted/30 rounded-2xl border border-transparent hover:border-muted-foreground/20 transition-all">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-white rounded-lg shadow-sm">
-                      <mod.icon className="h-5 w-5 text-primary" />
+              {modulesList.map(mod => {
+                const isEnabled = settings?.enabled_modules?.includes(mod.id);
+                return (
+                  <div key={mod.id} className="flex items-center justify-between p-4 bg-muted/30 rounded-2xl border border-transparent hover:border-muted-foreground/20 transition-all">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-white rounded-lg shadow-sm">
+                        <mod.icon className="h-5 w-5 text-primary" />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h4 className="font-bold text-sm">{mod.name}</h4>
+                          {mod.isCore && <Badge className="text-[8px] h-4 py-0 px-1 bg-primary/10 text-primary border-none">CORE</Badge>}
+                        </div>
+                        <p className="text-[10px] text-muted-foreground line-clamp-1">{mod.desc}</p>
+                      </div>
                     </div>
-                    <div>
-                      <h4 className="font-bold text-sm">{mod.name}</h4>
-                      <p className="text-[10px] text-muted-foreground line-clamp-1">{mod.desc}</p>
-                    </div>
+                    <Switch 
+                      checked={isEnabled || mod.isCore} 
+                      disabled={mod.isCore}
+                      onCheckedChange={(checked) => handleToggleModule(mod.id, checked)}
+                    />
                   </div>
-                  <Switch defaultChecked />
-                </div>
-              ))}
+                );
+              })}
             </div>
             <div className="mt-8 pt-6 border-t flex items-center justify-between">
               <div className="flex items-center gap-3 text-muted-foreground">
