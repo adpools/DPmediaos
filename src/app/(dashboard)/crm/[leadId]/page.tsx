@@ -17,7 +17,8 @@ import {
   ExternalLink,
   CheckCircle2,
   Clock,
-  ChevronRight
+  ChevronRight,
+  MapPin
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useTenant } from "@/hooks/use-tenant";
@@ -28,12 +29,15 @@ import { PIPELINE_STAGES } from "@/lib/mock-data";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
 import { Progress } from "@/components/ui/progress";
+import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 export default function LeadDetailPage({ params }: { params: Promise<{ leadId: string }> }) {
   const { leadId } = use(params);
   const { companyId, isLoading: isTenantLoading } = useTenant();
   const db = useFirestore();
-  const [isUpdating, setIsSubmitting] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
 
   // 1. Fetch Lead Details
   const leadRef = useMemoFirebase(() => {
@@ -45,7 +49,7 @@ export default function LeadDetailPage({ params }: { params: Promise<{ leadId: s
 
   const handleUpdateStage = async (newStage: string) => {
     if (!leadRef || !lead) return;
-    setIsSubmitting(true);
+    setIsUpdating(true);
     try {
       await updateDoc(leadRef, { 
         stage: newStage,
@@ -55,7 +59,29 @@ export default function LeadDetailPage({ params }: { params: Promise<{ leadId: s
     } catch (e) {
       console.error(e);
     } finally {
-      setIsSubmitting(false);
+      setIsUpdating(false);
+    }
+  };
+
+  const handleUpdateAddress = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!leadRef || !lead) return;
+    const formData = new FormData(e.currentTarget);
+    const address = formData.get('billing_address') as string;
+    const gstin = formData.get('gstin') as string;
+
+    setIsUpdating(true);
+    try {
+      await updateDoc(leadRef, { 
+        billing_address: address,
+        gstin: gstin,
+        updatedAt: serverTimestamp() 
+      });
+      toast({ title: "Client Data Saved", description: "Billing address and GST updated." });
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsUpdating(false);
     }
   };
 
@@ -150,6 +176,44 @@ export default function LeadDetailPage({ params }: { params: Promise<{ leadId: s
                   );
                 })}
               </div>
+            </CardContent>
+          </Card>
+
+          {/* Billing & Address Section */}
+          <Card className="border-none shadow-sm rounded-[2rem] bg-white">
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <MapPin className="h-5 w-5 text-primary" /> Billing Address
+              </CardTitle>
+              <CardDescription>Essential for professional invoicing and GST compliance.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleUpdateAddress} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="gstin" className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">GSTIN (Optional)</Label>
+                  <Input 
+                    id="gstin" 
+                    name="gstin" 
+                    placeholder="e.g. 32AAQCM8450P1ZQ" 
+                    defaultValue={lead.gstin} 
+                    className="rounded-xl font-mono text-sm"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="billing_address" className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Detailed Billing Address</Label>
+                  <Textarea 
+                    id="billing_address" 
+                    name="billing_address" 
+                    placeholder="Company Address, Street, City, State, ZIP..." 
+                    defaultValue={lead.billing_address}
+                    className="rounded-xl min-h-[120px] text-sm leading-relaxed"
+                  />
+                </div>
+                <Button type="submit" disabled={isUpdating} className="rounded-xl font-bold px-8">
+                  {isUpdating && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+                  Save Billing Context
+                </Button>
+              </form>
             </CardContent>
           </Card>
 

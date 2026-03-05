@@ -4,7 +4,7 @@
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, Cloud, Search, CheckCircle2, Download, Filter, TrendingUp, Loader2, IndianRupee, FileText, Sparkles } from "lucide-react";
+import { Plus, Cloud, Search, CheckCircle2, Download, Filter, TrendingUp, Loader2, IndianRupee, FileText, Sparkles, ExternalLink } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { useTenant } from "@/hooks/use-tenant";
@@ -16,6 +16,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { addDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { toast } from "@/hooks/use-toast";
+import Link from "next/link";
 
 export default function InvoicesPage() {
   const { profile, isLoading: isTenantLoading, companyId } = useTenant();
@@ -26,8 +27,10 @@ export default function InvoicesPage() {
   // Invoice State
   const [newInvoice, setNewInvoice] = useState({
     client_name: "",
+    client_id: "",
     project_id: "",
     project_name: "",
+    project_ref: "",
     invoice_number: `INV-${Date.now().toString().slice(-6)}`,
     total: "",
     issue_date: new Date().toISOString().split('T')[0],
@@ -81,14 +84,25 @@ export default function InvoicesPage() {
     setIsSubmitting(true);
     const invoicesRef = collection(db, 'companies', companyId, 'invoices');
     
+    const amount = parseFloat(newInvoice.total) || 0;
+    const gst = amount * 0.18;
+    const totalWithGst = amount + gst;
+
     addDocumentNonBlocking(invoicesRef, {
       company_id: companyId,
       ...newInvoice,
-      total: parseFloat(newInvoice.total) || 0,
+      subtotal: amount,
+      gst_amount: gst,
+      total: totalWithGst,
       payment_status: 'unpaid',
-      line_items: ["Production Services"],
-      subtotal: parseFloat(newInvoice.total) || 0,
-      tax_amount: 0,
+      line_items: [
+        {
+          description: `${newInvoice.project_name} Services`,
+          unit_price: amount,
+          quantity: 1,
+          total: amount
+        }
+      ],
       currency: "INR",
       created_at: serverTimestamp(),
     });
@@ -100,8 +114,10 @@ export default function InvoicesPage() {
 
     setNewInvoice({ 
       client_name: "", 
+      client_id: "",
       project_id: "",
       project_name: "",
+      project_ref: "",
       invoice_number: `INV-${Date.now().toString().slice(-6)}`, 
       total: "", 
       issue_date: new Date().toISOString().split('T')[0],
@@ -153,8 +169,11 @@ export default function InvoicesPage() {
                 <div className="space-y-2">
                   <Label htmlFor="client">Client Name</Label>
                   <Select 
-                    value={newInvoice.client_name} 
-                    onValueChange={(val) => setNewInvoice({ ...newInvoice, client_name: val })}
+                    value={newInvoice.client_id} 
+                    onValueChange={(val) => {
+                      const lead = leads?.find(l => l.id === val);
+                      setNewInvoice({ ...newInvoice, client_id: val, client_name: lead?.company_name || "" });
+                    }}
                   >
                     <SelectTrigger className="rounded-xl">
                       <SelectValue placeholder="Select a client" />
@@ -164,7 +183,7 @@ export default function InvoicesPage() {
                         <div className="p-4 text-center text-xs text-muted-foreground">No clients found.</div>
                       ) : (
                         leads?.map((lead) => (
-                          <SelectItem key={lead.id} value={lead.company_name}>
+                          <SelectItem key={lead.id} value={lead.id}>
                             {lead.company_name}
                           </SelectItem>
                         ))
@@ -179,11 +198,14 @@ export default function InvoicesPage() {
                     value={newInvoice.project_id} 
                     onValueChange={(val) => {
                       const proj = projects?.find(p => p.id === val);
+                      const lead = leads?.find(l => l.company_name === proj?.client_name);
                       setNewInvoice({ 
                         ...newInvoice, 
                         project_id: val,
                         project_name: proj?.project_name || "",
+                        project_ref: proj?.project_ref || "",
                         client_name: proj?.client_name || newInvoice.client_name,
+                        client_id: lead?.id || newInvoice.client_id,
                         total: proj?.budget ? proj.budget.toString() : ""
                       });
                     }}
@@ -211,7 +233,7 @@ export default function InvoicesPage() {
                     <Input id="invNum" value={newInvoice.invoice_number} disabled className="rounded-xl bg-muted" />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="tot">Total Amount (₹)</Label>
+                    <Label htmlFor="tot">Base Amount (₹)</Label>
                     <Input 
                       id="tot" 
                       type="number"
@@ -245,6 +267,7 @@ export default function InvoicesPage() {
                     />
                   </div>
                 </div>
+                <p className="text-[10px] text-muted-foreground italic">GST @ 18% will be applied automatically.</p>
                 <DialogFooter className="pt-4">
                   <Button type="submit" disabled={isSubmitting} className="w-full rounded-xl h-11 font-bold">
                     {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
@@ -345,7 +368,11 @@ export default function InvoicesPage() {
                       <td className="p-4 text-right">
                         <div className="flex justify-end gap-2">
                           <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"><Download className="h-4 w-4" /></Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"><FileText className="h-4 w-4" /></Button>
+                          <Link href={`/invoices/${inv.id}`}>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity text-primary">
+                              <ExternalLink className="h-4 w-4" />
+                            </Button>
+                          </Link>
                         </div>
                       </td>
                     </tr>
