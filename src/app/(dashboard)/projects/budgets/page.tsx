@@ -1,29 +1,29 @@
+
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Progress } from "@/components/ui/progress";
-import { DollarSign, Download, Filter, Plus, PieChart, Loader2 } from "lucide-react";
+import { IndianRupee, Download, Plus, PieChart, Loader2, Filter } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useTenant } from "@/hooks/use-tenant";
 import { useCollection, useMemoFirebase } from "@/firebase";
-import { collectionGroup, query, where, collection } from "firebase/firestore";
+import { collectionGroup, query, where } from "firebase/firestore";
 import { useFirestore } from "@/firebase";
 
 export default function BudgetsPage() {
-  const { profile, isLoading: isTenantLoading } = useTenant();
+  const { profile, isLoading: isTenantLoading, companyId } = useTenant();
   const db = useFirestore();
 
   // Fetch all budgets across projects for this company
-  // Note: For simplicity in MVP, we look for budgets directly under projects
   const budgetsQuery = useMemoFirebase(() => {
-    if (!db || !profile?.companyId) return null;
+    if (!db || !companyId) return null;
     return query(
       collectionGroup(db, 'budgets'),
-      where('companyId', '==', profile.companyId)
+      where('companyId', '==', companyId)
     );
-  }, [db, profile?.companyId]);
+  }, [db, companyId]);
 
   const { data: budgetItems, isLoading: isBudgetsLoading } = useCollection(budgetsQuery);
 
@@ -60,9 +60,9 @@ export default function BudgetsPage() {
         <Card className="border-none shadow-sm bg-white border-l-4 border-l-emerald-500">
           <CardContent className="pt-6">
             <div className="flex items-center gap-2 text-emerald-600 mb-2 font-bold uppercase text-[10px]">
-              <DollarSign className="h-3 w-3" /> Total Budget
+              <IndianRupee className="h-3 w-3" /> Total Budget
             </div>
-            <div className="text-2xl font-bold font-headline">${totalAllocated.toLocaleString()}</div>
+            <div className="text-2xl font-bold font-headline">₹{totalAllocated.toLocaleString()}</div>
           </CardContent>
         </Card>
         <Card className="border-none shadow-sm bg-white border-l-4 border-l-blue-500">
@@ -70,7 +70,7 @@ export default function BudgetsPage() {
             <div className="flex items-center gap-2 text-blue-600 mb-2 font-bold uppercase text-[10px]">
               <PieChart className="h-3 w-3" /> Spent to Date
             </div>
-            <div className="text-2xl font-bold font-headline">${totalSpent.toLocaleString()}</div>
+            <div className="text-2xl font-bold font-headline">₹{totalSpent.toLocaleString()}</div>
           </CardContent>
         </Card>
         <Card className="border-none shadow-sm bg-white border-l-4 border-l-rose-500">
@@ -78,7 +78,7 @@ export default function BudgetsPage() {
             <div className="flex items-center gap-2 text-rose-600 mb-2 font-bold uppercase text-[10px]">
               <Filter className="h-3 w-3" /> Remaining
             </div>
-            <div className="text-2xl font-bold font-headline">${variance.toLocaleString()}</div>
+            <div className="text-2xl font-bold font-headline">₹{variance.toLocaleString()}</div>
           </CardContent>
         </Card>
       </div>
@@ -110,8 +110,8 @@ export default function BudgetsPage() {
                   return (
                     <TableRow key={item.id} className="hover:bg-muted/30">
                       <TableCell className="font-semibold">{item.category}</TableCell>
-                      <TableCell className="font-mono text-xs">${item.amount?.toLocaleString()}</TableCell>
-                      <TableCell className="font-mono text-xs">${item.actual?.toLocaleString() || 0}</TableCell>
+                      <TableCell className="font-mono text-xs">₹{item.amount?.toLocaleString()}</TableCell>
+                      <TableCell className="font-mono text-xs">₹{item.actual?.toLocaleString() || 0}</TableCell>
                       <TableCell className="min-w-[150px]">
                         <div className="flex items-center gap-3">
                           <Progress 

@@ -146,7 +146,7 @@ export default function ProjectsPage() {
                 <Label htmlFor="name">Project Name</Label>
                 <Input 
                   id="name" 
-                  placeholder="e.g. Summer Campaign 2024" 
+                  placeholder="e.g. Brand Film 2024" 
                   value={newProject.project_name}
                   onChange={(e) => setNewProject({...newProject, project_name: e.target.value})}
                   required
@@ -177,13 +177,10 @@ export default function ProjectsPage() {
                     )}
                   </SelectContent>
                 </Select>
-                <p className="text-[10px] text-muted-foreground px-1">
-                  Clients are managed in the <Link href="/crm" className="text-primary font-bold hover:underline">CRM</Link>.
-                </p>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="budget">Budget (USD)</Label>
+                  <Label htmlFor="budget">Budget (INR)</Label>
                   <Input 
                     id="budget" 
                     type="number"

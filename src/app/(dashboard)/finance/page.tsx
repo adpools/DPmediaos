@@ -6,25 +6,24 @@ import { Button } from "@/components/ui/button";
 import { 
   Receipt, 
   Plus, 
-  FileText, 
   Cloud, 
-  Table as TableIcon, 
   ExternalLink,
   Search,
   CheckCircle2,
   Clock,
   Download,
-  Filter
+  Filter,
+  TrendingUp
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 
 export default function FinancePage() {
   const invoices = [
-    { id: 'INV-2024-001', client: 'Nike', date: 'Mar 12, 2024', amount: '$45,000', status: 'Finalized', sync: true },
-    { id: 'INV-2024-002', client: 'Zara', date: 'Mar 15, 2024', amount: '$30,000', status: 'Pending', sync: false },
-    { id: 'INV-2024-003', client: 'Apple', date: 'Mar 18, 2024', amount: '$12,500', status: 'Overdue', sync: true },
-    { id: 'INV-2024-004', client: 'Netflix', date: 'Mar 20, 2024', amount: '$85,000', status: 'Draft', sync: false },
+    { id: 'INV-2024-001', client: 'Nike', date: 'Mar 12, 2024', amount: '₹45,000', status: 'Finalized', sync: true },
+    { id: 'INV-2024-002', client: 'Zara', date: 'Mar 15, 2024', amount: '₹30,000', status: 'Pending', sync: false },
+    { id: 'INV-2024-003', client: 'Apple', date: 'Mar 18, 2024', amount: '₹12,500', status: 'Overdue', sync: true },
+    { id: 'INV-2024-004', client: 'Netflix', date: 'Mar 20, 2024', amount: '₹85,000', status: 'Draft', sync: false },
   ];
 
   return (
@@ -48,7 +47,7 @@ export default function FinancePage() {
         <Card className="border-none shadow-sm bg-white border-l-4 border-l-primary">
           <CardContent className="p-6">
             <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">Total Outstanding</p>
-            <h4 className="text-2xl font-bold font-headline">$142,500</h4>
+            <h4 className="text-2xl font-bold font-headline">₹1,42,500</h4>
             <div className="mt-2 flex items-center gap-1 text-[10px] text-emerald-600 font-bold">
               <TrendingUp className="h-3 w-3" /> +15% from last month
             </div>
@@ -57,14 +56,14 @@ export default function FinancePage() {
         <Card className="border-none shadow-sm bg-white border-l-4 border-l-accent">
           <CardContent className="p-6">
             <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">Pending Approval</p>
-            <h4 className="text-2xl font-bold font-headline">$30,000</h4>
+            <h4 className="text-2xl font-bold font-headline">₹30,000</h4>
             <p className="mt-2 text-[10px] text-muted-foreground font-bold">2 Invoices waiting</p>
           </CardContent>
         </Card>
         <Card className="border-none shadow-sm bg-white border-l-4 border-l-rose-500">
           <CardContent className="p-6">
             <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">Overdue Payments</p>
-            <h4 className="text-2xl font-bold font-headline">$12,500</h4>
+            <h4 className="text-2xl font-bold font-headline">₹12,500</h4>
             <p className="mt-2 text-[10px] text-rose-500 font-bold">Action required</p>
           </CardContent>
         </Card>
@@ -155,5 +154,3 @@ export default function FinancePage() {
     </div>
   );
 }
-
-import { TrendingUp } from "lucide-react";

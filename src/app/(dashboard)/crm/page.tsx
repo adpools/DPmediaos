@@ -4,7 +4,7 @@
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, MoreHorizontal, Building2, Calendar, Search, Loader2, DollarSign, Sparkles, ExternalLink } from "lucide-react";
+import { Plus, MoreHorizontal, Building2, Calendar, Search, Loader2, IndianRupee, Sparkles, ExternalLink } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { useTenant } from "@/hooks/use-tenant";
@@ -131,7 +131,7 @@ export default function CRMPage() {
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="value">Deal Value ($)</Label>
+                    <Label htmlFor="value">Deal Value (₹)</Label>
                     <Input 
                       id="value" 
                       type="number"
@@ -178,7 +178,7 @@ export default function CRMPage() {
                   <Badge variant="secondary" className="h-5 px-1.5 text-[10px] font-bold bg-white">{leadsInStage.length}</Badge>
                 </div>
                 <span className="text-[11px] font-bold text-muted-foreground">
-                  ${(totalValue / 1000).toFixed(1)}k
+                  ₹{(totalValue / 100000).toFixed(1)}L
                 </span>
               </div>
 
@@ -218,7 +218,7 @@ export default function CRMPage() {
 
                       <div className="flex items-center justify-between pt-3 border-t">
                         <div className="flex items-center gap-1 text-primary font-bold text-sm">
-                          <DollarSign className="h-3.5 w-3.5" />
+                          <IndianRupee className="h-3 w-3" />
                           <span>{(lead.deal_value || 0).toLocaleString()}</span>
                         </div>
                         <Badge variant="secondary" className="text-[9px] h-5 py-0 uppercase font-bold text-accent bg-accent/5 border-none">Active</Badge>

@@ -1,21 +1,18 @@
 
 "use client";
 
-import { use, useMemo } from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { use } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { 
-  Building2, 
   Briefcase, 
   Receipt, 
   ArrowLeft, 
   Loader2, 
-  Calendar, 
-  DollarSign, 
   ExternalLink,
-  CheckCircle2,
   Clock,
-  TrendingUp
+  TrendingUp,
+  Sparkles
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -109,13 +106,13 @@ export default function ClientPortfolioPage({ params }: { params: Promise<{ clie
         <Card className="border-none shadow-sm bg-white">
           <CardContent className="p-6">
             <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">Total Billed</p>
-            <h4 className="text-2xl font-bold">${totalBilled.toLocaleString()}</h4>
+            <h4 className="text-2xl font-bold">₹{totalBilled.toLocaleString()}</h4>
           </CardContent>
         </Card>
         <Card className="border-none shadow-sm bg-white">
           <CardContent className="p-6">
             <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">Outstanding</p>
-            <h4 className="text-2xl font-bold text-rose-500">${outstanding.toLocaleString()}</h4>
+            <h4 className="text-2xl font-bold text-rose-500">₹{outstanding.toLocaleString()}</h4>
           </CardContent>
         </Card>
         <Card className="border-none shadow-sm bg-white">
@@ -201,7 +198,7 @@ export default function ClientPortfolioPage({ params }: { params: Promise<{ clie
                     invoices?.map(inv => (
                       <TableRow key={inv.id}>
                         <TableCell className="font-mono font-bold p-6">{inv.invoice_number}</TableCell>
-                        <TableCell className="font-bold p-6">${(inv.total || 0).toLocaleString()}</TableCell>
+                        <TableCell className="font-bold p-6">₹{(inv.total || 0).toLocaleString()}</TableCell>
                         <TableCell className="text-xs text-muted-foreground p-6">{inv.due_date}</TableCell>
                         <TableCell className="p-6">
                           <Badge variant={inv.payment_status === 'paid' ? 'default' : 'secondary'} className="text-[9px] uppercase font-bold">
@@ -238,7 +235,7 @@ export default function ClientPortfolioPage({ params }: { params: Promise<{ clie
               <div className="pt-4 border-t space-y-2">
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
                   <TrendingUp className="h-3.5 w-3.5" />
-                  <span>Potential Deal Value: <span className="font-bold text-primary">${(client.deal_value || 0).toLocaleString()}</span></span>
+                  <span>Potential Deal Value: <span className="font-bold text-primary">₹{(client.deal_value || 0).toLocaleString()}</span></span>
                 </div>
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
                   <Clock className="h-3.5 w-3.5" />
@@ -263,5 +260,3 @@ export default function ClientPortfolioPage({ params }: { params: Promise<{ clie
     </div>
   );
 }
-
-import { Sparkles } from "lucide-react";

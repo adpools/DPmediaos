@@ -2,7 +2,7 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Download, TrendingUp, DollarSign, Users, Briefcase } from "lucide-react";
+import { Download, TrendingUp, IndianRupee, Users, Briefcase } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { 
   BarChart, 
@@ -14,18 +14,16 @@ import {
   ResponsiveContainer, 
   PieChart, 
   Pie, 
-  Cell,
-  LineChart,
-  Line
+  Cell
 } from "recharts";
 
 const REVENUE_DATA = [
-  { month: "Jan", revenue: 45000 },
-  { month: "Feb", revenue: 52000 },
-  { month: "Mar", revenue: 48000 },
-  { month: "Apr", revenue: 61000 },
-  { month: "May", revenue: 55000 },
-  { month: "Jun", revenue: 72000 },
+  { month: "Jan", revenue: 450000 },
+  { month: "Feb", revenue: 520000 },
+  { month: "Mar", revenue: 480000 },
+  { month: "Apr", revenue: 610000 },
+  { month: "May", revenue: 550000 },
+  { month: "Jun", revenue: 720000 },
 ];
 
 const BUDGET_DATA = [
@@ -50,7 +48,7 @@ export default function ReportsPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         {[
-          { label: "Total Revenue", val: "$345,000", change: "+12.5%", icon: DollarSign, color: "text-emerald-500" },
+          { label: "Total Revenue", val: "₹34,45,000", change: "+12.5%", icon: IndianRupee, color: "text-emerald-500" },
           { label: "Active Projects", val: "24", change: "+4", icon: Briefcase, color: "text-blue-500" },
           { label: "Talent Bookings", val: "156", change: "+18%", icon: Users, color: "text-purple-500" },
           { label: "Market Reach", val: "4.2M", change: "+5.2%", icon: TrendingUp, color: "text-accent" },
@@ -87,6 +85,7 @@ export default function ReportsPage() {
                 <Tooltip 
                   contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 30px rgba(0,0,0,0.1)' }}
                   cursor={{ fill: '#f8fafc' }}
+                  formatter={(value: any) => `₹${value.toLocaleString()}`}
                 />
                 <Bar dataKey="revenue" fill="#B199FF" radius={[6, 6, 0, 0]} />
               </BarChart>

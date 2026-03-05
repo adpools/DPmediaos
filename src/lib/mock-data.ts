@@ -1,3 +1,4 @@
+
 export const MOCK_COMPANY = {
   id: 'comp_1',
   name: 'DP Studios Global',
@@ -71,18 +72,18 @@ export const PIPELINE_STAGES = [
 ];
 
 export const MOCK_LEADS = [
-  { id: 'lead_1', name: 'Nike Summer Campaign', company: 'Nike', value: 45000, stage: 'meeting' },
-  { id: 'lead_2', name: 'RedBull Extreme Sports Doc', company: 'RedBull', value: 125000, stage: 'proposal' },
-  { id: 'lead_3', name: 'Apple Vision Pro Launch', company: 'Apple', value: 95000, stage: 'negotiation' },
-  { id: 'lead_4', name: 'Zara Fall Collection', company: 'Inditex', value: 35000, stage: 'won' },
+  { id: 'lead_1', name: 'Nike Summer Campaign', company: 'Nike', value: 450000, stage: 'meeting' },
+  { id: 'lead_2', name: 'RedBull Extreme Sports Doc', company: 'RedBull', value: 1250000, stage: 'proposal' },
+  { id: 'lead_3', name: 'Apple Vision Pro Launch', company: 'Apple', value: 950000, stage: 'negotiation' },
+  { id: 'lead_4', name: 'Zara Fall Collection', company: 'Inditex', value: 350000, stage: 'won' },
 ];
 
 export const MOCK_PROJECTS = [
-  { id: 'proj_1', name: 'R&D for New Banking Mobile App', status: 'In Progress', progress: 35, color: 'card-pink' },
-  { id: 'proj_2', name: 'Create Signup Page', status: 'In Progress', progress: 65, color: 'card-purple' },
+  { id: 'proj_1', name: 'R&D for New Mobile App', status: 'In Progress', progress: 35, color: 'card-pink' },
+  { id: 'proj_2', name: 'Create Brand Identity', status: 'In Progress', progress: 65, color: 'card-purple' },
 ];
 
 export const MOCK_TALENTS = [
-  { id: 'tal_1', name: 'Sarah Jenkins', category: 'Actress', rate: '$1,200/day', metrics: '450k Followers', image: 'https://picsum.photos/seed/talent1/300/400' },
-  { id: 'tal_2', name: 'Michael Chen', category: 'Influencer', rate: '$2,500/post', metrics: '1.2M Followers', image: 'https://picsum.photos/seed/talent2/300/400' },
+  { id: 'tal_1', name: 'Sarah Jenkins', category: 'Actress', rate: '₹1,20,000/day', metrics: '450k Followers', image: 'https://picsum.photos/seed/talent1/300/400' },
+  { id: 'tal_2', name: 'Michael Chen', category: 'Influencer', rate: '₹2,50,000/post', metrics: '1.2M Followers', image: 'https://picsum.photos/seed/talent2/300/400' },
 ];

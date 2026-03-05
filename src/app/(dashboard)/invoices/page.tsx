@@ -1,9 +1,10 @@
+
 "use client";
 
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, Cloud, Search, CheckCircle2, Download, Filter, TrendingUp, Loader2, Receipt, FileText, Sparkles } from "lucide-react";
+import { Plus, Cloud, Search, CheckCircle2, Download, Filter, TrendingUp, Loader2, IndianRupee, FileText, Sparkles } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { useTenant } from "@/hooks/use-tenant";
@@ -55,7 +56,7 @@ export default function InvoicesPage() {
       line_items: ["Production Services"],
       subtotal: parseFloat(newInvoice.total) || 0,
       tax_amount: 0,
-      currency: "USD",
+      currency: "INR",
       created_at: serverTimestamp(),
     });
 
@@ -118,7 +119,7 @@ export default function InvoicesPage() {
                   <Label htmlFor="client">Client Name</Label>
                   <Input 
                     id="client" 
-                    placeholder="e.g. Apple Vision Pro Campaign" 
+                    placeholder="e.g. Apple Campaign" 
                     value={newInvoice.client_name}
                     onChange={(e) => setNewInvoice({...newInvoice, client_name: e.target.value})}
                     required
@@ -131,7 +132,7 @@ export default function InvoicesPage() {
                     <Input id="invNum" value={newInvoice.invoice_number} disabled className="rounded-xl bg-muted" />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="tot">Total Amount ($)</Label>
+                    <Label htmlFor="tot">Total Amount (₹)</Label>
                     <Input 
                       id="tot" 
                       type="number"
@@ -181,7 +182,7 @@ export default function InvoicesPage() {
         <Card className="border-none shadow-sm bg-white border-l-4 border-l-primary">
           <CardContent className="p-6">
             <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">Total Outstanding</p>
-            <h4 className="text-2xl font-bold font-headline">${totalOutstanding.toLocaleString()}</h4>
+            <h4 className="text-2xl font-bold font-headline">₹{totalOutstanding.toLocaleString()}</h4>
             <div className="mt-2 flex items-center gap-1 text-[10px] text-emerald-600 font-bold">
               <TrendingUp className="h-3 w-3" /> Real-time tracking
             </div>
@@ -198,7 +199,7 @@ export default function InvoicesPage() {
           <CardContent className="p-6">
             <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">Paid to Date</p>
             <h4 className="text-2xl font-bold font-headline">
-              ${invoices?.reduce((sum, inv) => inv.payment_status === 'paid' ? sum + (inv.total || 0) : sum, 0).toLocaleString()}
+              ₹{invoices?.reduce((sum, inv) => inv.payment_status === 'paid' ? sum + (inv.total || 0) : sum, 0).toLocaleString()}
             </h4>
             <div className="mt-2 flex items-center gap-1 text-[10px] text-emerald-600 font-bold">
               <CheckCircle2 className="h-3 w-3" /> Fully reconciled
@@ -254,7 +255,7 @@ export default function InvoicesPage() {
                       <td className="p-4 font-mono font-bold text-primary">{inv.invoice_number}</td>
                       <td className="p-4 font-bold">{inv.client_name}</td>
                       <td className="p-4 text-muted-foreground text-xs font-medium">{inv.due_date}</td>
-                      <td className="p-4 font-bold">${(inv.total || 0).toLocaleString()}</td>
+                      <td className="p-4 font-bold">₹{(inv.total || 0).toLocaleString()}</td>
                       <td className="p-4">
                         <Badge variant={inv.payment_status === 'paid' ? 'default' : 'secondary'} className="text-[9px] uppercase font-bold py-0.5">
                           {inv.payment_status}

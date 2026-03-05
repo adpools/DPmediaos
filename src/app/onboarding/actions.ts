@@ -52,7 +52,7 @@ export async function setupNewCompany(
     id: companyId,
     company_id: companyId,
     enabledModules: ['dashboard', 'projects', 'clients', 'talents', 'crm', 'proposals', 'invoices', 'research', 'reports'],
-    defaultCurrency: 'USD',
+    defaultCurrency: 'INR',
     updatedAt: serverTimestamp(),
   });
 
