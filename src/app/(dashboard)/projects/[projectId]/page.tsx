@@ -22,7 +22,8 @@ import {
   Camera,
   Scissors,
   Target,
-  UserPlus
+  UserPlus,
+  Rocket
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -72,7 +73,7 @@ export default function ProjectWorkspacePage({ params }: { params: Promise<{ pro
 
   const { data: shootDays } = useCollection(shootDaysQuery);
 
-  // 4. Fetch Budget Items
+  // 4. Fetch Budget Items (Still used for header stats)
   const budgetsQuery = useMemoFirebase(() => {
     if (!db || !companyId || !projectId) return null;
     return collection(db, 'companies', companyId, 'projects', projectId, 'budgets');
@@ -101,8 +102,8 @@ export default function ProjectWorkspacePage({ params }: { params: Promise<{ pro
 
   const handleAddTask = (phase: string) => {
     if (!db || !companyId || !projectId) return;
-    const title = window.prompt("Objective name?");
-    const assignedTo = window.prompt("Assign to (e.g. Director, Editor, DP)?") || "Unassigned";
+    const title = window.prompt(`Register ${phase.replace('-', ' ')} objective:`);
+    const assignedTo = window.prompt("Assign to role (e.g. Producer, Lead Editor, PR Team)?") || "Unassigned";
     
     if (!title) return;
 
@@ -148,6 +149,7 @@ export default function ProjectWorkspacePage({ params }: { params: Promise<{ pro
       case 'pre-prod': return <FileText className="h-4 w-4" />;
       case 'production': return <Camera className="h-4 w-4" />;
       case 'post-prod': return <Scissors className="h-4 w-4" />;
+      case 'release': return <Rocket className="h-4 w-4" />;
       default: return <Target className="h-4 w-4" />;
     }
   };
@@ -241,13 +243,13 @@ export default function ProjectWorkspacePage({ params }: { params: Promise<{ pro
           <TabsTrigger value="post-prod" className="rounded-xl px-6 py-2.5 gap-2 data-[state=active]:bg-primary data-[state=active]:text-white font-bold text-xs uppercase tracking-widest">
             <Scissors className="h-4 w-4" /> Post-Production
           </TabsTrigger>
-          <TabsTrigger value="finance" className="rounded-xl px-6 py-2.5 gap-2 data-[state=active]:bg-primary data-[state=active]:text-white font-bold text-xs uppercase tracking-widest">
-            <TrendingUp className="h-4 w-4" /> Financials
+          <TabsTrigger value="release" className="rounded-xl px-6 py-2.5 gap-2 data-[state=active]:bg-primary data-[state=active]:text-white font-bold text-xs uppercase tracking-widest">
+            <Rocket className="h-4 w-4" /> Release
           </TabsTrigger>
         </TabsList>
 
         {/* Phase Contents */}
-        {["pre-prod", "production", "post-prod"].map((phase) => (
+        {["pre-prod", "production", "post-prod", "release"].map((phase) => (
           <TabsContent key={phase} value={phase} className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
               <div className="lg:col-span-2 space-y-6">
@@ -345,6 +347,33 @@ export default function ProjectWorkspacePage({ params }: { params: Promise<{ pro
                     </CardContent>
                   </Card>
                 )}
+
+                {phase === 'release' && (
+                  <Card className="border-none shadow-sm rounded-[2rem] overflow-hidden bg-white">
+                    <CardHeader className="px-8 pt-8">
+                      <CardTitle className="text-xl">Delivery & Distribution</CardTitle>
+                      <CardDescription>Final assets and platform publishing status.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="p-8">
+                      <div className="bg-primary/5 rounded-2xl p-6 border border-primary/10 space-y-4">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-bold uppercase text-muted-foreground">Master Delivery Status</span>
+                          <Badge className="bg-accent text-white border-none uppercase text-[9px]">Awaiting Sign-off</Badge>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="p-4 bg-white rounded-xl shadow-sm space-y-1">
+                            <p className="text-[10px] font-bold text-muted-foreground uppercase">Resolution</p>
+                            <p className="text-sm font-bold">4K (3840 x 2160)</p>
+                          </div>
+                          <div className="p-4 bg-white rounded-xl shadow-sm space-y-1">
+                            <p className="text-[10px] font-bold text-muted-foreground uppercase">Aspect Ratio</p>
+                            <p className="text-sm font-bold">16:9 Cinema</p>
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
               </div>
 
               <div className="space-y-6">
@@ -407,55 +436,6 @@ export default function ProjectWorkspacePage({ params }: { params: Promise<{ pro
             </div>
           </TabsContent>
         ))}
-
-        <TabsContent value="finance">
-          <Card className="border-none shadow-sm rounded-[2rem] overflow-hidden bg-white">
-            <CardHeader className="bg-white border-b px-8 py-6">
-              <CardTitle className="text-xl">Production Budget</CardTitle>
-              <CardDescription>Real-time financial tracking for this project workspace.</CardDescription>
-            </CardHeader>
-            <CardContent className="p-0">
-              <Table>
-                <TableHeader className="bg-slate-50/50">
-                  <TableRow>
-                    <TableHead className="font-bold text-[11px] uppercase p-6 text-slate-500">Category</TableHead>
-                    <TableHead className="font-bold text-[11px] uppercase p-6 text-right text-slate-500">Allocated</TableHead>
-                    <TableHead className="font-bold text-[11px] uppercase p-6 text-right text-slate-500">Actual Spent</TableHead>
-                    <TableHead className="font-bold text-[11px] uppercase p-6 text-slate-500">Utilization</TableHead>
-                    <TableHead className="font-bold text-[11px] uppercase p-6 text-slate-500">Status</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {budgetItems?.length === 0 ? (
-                    <TableRow><TableCell colSpan={5} className="text-center py-20 text-muted-foreground font-medium">No financial records found for this production.</TableCell></TableRow>
-                  ) : (
-                    budgetItems?.map(item => {
-                      const utilization = item.amount > 0 ? (item.actual / item.amount) * 100 : 0;
-                      return (
-                        <TableRow key={item.id} className="hover:bg-slate-50/50 transition-colors">
-                          <TableCell className="font-bold p-6 text-slate-800">{item.category}</TableCell>
-                          <TableCell className="font-mono text-right p-6 text-slate-600">₹{item.amount?.toLocaleString()}</TableCell>
-                          <TableCell className="font-mono text-right p-6 text-slate-800 font-bold">₹{item.actual?.toLocaleString() || '0'}</TableCell>
-                          <TableCell className="p-6">
-                            <div className="flex items-center gap-3 min-w-[100px]">
-                              <Progress value={utilization} className="h-1" />
-                              <span className="text-[10px] font-bold">{Math.round(utilization)}%</span>
-                            </div>
-                          </TableCell>
-                          <TableCell className="p-6">
-                            <Badge variant={utilization > 100 ? "destructive" : "secondary"} className="text-[9px] font-bold uppercase">
-                              {utilization > 100 ? "Over Budget" : "On Track"}
-                            </Badge>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })
-                  )}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        </TabsContent>
       </Tabs>
     </div>
   );
