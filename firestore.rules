@@ -1,13 +1,10 @@
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * DP MEDIA OS - SECURITY RULES ARCHITECTURE
-     * 
-     * Core Philosophy: 
-     * Robust multi-tenant SaaS model. Data isolation is enforced at the company level. 
-     * Platform-wide Platform Admins (identified by email or DB marker) bypass all restrictions.
+     * DP MEDIA OS - SECURITY RULES
      */
 
     // --- GLOBAL HELPER FUNCTIONS ---
@@ -16,7 +13,6 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    // Ultimate authority check for the bootstrap administrator and promoted admins
     function isPlatformAdmin() {
       return isSignedIn() && (
         (request.auth.token.email != null && request.auth.token.email.lower() == 'arundevv.com@gmail.com') || 
@@ -24,13 +20,11 @@ service cloud.firestore {
       );
     }
 
-    // GLOBAL BYPASS: Platform Admins have exhaustive access to all documents
-    // This rule is evaluated first and grants absolute authority.
+    // GLOBAL BYPASS: Platform Admins have absolute authority
     match /{allPaths=**} {
       allow read, write: if isPlatformAdmin();
     }
 
-    // Safely retrieves user profile data
     function getUserData() {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
     }
@@ -39,22 +33,19 @@ service cloud.firestore {
       return exists(/databases/$(database)/documents/users/$(request.auth.uid));
     }
 
-    // Checks if the user belongs to the specified company.
     function isMember(companyId) {
       return isPlatformAdmin() || (isSignedIn() && userProfileExists() && getUserData().company_id == companyId);
     }
 
-    // Checks for administrative role within a company.
     function isCompanyAdmin(companyId) {
       return isPlatformAdmin() || (isSignedIn() && userProfileExists() && getUserData().company_id == companyId && (getUserData().role_id == 'admin' || getUserData().roleId == 'admin'));
     }
 
-    // Validates that the data being written belongs to the correct company context.
     function hasValidCompanyContext(companyId) {
       return request.resource.data.company_id == companyId || request.resource.data.companyId == companyId;
     }
 
-    // --- COLLECTION RULES (For Non-Platform Admins) ---
+    // --- COLLECTION RULES ---
 
     match /super_admins/{adminId} {
       allow get: if isSignedIn();
@@ -78,8 +69,6 @@ service cloud.firestore {
       allow get, list: if isMember(companyId);
       allow create: if isSignedIn(); 
       allow update: if isMember(companyId);
-
-      // --- TENANT SUBCOLLECTIONS ---
 
       match /invitations/{invId} {
         allow read, write: if isCompanyAdmin(companyId);

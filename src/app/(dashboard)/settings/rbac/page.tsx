@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -70,17 +71,14 @@ export default function RBACPage() {
   const [isInviteOpen, setIsInviteOpen] = useState(false);
   const [isInviting, setIsInviting] = useState(false);
   
-  // Role Change State
   const [editingMember, setEditingMember] = useState<any>(null);
   const [isChangeRoleOpen, setIsChangeRoleOpen] = useState(false);
 
-  // Invite State
   const [inviteData, setInviteData] = useState({
     email: "",
     role_id: "member"
   });
 
-  // Fetch Roles
   const rolesQuery = useMemoFirebase(() => {
     if (!db || !companyId) return null;
     return collection(db, 'companies', companyId, 'roles');
@@ -88,7 +86,6 @@ export default function RBACPage() {
 
   const { data: roles, isLoading: isRolesLoading } = useCollection(rolesQuery);
 
-  // Fetch Users
   const usersQuery = useMemoFirebase(() => {
     if (!db || !companyId) return null;
     return query(collection(db, 'users'), where('company_id', '==', companyId));
@@ -118,14 +115,7 @@ export default function RBACPage() {
 
   const handleInvite = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!companyId || !inviteData.email || !db) {
-      toast({ 
-        variant: "destructive", 
-        title: "Configuration Error", 
-        description: "Your workspace context is still initializing. Please wait a moment." 
-      });
-      return;
-    }
+    if (!companyId || !inviteData.email || !db) return;
 
     setIsInviting(true);
     const inviteRef = collection(db, 'companies', companyId, 'invitations');
@@ -140,8 +130,8 @@ export default function RBACPage() {
     });
 
     toast({ 
-      title: "Invitation Dispatched", 
-      description: `A workspace access link has been sent to ${inviteData.email}.` 
+      title: "Invitation Sent", 
+      description: `A link has been sent to ${inviteData.email}.` 
     });
     
     setInviteData({ email: "", role_id: "member" });
@@ -153,20 +143,9 @@ export default function RBACPage() {
     if (!db || !memberId) return;
     const userRef = doc(db, 'users', memberId);
     updateDocumentNonBlocking(userRef, { role_id: newRoleId });
-    toast({ title: "Role Updated", description: "The team member's permissions have been updated." });
+    toast({ title: "Role Updated" });
     setIsChangeRoleOpen(false);
     setEditingMember(null);
-  };
-
-  const handleRemoveMember = (memberId: string, name: string) => {
-    if (memberId === profile?.id) {
-      toast({ variant: "destructive", title: "Action blocked", description: "You cannot remove yourself." });
-      return;
-    }
-    if (!db) return;
-    const userRef = doc(db, 'users', memberId);
-    updateDocumentNonBlocking(userRef, { company_id: null, role_id: null });
-    toast({ title: "Member Removed", description: `${name} no longer has access to this workspace.` });
   };
 
   if (isTenantLoading || isRolesLoading || isUsersLoading) {
@@ -182,7 +161,7 @@ export default function RBACPage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-primary">Team & Access Control</h1>
-          <p className="text-muted-foreground">Manage your production crew and their workspace permissions.</p>
+          <p className="text-muted-foreground">Manage crew access and workspace permissions.</p>
         </div>
         
         <Dialog open={isInviteOpen} onOpenChange={setIsInviteOpen}>
@@ -197,9 +176,6 @@ export default function RBACPage() {
                 <Sparkles className="h-5 w-5 text-accent" />
                 Invite to Workspace
               </DialogTitle>
-              <DialogDescription>
-                Grant access to your secure production environment.
-              </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleInvite} className="space-y-4 py-4">
               <div className="space-y-2">
@@ -215,15 +191,14 @@ export default function RBACPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="role">Assign Initial Role</Label>
+                <Label htmlFor="role">Initial Role</Label>
                 <Select onValueChange={(val) => setInviteData({...inviteData, role_id: val})} defaultValue="member">
                   <SelectTrigger className="rounded-xl h-11">
                     <SelectValue placeholder="Select role" />
                   </SelectTrigger>
                   <SelectContent>
                     {roles?.map(r => <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>)}
-                    {!roles?.some(r => r.id === 'admin') && <SelectItem value="admin">Administrator</SelectItem>}
-                    {!roles?.some(r => r.id === 'member') && <SelectItem value="member">Standard Member</SelectItem>}
+                    <SelectItem value="member">Standard Member</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -246,10 +221,6 @@ export default function RBACPage() {
 
         <TabsContent value="members">
           <Card className="border-none shadow-sm rounded-[2rem] overflow-hidden">
-            <CardHeader className="bg-white border-b px-8 py-6">
-              <CardTitle className="text-xl">Active Workspace Members</CardTitle>
-              <CardDescription>Users currently affiliated with this company.</CardDescription>
-            </CardHeader>
             <CardContent className="p-0 bg-white">
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
@@ -266,39 +237,36 @@ export default function RBACPage() {
                       <tr key={member.id} className="hover:bg-slate-50 transition-colors group">
                         <td className="p-4">
                           <div className="flex items-center gap-3">
-                            <Avatar className="h-9 w-9 ring-2 ring-primary/5">
-                              <AvatarImage src={member.avatar} />
+                            <Avatar className="h-9 w-9">
                               <AvatarFallback className="bg-primary/5 text-primary text-[10px] font-bold">
                                 {(member.fullName || member.full_name)?.substring(0,2).toUpperCase() || 'U'}
                               </AvatarFallback>
                             </Avatar>
                             <div className="flex flex-col">
-                              <span className="font-bold text-sm">{member.fullName || member.full_name || 'New Member'}</span>
-                              <span className="text-[10px] text-muted-foreground font-medium">{member.email}</span>
+                              <span className="font-bold text-sm">{member.fullName || member.full_name}</span>
+                              <span className="text-[10px] text-muted-foreground">{member.email}</span>
                             </div>
                           </div>
                         </td>
                         <td className="p-4">
-                          <Badge variant="secondary" className="text-[9px] font-bold uppercase py-0 bg-primary/5 text-primary border-none">
+                          <Badge variant="secondary" className="text-[9px] font-bold uppercase">
                             {member.role_id || member.roleId}
                           </Badge>
                         </td>
                         <td className="p-4">
                           <div className="flex items-center gap-1.5 text-emerald-600">
                             <CheckCircle2 className="h-3 w-3" />
-                            <span className="text-[10px] font-bold uppercase tracking-widest">Active</span>
+                            <span className="text-[10px] font-bold uppercase">Active</span>
                           </div>
                         </td>
                         <td className="p-4 text-right">
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:bg-white rounded-xl">
+                              <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground rounded-xl">
                                 <MoreHorizontal className="h-4 w-4" />
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="rounded-xl w-48">
-                              <DropdownMenuLabel className="text-[10px] uppercase font-bold text-muted-foreground px-2">Manage User</DropdownMenuLabel>
-                              <DropdownMenuSeparator />
                               <DropdownMenuItem 
                                 className="gap-2 cursor-pointer py-2"
                                 onClick={() => {
@@ -309,11 +277,8 @@ export default function RBACPage() {
                                 <UserCog className="h-4 w-4" /> Change Role
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
-                              <DropdownMenuItem 
-                                className="gap-2 text-destructive cursor-pointer py-2"
-                                onClick={() => handleRemoveMember(member.id, member.fullName || member.full_name)}
-                              >
-                                <UserMinus className="h-4 w-4" /> Remove from Team
+                              <DropdownMenuItem className="gap-2 text-destructive">
+                                <UserMinus className="h-4 w-4" /> Remove
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
@@ -329,39 +294,24 @@ export default function RBACPage() {
 
         <TabsContent value="roles" className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {roles?.map((role) => (
-            <Card key={role.id} className="border-none shadow-sm rounded-3xl overflow-hidden hover:ring-2 hover:ring-primary/5 transition-all">
+            <Card key={role.id} className="border-none shadow-sm rounded-3xl overflow-hidden">
               <CardHeader className="bg-primary/5 pb-4 px-6 pt-6">
                 <div className="flex items-center justify-between mb-2">
                   <div className="p-2 bg-white rounded-xl shadow-sm text-primary">
                     <ShieldCheck className="h-5 w-5" />
                   </div>
-                  <Badge variant="secondary" className="text-[9px] uppercase font-bold">Workspace Role</Badge>
                 </div>
                 <CardTitle className="text-xl font-bold">{role.name}</CardTitle>
-                <CardDescription className="text-xs">Managed capabilities for this profile.</CardDescription>
               </CardHeader>
               <CardContent className="p-6 space-y-4 bg-white">
-                <div className="space-y-2">
-                  <span className="text-[10px] font-bold uppercase text-muted-foreground tracking-widest">Active Permissions</span>
-                  <div className="flex flex-wrap gap-1.5">
-                    {MODULES.map(m => {
-                      const canView = role.permissions?.[m.id]?.view;
-                      return canView ? (
-                        <Badge key={m.id} variant="secondary" className="bg-primary/5 text-primary text-[9px] border-none font-bold">
-                          {m.name}
-                        </Badge>
-                      ) : null;
-                    })}
-                  </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {MODULES.map(m => role.permissions?.[m.id]?.view && (
+                    <Badge key={m.id} variant="secondary" className="bg-primary/5 text-primary text-[9px] border-none font-bold">
+                      {m.name}
+                    </Badge>
+                  ))}
                 </div>
-                
-                <div className="pt-4 flex items-center justify-between border-t border-slate-50">
-                  <div className="flex flex-col">
-                    <span className="text-[10px] font-bold text-muted-foreground uppercase">Status</span>
-                    <div className="flex items-center gap-1 text-[10px] font-bold text-emerald-600">
-                      <Lock className="h-3 w-3" /> System Verified
-                    </div>
-                  </div>
+                <div className="pt-4 flex justify-end border-t border-slate-50">
                   <Button 
                     variant="outline" 
                     size="sm" 
@@ -380,60 +330,6 @@ export default function RBACPage() {
         </TabsContent>
       </Tabs>
 
-      {/* Role Configuration Dialog */}
-      <Dialog open={isEditRoleOpen} onOpenChange={setIsEditRoleOpen}>
-        <DialogContent className="sm:max-w-[600px] rounded-[2rem] max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-2xl font-bold">
-              <ShieldCheck className="h-6 w-6 text-primary" />
-              Configure {selectedRole?.name}
-            </DialogTitle>
-            <DialogDescription>
-              Define module-level access rights for this workspace role.
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="space-y-6 py-6">
-            {MODULES.map((module) => (
-              <div key={module.id} className="p-4 bg-muted/30 rounded-2xl space-y-4">
-                <div className="flex items-center justify-between">
-                  <h4 className="font-bold text-sm text-primary">{module.name}</h4>
-                  <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-bold text-muted-foreground uppercase">Enable Module</span>
-                    <Switch 
-                      checked={selectedRole?.permissions?.[module.id]?.view || false}
-                      onCheckedChange={(checked) => handleUpdatePermission(module.id, 'view', checked)}
-                    />
-                  </div>
-                </div>
-                
-                {selectedRole?.permissions?.[module.id]?.view && (
-                  <div className="grid grid-cols-3 gap-4 pt-2 border-t border-slate-200/50">
-                    {['create', 'edit', 'delete'].map(action => (
-                      <div key={action} className="flex flex-col gap-1.5">
-                        <Label className="text-[9px] uppercase font-bold text-muted-foreground">{action}</Label>
-                        <Switch 
-                          checked={selectedRole?.permissions?.[module.id]?.[action] || false}
-                          onCheckedChange={(checked) => handleUpdatePermission(module.id, action, checked)}
-                          className="scale-75 origin-left"
-                        />
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-
-          <DialogFooter className="bg-slate-50 -mx-6 -mb-6 p-6 rounded-b-[2rem]">
-            <Button onClick={() => setIsEditRoleOpen(false)} className="w-full rounded-xl h-11 font-bold shadow-lg shadow-primary/10">
-              Finalize Role Configuration
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Change User Role Dialog */}
       <Dialog open={isChangeRoleOpen} onOpenChange={setIsChangeRoleOpen}>
         <DialogContent className="sm:max-w-[400px] rounded-[2rem]">
           <DialogHeader>
@@ -442,30 +338,22 @@ export default function RBACPage() {
               Reassign {editingMember?.fullName || editingMember?.full_name} to a different access profile.
             </DialogDescription>
           </DialogHeader>
-          <div className="py-6 space-y-4">
-            <div className="space-y-2">
-              <Label>Select New Role</Label>
-              <Select 
-                key={editingMember?.id}
-                defaultValue={editingMember?.role_id || editingMember?.roleId}
-                onValueChange={(val) => handleUpdateMemberRole(editingMember?.id, val)}
-              >
-                <SelectTrigger className="rounded-xl h-11">
-                  <SelectValue placeholder="Select a role" />
-                </SelectTrigger>
-                <SelectContent>
-                  {roles?.map(r => (
-                    <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
-                  ))}
-                  {!roles?.some(r => r.id === 'admin') && <SelectItem value="admin">Administrator</SelectItem>}
-                  {!roles?.some(r => r.id === 'member') && <SelectItem value="member">Standard Member</SelectItem>}
-                </SelectContent>
-              </Select>
-            </div>
+          <div className="py-6">
+            <Select 
+              key={editingMember?.id}
+              defaultValue={editingMember?.role_id || editingMember?.roleId}
+              onValueChange={(val) => handleUpdateMemberRole(editingMember?.id, val)}
+            >
+              <SelectTrigger className="rounded-xl h-11">
+                <SelectValue placeholder="Select a role" />
+              </SelectTrigger>
+              <SelectContent>
+                {roles?.map(r => <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>)}
+                <SelectItem value="member">Standard Member</SelectItem>
+                <SelectItem value="admin">Administrator</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsChangeRoleOpen(false)} className="rounded-xl">Cancel</Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
