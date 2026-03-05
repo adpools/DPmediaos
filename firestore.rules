@@ -25,6 +25,7 @@ service cloud.firestore {
     }
 
     // GLOBAL BYPASS: Platform Admins have exhaustive access to all documents
+    // This MUST be checked first to ensure admin access is never blocked by more specific matches
     match /{allPaths=**} {
       allow read, write: if isPlatformAdmin();
     }
