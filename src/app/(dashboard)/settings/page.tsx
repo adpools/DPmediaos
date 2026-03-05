@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, Suspense, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { 
   User as UserIcon, 
@@ -33,22 +33,27 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useTenant } from "@/hooks/use-tenant";
-import { useFirestore, useAuth } from "@/firebase";
+import { useFirestore, useAuth, useStorage } from "@/firebase";
 import { doc, serverTimestamp } from "firebase/firestore";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { updateDocumentNonBlocking, setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { toast } from "@/hooks/use-toast";
 import { signOut } from "firebase/auth";
 import { Separator } from "@/components/ui/separator";
+import { cn } from "@/lib/utils";
 
 function AccountCenterContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const db = useFirestore();
   const auth = useAuth();
+  const storage = useStorage();
   const { profile: tenantProfile, settings, company, companyId, isLoading: isTenantLoading } = useTenant();
   
   const initialTab = searchParams.get("tab") || "profile";
   const [activeTab, setActiveTab] = useState(initialTab);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   // Profile State
   const [profileData, setProfileData] = useState({
@@ -179,6 +184,35 @@ function AccountCenterContent() {
     router.push('/login');
   };
 
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !tenantProfile?.id || !storage || !db) return;
+
+    setIsUploading(true);
+    try {
+      const storageRef = ref(storage, `users/${tenantProfile.id}/avatar`);
+      await uploadBytes(storageRef, file);
+      const downloadURL = await getDownloadURL(storageRef);
+      
+      // Update local state for immediate feedback
+      setProfileData(prev => ({ ...prev, avatar: downloadURL }));
+      
+      // Update Firestore immediately (non-blocking)
+      const userRef = doc(db, 'users', tenantProfile.id);
+      updateDocumentNonBlocking(userRef, {
+        avatar: downloadURL,
+        updatedAt: serverTimestamp()
+      });
+      
+      toast({ title: "Profile Image Updated", description: "Your avatar has been synced successfully." });
+    } catch (error: any) {
+      console.error(error);
+      toast({ variant: "destructive", title: "Upload Failed", description: "Could not upload image. Please try again." });
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   if (isTenantLoading) {
     return (
       <div className="flex items-center justify-center h-[80vh]">
@@ -220,15 +254,35 @@ function AccountCenterContent() {
           <Card className="border-none shadow-soft rounded-[2rem] overflow-hidden">
             <CardHeader className="bg-primary/5 pb-8">
               <div className="flex items-center gap-6">
-                <div className="relative group">
-                  <Avatar className="h-24 w-24 ring-4 ring-white shadow-xl">
+                <div 
+                  className="relative group cursor-pointer"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <Input 
+                    type="file" 
+                    className="hidden" 
+                    ref={fileInputRef} 
+                    accept="image/*"
+                    onChange={handleImageUpload}
+                  />
+                  <Avatar className={cn(
+                    "h-24 w-24 ring-4 ring-white shadow-xl transition-all",
+                    isUploading && "opacity-50"
+                  )}>
                     <AvatarImage src={profileData.avatar} />
                     <AvatarFallback className="text-2xl font-bold bg-white text-primary">
                       {profileData.name.substring(0,2).toUpperCase() || 'U'}
                     </AvatarFallback>
                   </Avatar>
-                  <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Camera className="h-6 w-6 text-white" />
+                  <div className={cn(
+                    "absolute inset-0 bg-black/40 rounded-full flex items-center justify-center transition-opacity",
+                    isUploading ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+                  )}>
+                    {isUploading ? (
+                      <Loader2 className="h-6 w-6 text-white animate-spin" />
+                    ) : (
+                      <Camera className="h-6 w-6 text-white" />
+                    )}
                   </div>
                 </div>
                 <div>
@@ -251,7 +305,7 @@ function AccountCenterContent() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Profile Picture URL</Label>
+                  <Label>Profile Picture URL (Optional)</Label>
                   <Input 
                     value={profileData.avatar} 
                     onChange={(e) => setProfileData({...profileData, avatar: e.target.value})} 
