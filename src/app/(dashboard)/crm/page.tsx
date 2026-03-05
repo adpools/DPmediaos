@@ -4,7 +4,7 @@
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, MoreHorizontal, Building2, Calendar, Search, Loader2, IndianRupee, Sparkles, ExternalLink } from "lucide-react";
+import { Plus, MoreHorizontal, Building2, Calendar, Search, Loader2, IndianRupee, Sparkles, ExternalLink, ArrowRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { useTenant } from "@/hooks/use-tenant";
@@ -187,7 +187,9 @@ export default function CRMPage() {
                   <Card key={lead.id} className="cursor-pointer hover:ring-2 hover:ring-primary/10 transition-all border-none shadow-sm group">
                     <CardContent className="p-5 space-y-4">
                       <div className="flex items-start justify-between gap-2">
-                        <span className="text-sm font-bold leading-tight group-hover:text-primary transition-colors">{lead.company_name}</span>
+                        <Link href={`/crm/${lead.id}`} className="flex-1">
+                          <span className="text-sm font-bold leading-tight group-hover:text-primary transition-colors block">{lead.company_name}</span>
+                        </Link>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0">
@@ -196,11 +198,15 @@ export default function CRMPage() {
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end" className="rounded-xl">
                             <DropdownMenuItem asChild>
-                              <Link href={`/clients/${lead.id}`} className="flex items-center gap-2">
-                                <ExternalLink className="h-3.5 w-3.5" /> View Portfolio
+                              <Link href={`/crm/${lead.id}`} className="flex items-center gap-2">
+                                <ExternalLink className="h-3.5 w-3.5" /> Open Detailed View
                               </Link>
                             </DropdownMenuItem>
-                            <DropdownMenuItem>Edit Lead</DropdownMenuItem>
+                            <DropdownMenuItem asChild>
+                              <Link href={`/clients/${lead.id}`} className="flex items-center gap-2 text-muted-foreground">
+                                <Building2 className="h-3.5 w-3.5" /> View Production History
+                              </Link>
+                            </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </div>
@@ -221,7 +227,11 @@ export default function CRMPage() {
                           <IndianRupee className="h-3 w-3" />
                           <span>{(lead.deal_value || 0).toLocaleString()}</span>
                         </div>
-                        <Badge variant="secondary" className="text-[9px] h-5 py-0 uppercase font-bold text-accent bg-accent/5 border-none">Active</Badge>
+                        <Link href={`/crm/${lead.id}`}>
+                          <Button variant="ghost" size="icon" className="h-6 w-6 rounded-full group-hover:bg-primary/5">
+                            <ArrowRight className="h-3.5 w-3.5 text-muted-foreground group-hover:text-primary transition-colors" />
+                          </Button>
+                        </Link>
                       </div>
                     </CardContent>
                   </Card>
