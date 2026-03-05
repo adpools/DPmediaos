@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from "react";
@@ -9,18 +8,28 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2, Search, TrendingUp, Target, Sparkles, MapPin, Briefcase, History, ChevronRight, FileText } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useTenant } from "@/hooks/use-tenant";
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { collection, query, orderBy, limit, serverTimestamp } from "firebase/firestore";
 import { addDocumentNonBlocking } from "@/firebase/non-blocking-updates";
+import { Slider } from "@/components/ui/slider";
 import Link from "next/link";
+
+const LOCATION_SUGGESTIONS = [
+  "Mumbai, India",
+  "Delhi, India",
+  "Bangalore, India",
+  "Dubai, UAE",
+  "London, UK",
+  "New York, USA"
+];
 
 export default function MarketResearchPage() {
   const { profile, companyId } = useTenant();
   const db = useFirestore();
   const [industry, setIndustry] = useState("");
   const [location, setLocation] = useState("");
+  const [radius, setRadius] = useState([25]); // Default 25km
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<AnalyzeMarketAndSuggestPitchOutput | null>(null);
 
@@ -42,7 +51,11 @@ export default function MarketResearchPage() {
 
     setLoading(true);
     try {
-      const data = await analyzeMarketAndSuggestPitch({ industry, location });
+      const data = await analyzeMarketAndSuggestPitch({ 
+        industry, 
+        location,
+        radius: radius[0]
+      });
       setResult(data);
 
       // Save to Firestore history
@@ -52,6 +65,7 @@ export default function MarketResearchPage() {
         requestedByUserId: profile.id,
         industry,
         location,
+        radius: radius[0],
         status: 'complete',
         opportunityScore: data.opportunityScore,
         marketTrends: data.marketTrends,
@@ -71,10 +85,11 @@ export default function MarketResearchPage() {
       opportunityScore: session.opportunityScore,
       marketTrends: session.marketTrends,
       suggestedPitchAngles: session.suggestedPitchAngles,
-      contentOpportunities: [] // Not stored in old sessions but required by type
+      contentOpportunities: []
     });
     setIndustry(session.industry);
     setLocation(session.location);
+    if (session.radius) setRadius([session.radius]);
   };
 
   return (
@@ -92,37 +107,66 @@ export default function MarketResearchPage() {
                 <Sparkles className="h-6 w-6 text-accent" />
                 <h2 className="text-xl font-bold">New Research Campaign</h2>
               </div>
-              <form onSubmit={handleSearch} className="grid grid-cols-1 md:grid-cols-5 gap-4">
-                <div className="md:col-span-2 space-y-1.5">
-                  <Label htmlFor="industry" className="text-primary-foreground/80 text-[10px] font-bold uppercase tracking-wider">Target Industry</Label>
-                  <div className="relative">
-                    <Briefcase className="absolute left-3 top-2.5 h-4 w-4 text-primary/40" />
-                    <Input 
-                      id="industry" 
-                      placeholder="e.g. Sustainable Fashion" 
-                      className="bg-white/10 border-white/20 text-white placeholder:text-white/40 pl-9 h-11 rounded-xl"
-                      value={industry}
-                      onChange={(e) => setIndustry(e.target.value)}
-                    />
+              <form onSubmit={handleSearch} className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="industry" className="text-primary-foreground/80 text-[10px] font-bold uppercase tracking-wider">Target Industry</Label>
+                    <div className="relative">
+                      <Briefcase className="absolute left-3 top-2.5 h-4 w-4 text-primary/40" />
+                      <Input 
+                        id="industry" 
+                        placeholder="e.g. Sustainable Fashion" 
+                        className="bg-white/10 border-white/20 text-white placeholder:text-white/40 pl-9 h-11 rounded-xl"
+                        value={industry}
+                        onChange={(e) => setIndustry(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="location" className="text-primary-foreground/80 text-[10px] font-bold uppercase tracking-wider">Geographical Location</Label>
+                    <div className="relative">
+                      <MapPin className="absolute left-3 top-2.5 h-4 w-4 text-primary/40" />
+                      <Input 
+                        id="location" 
+                        placeholder="e.g. London, UK" 
+                        className="bg-white/10 border-white/20 text-white placeholder:text-white/40 pl-9 h-11 rounded-xl"
+                        value={location}
+                        onChange={(e) => setLocation(e.target.value)}
+                      />
+                    </div>
+                    <div className="flex flex-wrap gap-2 pt-2">
+                      {LOCATION_SUGGESTIONS.map((suggestion) => (
+                        <button
+                          key={suggestion}
+                          type="button"
+                          onClick={() => setLocation(suggestion)}
+                          className="text-[9px] font-bold uppercase py-1 px-2 rounded-lg bg-white/5 hover:bg-white/20 transition-colors text-white/60 hover:text-white"
+                        >
+                          {suggestion.split(',')[0]}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 </div>
-                <div className="md:col-span-2 space-y-1.5">
-                  <Label htmlFor="location" className="text-primary-foreground/80 text-[10px] font-bold uppercase tracking-wider">Geographical Location</Label>
-                  <div className="relative">
-                    <MapPin className="absolute left-3 top-2.5 h-4 w-4 text-primary/40" />
-                    <Input 
-                      id="location" 
-                      placeholder="e.g. London, UK" 
-                      className="bg-white/10 border-white/20 text-white placeholder:text-white/40 pl-9 h-11 rounded-xl"
-                      value={location}
-                      onChange={(e) => setLocation(e.target.value)}
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-end pt-4 border-t border-white/10">
+                  <div className="space-y-4">
+                    <div className="flex justify-between">
+                      <Label className="text-primary-foreground/80 text-[10px] font-bold uppercase tracking-wider">Search Radius</Label>
+                      <span className="text-[10px] font-bold text-accent">{radius[0]} km</span>
+                    </div>
+                    <Slider 
+                      value={radius} 
+                      onValueChange={setRadius} 
+                      max={100} 
+                      min={5} 
+                      step={5}
+                      className="cursor-pointer"
                     />
                   </div>
-                </div>
-                <div className="flex items-end">
                   <Button disabled={loading} className="w-full bg-accent hover:bg-accent/90 text-white border-none h-11 rounded-xl font-bold shadow-lg shadow-black/20">
                     {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Search className="h-4 w-4 mr-2" />}
-                    Analyze
+                    Analyze Market
                   </Button>
                 </div>
               </form>
@@ -257,7 +301,7 @@ export default function MarketResearchPage() {
                       </div>
                       <div className="flex items-center justify-between">
                         <span className="text-[10px] text-muted-foreground flex items-center gap-1">
-                          <MapPin className="h-2.5 w-2.5" /> {session.location}
+                          <MapPin className="h-2.5 w-2.5" /> {session.location} {session.radius && `(${session.radius}km)`}
                         </span>
                         <ChevronRight className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
                       </div>

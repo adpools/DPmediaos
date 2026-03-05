@@ -1,7 +1,7 @@
 'use server';
 /**
  * @fileOverview An AI agent for market research that analyzes trends, identifies content opportunities,
- *   calculates an opportunity score, and suggests optimal pitch angles based on industry and location.
+ *   calculates an opportunity score, and suggests optimal pitch angles based on industry, location, and radius.
  *
  * - analyzeMarketAndSuggestPitch - A function that handles the market analysis and pitch suggestion process.
  * - AnalyzeMarketAndSuggestPitchInput - The input type for the analyzeMarketAndSuggestPitch function.
@@ -14,6 +14,7 @@ import { z } from 'genkit';
 const AnalyzeMarketAndSuggestPitchInputSchema = z.object({
   industry: z.string().describe('The industry to analyze.'),
   location: z.string().describe('The geographical location for market analysis.'),
+  radius: z.number().optional().describe('The search radius in kilometers around the location.'),
 });
 export type AnalyzeMarketAndSuggestPitchInput = z.infer<typeof AnalyzeMarketAndSuggestPitchInputSchema>;
 
@@ -38,11 +39,12 @@ identify key trends, pinpoint content opportunities, calculate an opportunity sc
 
 Industry: {{{industry}}}
 Location: {{{location}}}
+Search Radius: {{#if radius}}{{radius}}km{{else}}City-wide standard{{/if}}
 
 Based on the above, provide:
-1. Key market trends.
+1. Key market trends within this geographical scope.
 2. Specific content opportunities for campaigns.
-3. An overall opportunity score (0-100).
+3. An overall opportunity score (0-100) reflecting market entry potential.
 4. Optimal pitch angles for campaigns.
 
 Please format your response as a JSON object matching the output schema provided.`,
