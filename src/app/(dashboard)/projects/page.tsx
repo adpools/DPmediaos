@@ -18,7 +18,8 @@ import {
   Sparkles,
   Search,
   Clock,
-  CheckCircle2
+  CheckCircle2,
+  X
 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
@@ -27,7 +28,9 @@ import {
   DropdownMenuContent, 
   DropdownMenuItem, 
   DropdownMenuTrigger,
-  DropdownMenuSeparator
+  DropdownMenuSeparator,
+  DropdownMenuLabel,
+  DropdownMenuCheckboxItem
 } from "@/components/ui/dropdown-menu";
 import {
   Dialog,
@@ -58,6 +61,7 @@ export default function ProjectsPage() {
   // UI State
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -93,11 +97,16 @@ export default function ProjectsPage() {
   // Filter Logic
   const filteredProjects = useMemo(() => {
     if (!projects) return [];
-    return projects.filter(p => 
-      p.project_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      p.client_name?.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-  }, [projects, searchQuery]);
+    return projects.filter(p => {
+      const matchesSearch = 
+        p.project_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        p.client_name?.toLowerCase().includes(searchQuery.toLowerCase());
+      
+      const matchesStatus = statusFilter === 'all' || p.status === statusFilter;
+      
+      return matchesSearch && matchesStatus;
+    });
+  }, [projects, searchQuery, statusFilter]);
 
   const handleCreateProject = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -281,9 +290,52 @@ export default function ProjectsPage() {
           </Button>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" className="h-8 gap-2 rounded-lg">
-            <Filter className="h-4 w-4" /> Filter
-          </Button>
+          {statusFilter !== 'all' && (
+            <Badge variant="secondary" className="gap-1 h-8 rounded-lg pl-3 pr-1 bg-primary/10 text-primary border-none">
+              Status: {statusFilter.replace('_', ' ')}
+              <Button variant="ghost" size="icon" className="h-5 w-5 hover:bg-transparent" onClick={() => setStatusFilter('all')}>
+                <X className="h-3 w-3" />
+              </Button>
+            </Badge>
+          )}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="h-8 gap-2 rounded-lg">
+                <Filter className="h-4 w-4" /> Filter
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="rounded-xl w-48">
+              <DropdownMenuLabel className="text-[10px] uppercase font-bold text-muted-foreground px-3 py-2">Filter by Status</DropdownMenuLabel>
+              <DropdownMenuCheckboxItem 
+                checked={statusFilter === 'all'} 
+                onCheckedChange={() => setStatusFilter('all')}
+                className="rounded-lg m-1"
+              >
+                All Statuses
+              </DropdownMenuCheckboxItem>
+              <DropdownMenuCheckboxItem 
+                checked={statusFilter === 'in_progress'} 
+                onCheckedChange={() => setStatusFilter('in_progress')}
+                className="rounded-lg m-1"
+              >
+                In Progress
+              </DropdownMenuCheckboxItem>
+              <DropdownMenuCheckboxItem 
+                checked={statusFilter === 'completed'} 
+                onCheckedChange={() => setStatusFilter('completed')}
+                className="rounded-lg m-1"
+              >
+                Completed
+              </DropdownMenuCheckboxItem>
+              <DropdownMenuCheckboxItem 
+                checked={statusFilter === 'on_hold'} 
+                onCheckedChange={() => setStatusFilter('on_hold')}
+                className="rounded-lg m-1"
+              >
+                On Hold
+              </DropdownMenuCheckboxItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
@@ -291,8 +343,8 @@ export default function ProjectsPage() {
         {filteredProjects.length === 0 ? (
           <div className="text-center py-20 bg-white rounded-3xl border-2 border-dashed">
             <p className="text-muted-foreground">No projects found matching your criteria.</p>
-            {searchQuery ? (
-              <Button variant="link" onClick={() => setSearchQuery("")}>Clear Search</Button>
+            {(searchQuery || statusFilter !== 'all') ? (
+              <Button variant="link" onClick={() => { setSearchQuery(""); setStatusFilter("all"); }}>Clear Filters</Button>
             ) : (
               <Button variant="link" className="mt-2" onClick={() => setIsCreateOpen(true)}>Create Your First Project</Button>
             )}
