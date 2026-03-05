@@ -8,7 +8,6 @@ import {
   UserPlus, 
   Lock, 
   Loader2, 
-  MoreVertical, 
   MoreHorizontal,
   CheckCircle2, 
   UserCog,
@@ -70,6 +69,10 @@ export default function RBACPage() {
   const [isEditRoleOpen, setIsEditRoleOpen] = useState(false);
   const [isInviteOpen, setIsInviteOpen] = useState(false);
   const [isInviting, setIsInviting] = useState(false);
+  
+  // Role Change State
+  const [editingMember, setEditingMember] = useState<any>(null);
+  const [isChangeRoleOpen, setIsChangeRoleOpen] = useState(false);
 
   // Invite State
   const [inviteData, setInviteData] = useState({
@@ -144,6 +147,15 @@ export default function RBACPage() {
     setInviteData({ email: "", role_id: "member" });
     setIsInviteOpen(false);
     setIsInviting(false);
+  };
+
+  const handleUpdateMemberRole = (memberId: string, newRoleId: string) => {
+    if (!db) return;
+    const userRef = doc(db, 'users', memberId);
+    updateDocumentNonBlocking(userRef, { role_id: newRoleId });
+    toast({ title: "Role Updated", description: "The team member's permissions have been updated." });
+    setIsChangeRoleOpen(false);
+    setEditingMember(null);
   };
 
   const handleRemoveMember = (memberId: string, name: string) => {
@@ -287,7 +299,13 @@ export default function RBACPage() {
                             <DropdownMenuContent align="end" className="rounded-xl w-48">
                               <DropdownMenuLabel className="text-[10px] uppercase font-bold text-muted-foreground px-2">Manage User</DropdownMenuLabel>
                               <DropdownMenuSeparator />
-                              <DropdownMenuItem className="gap-2 cursor-pointer py-2">
+                              <DropdownMenuItem 
+                                className="gap-2 cursor-pointer py-2"
+                                onClick={() => {
+                                  setEditingMember(member);
+                                  setIsChangeRoleOpen(true);
+                                }}
+                              >
                                 <UserCog className="h-4 w-4" /> Change Role
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
@@ -362,6 +380,7 @@ export default function RBACPage() {
         </TabsContent>
       </Tabs>
 
+      {/* Role Configuration Dialog */}
       <Dialog open={isEditRoleOpen} onOpenChange={setIsEditRoleOpen}>
         <DialogContent className="sm:max-w-[600px] rounded-[2rem] max-h-[80vh] overflow-y-auto">
           <DialogHeader>
@@ -410,6 +429,41 @@ export default function RBACPage() {
             <Button onClick={() => setIsEditRoleOpen(false)} className="w-full rounded-xl h-11 font-bold shadow-lg shadow-primary/10">
               Finalize Role Configuration
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Change User Role Dialog */}
+      <Dialog open={isChangeRoleOpen} onOpenChange={setIsChangeRoleOpen}>
+        <DialogContent className="sm:max-w-[400px] rounded-[2rem]">
+          <DialogHeader>
+            <DialogTitle>Update Team Role</DialogTitle>
+            <DialogDescription>
+              Reassign {editingMember?.fullName || editingMember?.full_name} to a different access profile.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-6 space-y-4">
+            <div className="space-y-2">
+              <Label>Select New Role</Label>
+              <Select 
+                defaultValue={editingMember?.role_id || editingMember?.roleId}
+                onValueChange={(val) => handleUpdateMemberRole(editingMember?.id, val)}
+              >
+                <SelectTrigger className="rounded-xl h-11">
+                  <SelectValue placeholder="Select a role" />
+                </SelectTrigger>
+                <SelectContent>
+                  {roles?.map(r => (
+                    <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
+                  ))}
+                  {!roles?.some(r => r.id === 'admin') && <SelectItem value="admin">Administrator</SelectItem>}
+                  {!roles?.some(r => r.id === 'member') && <SelectItem value="member">Standard Member</SelectItem>}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsChangeRoleOpen(false)} className="rounded-xl">Cancel</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
