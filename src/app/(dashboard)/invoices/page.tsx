@@ -13,6 +13,7 @@ import { collection, query, orderBy, serverTimestamp } from "firebase/firestore"
 import { useFirestore } from "@/firebase";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { addDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { toast } from "@/hooks/use-toast";
 
@@ -25,12 +26,15 @@ export default function InvoicesPage() {
   // Invoice State
   const [newInvoice, setNewInvoice] = useState({
     client_name: "",
+    project_id: "",
+    project_name: "",
     invoice_number: `INV-${Date.now().toString().slice(-6)}`,
     total: "",
     issue_date: new Date().toISOString().split('T')[0],
     due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
   });
 
+  // 1. Fetch Invoices
   const invoicesQuery = useMemoFirebase(() => {
     if (!db || !companyId) return null;
     return query(
@@ -41,9 +45,38 @@ export default function InvoicesPage() {
 
   const { data: invoices, isLoading: isInvoicesLoading } = useCollection(invoicesQuery);
 
+  // 2. Fetch Leads (for Client Dropdown)
+  const leadsQuery = useMemoFirebase(() => {
+    if (!db || !companyId) return null;
+    return query(
+      collection(db, 'companies', companyId, 'leads'),
+      orderBy('company_name', 'asc')
+    );
+  }, [db, companyId]);
+
+  const { data: leads } = useCollection(leadsQuery);
+
+  // 3. Fetch Projects (for Project Dropdown)
+  const projectsQuery = useMemoFirebase(() => {
+    if (!db || !companyId) return null;
+    return query(
+      collection(db, 'companies', companyId, 'projects'),
+      orderBy('project_name', 'asc')
+    );
+  }, [db, companyId]);
+
+  const { data: projects } = useCollection(projectsQuery);
+
   const handleCreateInvoice = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!companyId || !newInvoice.client_name) return;
+    if (!companyId || !newInvoice.client_name || !newInvoice.project_id) {
+      toast({
+        variant: "destructive",
+        title: "Validation Error",
+        description: "Please select both a client and a project.",
+      });
+      return;
+    }
 
     setIsSubmitting(true);
     const invoicesRef = collection(db, 'companies', companyId, 'invoices');
@@ -67,6 +100,8 @@ export default function InvoicesPage() {
 
     setNewInvoice({ 
       client_name: "", 
+      project_id: "",
+      project_name: "",
       invoice_number: `INV-${Date.now().toString().slice(-6)}`, 
       total: "", 
       issue_date: new Date().toISOString().split('T')[0],
@@ -117,15 +152,57 @@ export default function InvoicesPage() {
               <form onSubmit={handleCreateInvoice} className="space-y-4 py-4">
                 <div className="space-y-2">
                   <Label htmlFor="client">Client Name</Label>
-                  <Input 
-                    id="client" 
-                    placeholder="e.g. Apple Campaign" 
-                    value={newInvoice.client_name}
-                    onChange={(e) => setNewInvoice({...newInvoice, client_name: e.target.value})}
-                    required
-                    className="rounded-xl"
-                  />
+                  <Select 
+                    value={newInvoice.client_name} 
+                    onValueChange={(val) => setNewInvoice({ ...newInvoice, client_name: val })}
+                  >
+                    <SelectTrigger className="rounded-xl">
+                      <SelectValue placeholder="Select a client" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {leads?.length === 0 ? (
+                        <div className="p-4 text-center text-xs text-muted-foreground">No clients found.</div>
+                      ) : (
+                        leads?.map((lead) => (
+                          <SelectItem key={lead.id} value={lead.company_name}>
+                            {lead.company_name}
+                          </SelectItem>
+                        ))
+                      )}
+                    </SelectContent>
+                  </Select>
                 </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="project">Production Project</Label>
+                  <Select 
+                    value={newInvoice.project_id} 
+                    onValueChange={(val) => {
+                      const proj = projects?.find(p => p.id === val);
+                      setNewInvoice({ 
+                        ...newInvoice, 
+                        project_id: val,
+                        project_name: proj?.project_name || "" 
+                      });
+                    }}
+                  >
+                    <SelectTrigger className="rounded-xl">
+                      <SelectValue placeholder="Link to project" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {projects?.length === 0 ? (
+                        <div className="p-4 text-center text-xs text-muted-foreground">No active projects found.</div>
+                      ) : (
+                        projects?.map((proj) => (
+                          <SelectItem key={proj.id} value={proj.id}>
+                            {proj.project_name}
+                          </SelectItem>
+                        ))
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="invNum">Invoice #</Label>
@@ -238,6 +315,7 @@ export default function InvoicesPage() {
                 <tr>
                   <th className="p-4 text-left font-bold text-[11px] uppercase tracking-wider">Invoice #</th>
                   <th className="p-4 text-left font-bold text-[11px] uppercase tracking-wider">Client</th>
+                  <th className="p-4 text-left font-bold text-[11px] uppercase tracking-wider">Project</th>
                   <th className="p-4 text-left font-bold text-[11px] uppercase tracking-wider">Due Date</th>
                   <th className="p-4 text-left font-bold text-[11px] uppercase tracking-wider">Amount</th>
                   <th className="p-4 text-left font-bold text-[11px] uppercase tracking-wider">Status</th>
@@ -247,13 +325,14 @@ export default function InvoicesPage() {
               <tbody className="divide-y">
                 {invoices?.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="p-12 text-center text-muted-foreground">No invoices generated yet.</td>
+                    <td colSpan={7} className="p-12 text-center text-muted-foreground">No invoices generated yet.</td>
                   </tr>
                 ) : (
                   invoices?.map((inv) => (
                     <tr key={inv.id} className="hover:bg-slate-50 transition-colors group">
                       <td className="p-4 font-mono font-bold text-primary">{inv.invoice_number}</td>
                       <td className="p-4 font-bold">{inv.client_name}</td>
+                      <td className="p-4 text-xs text-muted-foreground font-medium">{inv.project_name || 'General Production'}</td>
                       <td className="p-4 text-muted-foreground text-xs font-medium">{inv.due_date}</td>
                       <td className="p-4 font-bold">₹{(inv.total || 0).toLocaleString()}</td>
                       <td className="p-4">
