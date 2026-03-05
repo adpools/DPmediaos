@@ -30,11 +30,11 @@ import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useTenant } from "@/hooks/use-tenant";
 import { useDoc, useCollection, useMemoFirebase, useFirestore } from "@/firebase";
-import { collection, query, where, orderBy, doc, updateDoc, serverTimestamp, addDoc } from "firebase/firestore";
+import { collection, query, where, orderBy, doc, serverTimestamp } from "firebase/firestore";
+import { updateDocumentNonBlocking, addDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import Link from "next/link";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "@/hooks/use-toast";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 export default function ProjectWorkspacePage({ params }: { params: Promise<{ projectId: string }> }) {
@@ -73,42 +73,39 @@ export default function ProjectWorkspacePage({ params }: { params: Promise<{ pro
 
   const { data: shootDays } = useCollection(shootDaysQuery);
 
-  // 4. Fetch Budget Items (Still used for header stats)
-  const budgetsQuery = useMemoFirebase(() => {
-    if (!db || !companyId || !projectId) return null;
-    return collection(db, 'companies', companyId, 'projects', projectId, 'budgets');
-  }, [db, companyId, projectId]);
-
-  const { data: budgetItems } = useCollection(budgetsQuery);
-
   const handleToggleTask = (taskId: string, currentStatus: string) => {
     if (!db || !companyId || !projectId) return;
     const taskRef = doc(db, 'companies', companyId, 'projects', projectId, 'tasks', taskId);
     const newStatus = currentStatus === 'done' ? 'todo' : 'done';
     
-    updateDoc(taskRef, { 
+    updateDocumentNonBlocking(taskRef, { 
       status: newStatus,
       updatedAt: serverTimestamp() 
     });
 
     // Update Project Progress (Heuristic)
-    if (project && tasks) {
+    if (project && tasks && projectRef) {
       const completed = tasks.filter(t => t.id === taskId ? newStatus === 'done' : t.status === 'done').length;
       const total = tasks.length;
       const newProgress = Math.round((completed / total) * 100);
-      updateDoc(projectRef!, { progress: newProgress });
+      updateDocumentNonBlocking(projectRef, { progress: newProgress });
     }
   };
 
   const handleAddTask = (phase: string) => {
-    if (!db || !companyId || !projectId) return;
+    if (!db || !companyId || !projectId) {
+      toast({ variant: "destructive", title: "Missing Context", description: "Workspace parameters not fully loaded." });
+      return;
+    }
+
     const title = window.prompt(`Register ${phase.replace('-', ' ')} objective:`);
-    const assignedTo = window.prompt("Assign to role (e.g. Producer, Lead Editor, PR Team)?") || "Unassigned";
-    
     if (!title) return;
 
+    const assignedTo = window.prompt("Assign to role (e.g. Producer, Lead Editor, PR Team)?") || "Unassigned";
+
     const tasksRef = collection(db, 'companies', companyId, 'projects', projectId, 'tasks');
-    addDoc(tasksRef, {
+    
+    addDocumentNonBlocking(tasksRef, {
       title,
       phase,
       assignedTo,
@@ -117,7 +114,10 @@ export default function ProjectWorkspacePage({ params }: { params: Promise<{ pro
       created_at: serverTimestamp()
     });
     
-    toast({ title: "Objective registered for " + phase.replace('-', ' ') });
+    toast({ 
+      title: "Objective Registered", 
+      description: `${title} added to ${phase.replace('-', ' ')} roadmap.` 
+    });
   };
 
   if (isTenantLoading || isProjectLoading) {
@@ -172,7 +172,7 @@ export default function ProjectWorkspacePage({ params }: { params: Promise<{ pro
             <p className="text-muted-foreground text-sm flex items-center gap-2 mt-1">
               Client: <span className="font-bold text-slate-700">{project.client_name}</span>
               <span className="opacity-20">•</span>
-              Reference: <span className="font-mono text-[10px] uppercase bg-slate-100 px-1.5 rounded">{project.id.slice(0,8)}</span>
+              Reference: <span className="font-mono text-[10px] uppercase bg-slate-100 px-1.5 rounded">{projectId.slice(0,8)}</span>
             </p>
           </div>
         </div>
