@@ -7,7 +7,7 @@ service cloud.firestore {
      * 
      * Core Philosophy: 
      * Robust multi-tenant SaaS model. Data isolation is enforced at the company level. 
-     * Platform-wide Super Admins (identified by email or DB marker) bypass all restrictions.
+     * Platform-wide Platform Admins (identified by email or DB marker) bypass all restrictions.
      */
 
     // --- GLOBAL HELPER FUNCTIONS ---
@@ -25,7 +25,6 @@ service cloud.firestore {
     }
 
     // GLOBAL BYPASS: Platform Admins have exhaustive access to all documents
-    // This MUST be checked first to ensure admin access is never blocked by more specific matches
     match /{allPaths=**} {
       allow read, write: if isPlatformAdmin();
     }
@@ -40,7 +39,6 @@ service cloud.firestore {
     }
 
     // Checks if the user belongs to the specified company.
-    // Enhanced to allow platform admins to view any company's data.
     function isMember(companyId) {
       return isPlatformAdmin() || (isSignedIn() && userProfileExists() && getUserData().company_id == companyId);
     }
@@ -64,7 +62,7 @@ service cloud.firestore {
 
     match /super_admins/{adminId} {
       allow get: if isSignedIn();
-      // list and write are handled by the global bypass above for platform admins
+      allow write: if isSignedIn() && request.auth.token.email == 'arundevv.com@gmail.com';
     }
 
     match /users/{userId} {
