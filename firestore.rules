@@ -58,7 +58,7 @@ service cloud.firestore {
 
     match /super_admins/{adminId} {
       allow get: if isSignedIn();
-      allow write: if isSignedIn() && request.auth.token.email.lower() == 'arundevv.com@gmail.com';
+      allow write: if isSignedIn() && (request.auth.token.email.lower() == 'arundevv.com@gmail.com' || isPlatformAdmin());
     }
 
     match /users/{userId} {
