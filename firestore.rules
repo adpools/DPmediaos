@@ -45,17 +45,12 @@ service cloud.firestore {
 
     // Checks for administrative role within a company.
     function isCompanyAdmin(companyId) {
-      return isPlatformAdmin() || (isSignedIn() && userProfileExists() && getUserData().company_id == companyId && getUserData().role_id == 'admin');
+      return isPlatformAdmin() || (isSignedIn() && userProfileExists() && getUserData().company_id == companyId && (getUserData().role_id == 'admin' || getUserData().roleId == 'admin'));
     }
 
     // Validates that the data being written belongs to the correct company context.
     function hasValidCompanyContext(companyId) {
-      return request.resource.data.company_id == companyId;
-    }
-
-    // Ensures company_id field remains unchanged during updates.
-    function isCompanyImmutable() {
-      return request.resource.data.company_id == resource.data.company_id;
+      return request.resource.data.company_id == companyId || request.resource.data.companyId == companyId;
     }
 
     // --- COLLECTION RULES (For Non-Platform Admins) ---
@@ -70,7 +65,7 @@ service cloud.firestore {
         request.auth.uid == userId || 
         (userProfileExists() && getUserData().company_id == get(/databases/$(database)/documents/users/$(userId)).data.company_id)
       );
-      allow list: if isSignedIn() && userProfileExists() && (isPlatformAdmin() || request.query.filters.company_id == getUserData().company_id);
+      allow list: if isSignedIn() && (isPlatformAdmin() || (userProfileExists() && request.query.filters.company_id == getUserData().company_id));
       allow create: if isSignedIn() && request.auth.uid == userId;
       allow update: if isSignedIn() && (
         request.auth.uid == userId || 
@@ -79,7 +74,7 @@ service cloud.firestore {
     }
 
     match /companies/{companyId} {
-      allow get: if isMember(companyId);
+      allow get, list: if isMember(companyId);
       allow create: if isSignedIn(); 
       allow update: if isMember(companyId);
 
@@ -92,20 +87,20 @@ service cloud.firestore {
       match /roles/{roleId} {
         allow get, list: if isMember(companyId);
         allow create: if isMember(companyId) && hasValidCompanyContext(companyId);
-        allow update: if isMember(companyId) && isCompanyImmutable();
+        allow update: if isMember(companyId);
         allow delete: if isMember(companyId);
       }
 
       match /company_settings/{settingId} {
         allow get, list: if isMember(companyId);
         allow create: if isSignedIn() && hasValidCompanyContext(companyId);
-        allow update: if isMember(companyId) && isCompanyImmutable();
+        allow update: if isMember(companyId);
       }
 
       match /projects/{projectId} {
         allow get, list: if isMember(companyId);
         allow create: if isMember(companyId) && hasValidCompanyContext(companyId);
-        allow update: if isMember(companyId) && isCompanyImmutable();
+        allow update: if isMember(companyId);
         allow delete: if isMember(companyId);
 
         match /{allSubcollections=**} {
@@ -116,31 +111,31 @@ service cloud.firestore {
       match /tasks/{taskId} {
         allow get, list: if isMember(companyId);
         allow create: if isMember(companyId) && hasValidCompanyContext(companyId);
-        allow update: if isMember(companyId) && isCompanyImmutable();
+        allow update: if isMember(companyId);
       }
 
       match /talents/{talentId} {
         allow get, list: if isMember(companyId);
         allow create: if isMember(companyId) && hasValidCompanyContext(companyId);
-        allow update: if isMember(companyId) && isCompanyImmutable();
+        allow update: if isMember(companyId);
       }
 
       match /leads/{leadId} {
         allow get, list: if isMember(companyId);
         allow create: if isMember(companyId) && hasValidCompanyContext(companyId);
-        allow update: if isMember(companyId) && isCompanyImmutable();
+        allow update: if isMember(companyId);
       }
 
       match /proposals/{proposalId} {
         allow get, list: if isMember(companyId);
         allow create: if isMember(companyId) && hasValidCompanyContext(companyId);
-        allow update: if isMember(companyId) && isCompanyImmutable();
+        allow update: if isMember(companyId);
       }
 
       match /invoices/{invoiceId} {
         allow get, list: if isMember(companyId);
         allow create: if isMember(companyId) && hasValidCompanyContext(companyId);
-        allow update: if isMember(companyId) && isCompanyImmutable();
+        allow update: if isMember(companyId);
       }
 
       match /market_research_sessions/{id} {

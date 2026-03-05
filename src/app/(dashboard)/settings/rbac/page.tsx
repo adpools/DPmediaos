@@ -150,7 +150,7 @@ export default function RBACPage() {
   };
 
   const handleUpdateMemberRole = (memberId: string, newRoleId: string) => {
-    if (!db) return;
+    if (!db || !memberId) return;
     const userRef = doc(db, 'users', memberId);
     updateDocumentNonBlocking(userRef, { role_id: newRoleId });
     toast({ title: "Role Updated", description: "The team member's permissions have been updated." });
@@ -446,6 +446,7 @@ export default function RBACPage() {
             <div className="space-y-2">
               <Label>Select New Role</Label>
               <Select 
+                key={editingMember?.id}
                 defaultValue={editingMember?.role_id || editingMember?.roleId}
                 onValueChange={(val) => handleUpdateMemberRole(editingMember?.id, val)}
               >
