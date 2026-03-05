@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect } from "react";
@@ -6,14 +7,14 @@ import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { Toaster } from "@/components/ui/toaster";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Calendar, LayoutGrid, MoreHorizontal, Phone, Smile, ArrowRight, Plus, ShieldCheck, Zap, Loader2 } from "lucide-react";
+import { Calendar, LayoutGrid, MoreHorizontal, Phone, Smile, ArrowRight, Plus, Loader2, X } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
-import { MOCK_SCHEDULE } from "@/lib/mock-data";
 import { useTenant } from "@/hooks/use-tenant";
-import { doc, serverTimestamp } from "firebase/firestore";
-import { useFirestore } from "@/firebase";
+import { doc, serverTimestamp, collection, query } from "firebase/firestore";
+import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { updateDocumentNonBlocking, setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { useRouter } from "next/navigation";
+import { Badge } from "@/components/ui/badge";
 
 export default function DashboardLayout({
   children,
@@ -24,30 +25,37 @@ export default function DashboardLayout({
   const db = useFirestore();
   const router = useRouter();
 
-  // 1. Protection & Redirection Logic
+  // 1. Fetch Real Data for Sidebar Stats
+  const projectsQuery = useMemoFirebase(() => {
+    if (!db || !companyId) return null;
+    return query(collection(db, 'companies', companyId, 'projects'));
+  }, [db, companyId]);
+
+  const { data: projects } = useCollection(projectsQuery);
+
+  const completedCount = projects?.filter(p => p.status === 'completed').length || 0;
+  const inProgressCount = projects?.filter(p => p.status === 'in_progress').length || 0;
+
+  // 2. Protection & Redirection Logic
   useEffect(() => {
     if (!isLoading) {
       const cId = profile?.company_id || (profile as any)?.companyId;
       const isHardcodedAdmin = user?.email === 'arundevv.com@gmail.com';
       
       if (!cId && !isSuperAdmin && !isHardcodedAdmin) {
-        // Only redirect to onboarding if user has NO company AND NO super admin authority
         router.push("/onboarding");
       }
     }
   }, [isLoading, profile, isSuperAdmin, router, user]);
 
-  // 2. Bootstrap Promotion Logic for Global Administrators
+  // 3. Bootstrap Promotion Logic
   useEffect(() => {
     if (user?.email === 'arundevv.com@gmail.com' && db) {
-      // Promote to Workspace Admin if needed
       const currentRoleId = profile?.role_id || (profile as any)?.roleId;
       if (profile && currentRoleId !== 'admin') {
         const userRef = doc(db, 'users', user.uid);
         updateDocumentNonBlocking(userRef, { role_id: 'admin' });
       }
-
-      // Promote to Platform Super Admin
       const superAdminRef = doc(db, 'super_admins', user.uid);
       setDocumentNonBlocking(superAdminRef, {
         uid: user.uid,
@@ -65,12 +73,9 @@ export default function DashboardLayout({
     );
   }
 
-  // Only render if we have access (company context or platform admin)
   const isHardcodedAdmin = user?.email === 'arundevv.com@gmail.com';
   const hasAccess = !!companyId || isSuperAdmin || isHardcodedAdmin;
-  if (!hasAccess) {
-    return null;
-  }
+  if (!hasAccess) return null;
 
   return (
     <SidebarProvider>
@@ -81,106 +86,124 @@ export default function DashboardLayout({
             {children}
           </main>
           
-          <aside className="w-[380px] p-8 hidden xl:flex flex-col gap-8 bg-white/40 border-l border-white/20">
+          <aside className="w-[380px] p-8 hidden xl:flex flex-col gap-10 bg-transparent">
+            {/* Header: Today's Schedule */}
             <div className="space-y-6">
               <div className="flex items-center justify-between">
-                <h3 className="text-lg font-bold font-headline">Today's Schedule</h3>
+                <h3 className="text-2xl font-bold font-headline text-[#1A1D2C]">Today's Schedule</h3>
                 <div className="flex gap-2">
-                  <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg bg-white/80 shadow-sm"><LayoutGrid className="h-4 w-4" /></Button>
-                  <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg bg-white/80 shadow-sm"><Calendar className="h-4 w-4" /></Button>
+                  <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl bg-white shadow-sm border border-white hover:bg-slate-50"><LayoutGrid className="h-5 w-5 text-slate-600" /></Button>
+                  <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl bg-white shadow-sm border border-white hover:bg-slate-50"><Calendar className="h-5 w-5 text-slate-600" /></Button>
                 </div>
               </div>
 
-              {MOCK_SCHEDULE.map(item => (
-                <Card key={item.id} className="border-none shadow-soft rounded-2xl overflow-hidden">
-                  <CardContent className="p-0">
-                    <div className="p-4 bg-white space-y-3">
-                      <div className="flex justify-between items-start">
-                        <span className="text-[10px] font-bold text-accent uppercase tracking-wider">{item.time}</span>
-                        <Button variant="ghost" size="sm" className="h-6 text-[10px] text-blue-500 font-bold px-2 hover:bg-blue-50">+ Invite</Button>
-                      </div>
-                      <h4 className="font-bold text-sm leading-tight">{item.title}</h4>
+              {/* Schedule Card */}
+              <Card className="border-none shadow-soft rounded-[2.5rem] overflow-hidden">
+                <CardContent className="p-0">
+                  <div className="p-8 bg-white space-y-4">
+                    <div className="flex justify-between items-center">
+                      <span className="text-[10px] font-bold text-accent uppercase tracking-widest">30 minute call with Client</span>
+                      <button className="text-[11px] text-[#4F46E5] font-bold hover:underline">+ Invite</button>
                     </div>
-                    <div className="p-4 bg-emerald-400 flex items-center justify-between text-white">
+                    <h4 className="font-bold text-xl text-[#1A1D2C]">Project Discovery Call</h4>
+                  </div>
+                  <div className="px-8 py-6 bg-[#34D399] flex items-center justify-between text-white">
+                    <div className="flex items-center">
                       <div className="flex -space-x-2">
-                        {item.members.map(m => (
-                          <Avatar key={m} className="h-7 w-7 border-2 border-emerald-400">
-                            <AvatarImage src={`https://picsum.photos/seed/${m}/50/50`} />
+                        {[1, 2, 3].map(m => (
+                          <Avatar key={m} className="h-10 w-10 border-2 border-[#34D399]">
+                            <AvatarImage src={`https://picsum.photos/seed/${m + 50}/100/100`} />
                             <AvatarFallback>U</AvatarFallback>
                           </Avatar>
                         ))}
-                        <div className="h-7 w-7 rounded-full bg-white/20 flex items-center justify-center text-[10px] font-bold">+</div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-bold font-code">{item.duration}</span>
-                        <div className="h-8 w-8 rounded-lg bg-white/20 flex items-center justify-center"><Phone className="h-4 w-4 fill-current" /></div>
-                        <MoreHorizontal className="h-4 w-4" />
+                        <div className="h-10 w-10 rounded-full bg-white/20 border-2 border-[#34D399] flex items-center justify-center text-xs font-bold">+</div>
                       </div>
                     </div>
-                  </CardContent>
-                </Card>
-              ))}
+                    <div className="flex items-center gap-4">
+                      <span className="text-sm font-bold font-code opacity-90">28:35</span>
+                      <div className="h-10 w-10 rounded-2xl bg-white/20 flex items-center justify-center hover:bg-white/30 transition-colors cursor-pointer">
+                        <Phone className="h-5 w-5 fill-current" />
+                      </div>
+                      <MoreHorizontal className="h-5 w-5 opacity-60" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
 
-            <div className="space-y-4">
+            {/* Design Project Stats */}
+            <div className="space-y-6">
               <div className="flex items-center justify-between">
-                <h3 className="text-lg font-bold font-headline">Design Project</h3>
-                <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
+                <h3 className="text-2xl font-bold font-headline text-[#1A1D2C]">Production Stats</h3>
+                <MoreHorizontal className="h-5 w-5 text-slate-400" />
               </div>
-              <div className="flex items-center gap-2 text-[10px] text-muted-foreground font-bold uppercase tracking-wider">
-                <Smile className="h-3 w-3 text-orange-400" /> In Progress
+              <div className="flex items-center gap-2 text-[11px] text-slate-400 font-bold uppercase tracking-widest">
+                <Smile className="h-4 w-4 text-orange-400" /> In Progress
               </div>
               
               <div className="grid grid-cols-3 gap-4 pt-2">
                 <div className="space-y-1">
-                  <span className="text-[10px] font-bold text-muted-foreground">Completed</span>
-                  <p className="text-xl font-bold font-headline">114</p>
+                  <span className="text-[11px] font-bold text-slate-400 uppercase">Completed</span>
+                  <p className="text-3xl font-bold font-headline text-[#1A1D2C]">{completedCount}</p>
                 </div>
                 <div className="space-y-1">
-                  <span className="text-[10px] font-bold text-muted-foreground">In Progress</span>
-                  <div className="flex items-center gap-1">
-                    <p className="text-xl font-bold font-headline">24</p>
-                    <div className="h-1.5 w-1.5 rounded-full bg-rose-500" />
+                  <span className="text-[11px] font-bold text-slate-400 uppercase">In Progress</span>
+                  <div className="flex items-baseline gap-1">
+                    <p className="text-3xl font-bold font-headline text-[#1A1D2C]">{inProgressCount}</p>
+                    <div className="h-2 w-2 rounded-full bg-rose-500" />
                   </div>
                 </div>
                 <div className="space-y-1">
-                  <span className="text-[10px] font-bold text-muted-foreground">Team members</span>
-                  <div className="flex -space-x-2">
-                    <Avatar className="h-6 w-6 border-2 border-white"><AvatarImage src="https://picsum.photos/seed/m1/40/40" /></Avatar>
-                    <div className="h-6 w-6 rounded-full bg-rose-500 flex items-center justify-center text-[8px] font-bold text-white">S</div>
+                  <span className="text-[11px] font-bold text-slate-400 uppercase">Team members</span>
+                  <div className="flex -space-x-2 pt-1">
+                    <Avatar className="h-10 w-10 border-2 border-white shadow-sm">
+                      <AvatarImage src="https://picsum.photos/seed/member1/100/100" />
+                    </Avatar>
+                    <div className="h-10 w-10 rounded-full bg-rose-500 border-2 border-white flex items-center justify-center text-[10px] font-bold text-white shadow-sm">S</div>
                   </div>
                 </div>
               </div>
             </div>
 
-            <div className="mt-auto space-y-4">
+            {/* New Task Section */}
+            <div className="mt-auto space-y-6">
               <div className="flex items-center justify-between">
-                <h3 className="text-lg font-bold font-headline">New Task</h3>
-                <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
+                <h3 className="text-2xl font-bold font-headline text-[#1A1D2C]">New Task</h3>
+                <MoreHorizontal className="h-5 w-5 text-slate-400" />
               </div>
-              <div className="bg-white/80 rounded-2xl p-4 shadow-sm space-y-4 border border-white">
-                <div className="space-y-1">
-                   <span className="text-[10px] font-bold text-muted-foreground/60 uppercase">Task Title</span>
-                   <p className="text-xs font-semibold text-muted-foreground/40">Create new...</p>
-                </div>
-                <div className="flex items-center gap-2 overflow-x-auto pb-2 border-b">
-                   {['🤠', '🎉', '👩', '🤔', '😂', '🔥', '😅', '🤣'].map(e => <span key={e} className="text-sm cursor-pointer hover:scale-125 transition-transform">{e}</span>)}
-                </div>
+              <div className="bg-white rounded-[2.5rem] p-8 shadow-soft border border-white/50 space-y-8">
                 <div className="space-y-2">
-                  <span className="text-[10px] font-bold text-muted-foreground/60 uppercase">Add Collaborators</span>
-                  <div className="flex items-center gap-2">
-                    <div className="flex items-center gap-2 bg-purple-100 px-2 py-1 rounded-lg">
-                      <Avatar className="h-5 w-5"><AvatarImage src="https://picsum.photos/seed/a1/40/40" /></Avatar>
-                      <span className="text-[10px] font-bold text-purple-700">Angela</span>
-                      <Plus className="h-2 w-2 rotate-45 text-purple-700" />
+                   <span className="text-[10px] font-black text-slate-300 uppercase tracking-[0.2em]">Task Title</span>
+                   <p className="text-sm font-semibold text-slate-300">Create new...</p>
+                </div>
+                
+                {/* Emoji Row */}
+                <div className="flex items-center gap-4 overflow-x-auto pb-2 scrollbar-hide">
+                   {['🤠', '🎉', '👩', '🤔', '😂', '🔥', '😅', '🤣'].map(e => (
+                     <span key={e} className="text-xl cursor-pointer hover:scale-125 transition-transform grayscale hover:grayscale-0 opacity-60 hover:opacity-100">{e}</span>
+                   ))}
+                </div>
+
+                <div className="h-px bg-slate-100 w-full" />
+
+                <div className="space-y-4">
+                  <span className="text-[10px] font-black text-slate-300 uppercase tracking-[0.2em]">Add Collaborators</span>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <Badge className="bg-purple-100 hover:bg-purple-200 text-purple-700 border-none px-3 py-1.5 rounded-full flex items-center gap-2">
+                      <Avatar className="h-5 w-5"><AvatarImage src="https://picsum.photos/seed/angela/40/40" /></Avatar>
+                      <span className="text-[11px] font-bold">Angela</span>
+                      <X className="h-3 w-3 cursor-pointer opacity-60" />
+                    </Badge>
+                    <Badge className="bg-emerald-100 hover:bg-emerald-200 text-emerald-700 border-none px-3 py-1.5 rounded-full flex items-center gap-2">
+                      <Avatar className="h-5 w-5"><AvatarImage src="https://picsum.photos/seed/chris/40/40" /></Avatar>
+                      <span className="text-[11px] font-bold">Chris</span>
+                      <X className="h-3 w-3 cursor-pointer opacity-60" />
+                    </Badge>
+                    
+                    <div className="flex items-center gap-3 ml-auto">
+                      <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full bg-slate-50 text-slate-400 hover:bg-slate-100"><Plus className="h-5 w-5" /></Button>
+                      <Button size="icon" className="h-12 w-12 rounded-[1.25rem] bg-accent hover:bg-accent/90 shadow-lg shadow-accent/30"><ArrowRight className="h-6 w-6 text-white" /></Button>
                     </div>
-                    <div className="flex items-center gap-2 bg-emerald-100 px-2 py-1 rounded-lg">
-                      <Avatar className="h-5 w-5"><AvatarImage src="https://picsum.photos/seed/c1/40/40" /></Avatar>
-                      <span className="text-[10px] font-bold text-emerald-700">Chris</span>
-                      <Plus className="h-2 w-2 rotate-45 text-emerald-700" />
-                    </div>
-                    <Button variant="ghost" size="icon" className="h-6 w-6 rounded-lg bg-slate-100"><Plus className="h-3 w-3" /></Button>
-                    <Button size="icon" className="h-8 w-8 rounded-xl bg-accent ml-auto"><ArrowRight className="h-4 w-4" /></Button>
                   </div>
                 </div>
               </div>
