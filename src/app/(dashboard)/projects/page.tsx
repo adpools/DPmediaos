@@ -375,34 +375,36 @@ function ProjectCard({ project, view, index }: { project: any, view: ViewMode, i
 
   if (view === 'grid') {
     return (
-      <Card className="border-none shadow-sm hover:shadow-md transition-all overflow-hidden group rounded-3xl">
-        <div className={cn("h-32 p-6 flex flex-col justify-end", project.color || 'card-pink')}>
-          <Badge variant="secondary" className="w-fit text-[9px] uppercase font-bold bg-white/20 text-white border-none backdrop-blur-md mb-2">
-            {project.status?.replace('_', ' ')}
-          </Badge>
-          <h3 className="text-white font-bold text-lg leading-tight line-clamp-1">{project.project_name}</h3>
-        </div>
-        <CardContent className="p-6 space-y-4 bg-white">
-          <div className="flex justify-between items-center text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
-            <span>Client: {project.client_name}</span>
-            <span>{project.progress || 0}%</span>
+      <Link href={`/projects/${project.id}`}>
+        <Card className="border-none shadow-sm hover:shadow-md transition-all overflow-hidden group rounded-3xl cursor-pointer">
+          <div className={cn("h-32 p-6 flex flex-col justify-end", project.color || 'card-pink')}>
+            <Badge variant="secondary" className="w-fit text-[9px] uppercase font-bold bg-white/20 text-white border-none backdrop-blur-md mb-2">
+              {project.status?.replace('_', ' ')}
+            </Badge>
+            <h3 className="text-white font-bold text-lg leading-tight line-clamp-1">{project.project_name}</h3>
           </div>
-          <Progress value={project.progress || 0} className="h-1.5" />
-          <div className="flex items-center justify-between pt-2 border-t">
-            <div className="flex items-center gap-2 text-[10px] font-bold text-primary">
-              <Clock className="h-3 w-3" />
-              {project.deadline || 'No Deadline'}
+          <CardContent className="p-6 space-y-4 bg-white">
+            <div className="flex justify-between items-center text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+              <span>Client: {project.client_name}</span>
+              <span>{project.progress || 0}%</span>
             </div>
-            <div className="flex -space-x-2">
-              {[1,2].map(i => (
-                <div key={i} className="h-6 w-6 rounded-full border-2 border-white bg-muted overflow-hidden">
-                  <Image src={`https://picsum.photos/seed/${project.id+i}/40/40`} width={24} height={24} alt="team" />
-                </div>
-              ))}
+            <Progress value={project.progress || 0} className="h-1.5" />
+            <div className="flex items-center justify-between pt-2 border-t">
+              <div className="flex items-center gap-2 text-[10px] font-bold text-primary">
+                <Clock className="h-3 w-3" />
+                {project.deadline || 'No Deadline'}
+              </div>
+              <div className="flex -space-x-2">
+                {[1,2].map(i => (
+                  <div key={i} className="h-6 w-6 rounded-full border-2 border-white bg-muted overflow-hidden">
+                    <Image src={`https://picsum.photos/seed/${project.id+i}/40/40`} width={24} height={24} alt="team" />
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </Link>
     );
   }
 
@@ -421,27 +423,29 @@ function ProjectCard({ project, view, index }: { project: any, view: ViewMode, i
 
         {/* Content Card */}
         <div className="w-full md:w-[45%] ml-12 md:ml-0">
-          <Card className="border-none shadow-soft rounded-[2rem] overflow-hidden group">
-            <CardContent className="p-6 space-y-4 bg-white">
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
-                  {project.deadline || 'Date Pending'}
-                </span>
-                {project.progress === 100 && <CheckCircle2 className="h-4 w-4 text-emerald-500" />}
-              </div>
-              <div>
-                <h4 className="font-bold text-lg group-hover:text-primary transition-colors">{project.project_name}</h4>
-                <p className="text-xs text-muted-foreground">Client: {project.client_name}</p>
-              </div>
-              <div className="space-y-2">
-                <div className="flex justify-between text-[9px] font-bold uppercase text-muted-foreground">
-                  <span>Current Phase</span>
-                  <span>{project.progress}% Complete</span>
+          <Link href={`/projects/${project.id}`}>
+            <Card className="border-none shadow-soft rounded-[2rem] overflow-hidden group cursor-pointer">
+              <CardContent className="p-6 space-y-4 bg-white">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+                    {project.deadline || 'Date Pending'}
+                  </span>
+                  {project.progress === 100 && <CheckCircle2 className="h-4 w-4 text-emerald-500" />}
                 </div>
-                <Progress value={project.progress} className="h-1" />
-              </div>
-            </CardContent>
-          </Card>
+                <div>
+                  <h4 className="font-bold text-lg group-hover:text-primary transition-colors">{project.project_name}</h4>
+                  <p className="text-xs text-muted-foreground">Client: {project.client_name}</p>
+                </div>
+                <div className="space-y-2">
+                  <div className="flex justify-between text-[9px] font-bold uppercase text-muted-foreground">
+                    <span>Current Phase</span>
+                    <span>{project.progress}% Complete</span>
+                  </div>
+                  <Progress value={project.progress} className="h-1" />
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
         </div>
       </div>
     );
@@ -452,7 +456,7 @@ function ProjectCard({ project, view, index }: { project: any, view: ViewMode, i
     <Card className="border-none shadow-sm hover:shadow-md transition-shadow group overflow-hidden rounded-2xl bg-white">
       <CardContent className="p-0">
         <div className="flex flex-col md:flex-row md:items-center">
-          <div className="p-6 md:w-1/3 flex flex-col gap-1.5 border-l-4 border-l-primary" style={{ borderLeftColor: project.color === 'card-pink' ? '#FF4B82' : '#B199FF' }}>
+          <Link href={`/projects/${project.id}`} className="p-6 md:w-1/3 flex flex-col gap-1.5 border-l-4 border-l-primary group-hover:bg-slate-50/50 transition-colors" style={{ borderLeftColor: project.color === 'card-pink' ? '#FF4B82' : '#B199FF' }}>
             <div className="flex items-center gap-2">
               <h3 className="font-bold text-lg leading-none group-hover:text-primary transition-colors">{project.project_name}</h3>
               <ExternalLink className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -463,7 +467,7 @@ function ProjectCard({ project, view, index }: { project: any, view: ViewMode, i
               </Badge>
               <span className="text-xs text-muted-foreground">Client: {project.client_name}</span>
             </div>
-          </div>
+          </Link>
 
           <div className="flex-1 p-6 flex flex-col justify-center gap-2">
             <div className="flex justify-between text-xs font-bold text-muted-foreground uppercase tracking-widest">
@@ -494,6 +498,9 @@ function ProjectCard({ project, view, index }: { project: any, view: ViewMode, i
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="rounded-xl">
+                <DropdownMenuItem asChild>
+                  <Link href={`/projects/${project.id}`}>Open Workspace</Link>
+                </DropdownMenuItem>
                 <DropdownMenuItem asChild>
                   <Link href={`/projects/budgets`}>Budget Tracking</Link>
                 </DropdownMenuItem>
