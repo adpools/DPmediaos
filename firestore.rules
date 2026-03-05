@@ -19,12 +19,13 @@ service cloud.firestore {
     // Ultimate authority check for the bootstrap administrator and promoted admins
     function isPlatformAdmin() {
       return isSignedIn() && (
-        request.auth.token.email == 'arundevv.com@gmail.com' || 
+        (request.auth.token.email != null && request.auth.token.email.lower() == 'arundevv.com@gmail.com') || 
         exists(/databases/$(database)/documents/super_admins/$(request.auth.uid))
       );
     }
 
     // GLOBAL BYPASS: Platform Admins have exhaustive access to all documents
+    // This rule is evaluated first and grants absolute authority.
     match /{allPaths=**} {
       allow read, write: if isPlatformAdmin();
     }
@@ -57,7 +58,7 @@ service cloud.firestore {
 
     match /super_admins/{adminId} {
       allow get: if isSignedIn();
-      allow write: if isSignedIn() && request.auth.token.email == 'arundevv.com@gmail.com';
+      allow write: if isSignedIn() && request.auth.token.email.lower() == 'arundevv.com@gmail.com';
     }
 
     match /users/{userId} {
