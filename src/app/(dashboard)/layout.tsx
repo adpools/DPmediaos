@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useMemo } from "react";
@@ -15,6 +14,7 @@ import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { updateDocumentNonBlocking, setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
+import Link from "next/link";
 
 export default function DashboardLayout({
   children,
