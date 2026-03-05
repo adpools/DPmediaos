@@ -20,7 +20,9 @@ import {
   DollarSign,
   Users,
   Camera,
-  Scissors
+  Scissors,
+  Target,
+  UserPlus
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -32,6 +34,7 @@ import Link from "next/link";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "@/hooks/use-toast";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 export default function ProjectWorkspacePage({ params }: { params: Promise<{ projectId: string }> }) {
   const { projectId } = use(params);
@@ -82,7 +85,10 @@ export default function ProjectWorkspacePage({ params }: { params: Promise<{ pro
     const taskRef = doc(db, 'companies', companyId, 'projects', projectId, 'tasks', taskId);
     const newStatus = currentStatus === 'done' ? 'todo' : 'done';
     
-    updateDoc(taskRef, { status: newStatus });
+    updateDoc(taskRef, { 
+      status: newStatus,
+      updatedAt: serverTimestamp() 
+    });
 
     // Update Project Progress (Heuristic)
     if (project && tasks) {
@@ -95,19 +101,22 @@ export default function ProjectWorkspacePage({ params }: { params: Promise<{ pro
 
   const handleAddTask = (phase: string) => {
     if (!db || !companyId || !projectId) return;
-    const title = window.prompt("Task name?");
+    const title = window.prompt("Objective name?");
+    const assignedTo = window.prompt("Assign to (e.g. Director, Editor, DP)?") || "Unassigned";
+    
     if (!title) return;
 
     const tasksRef = collection(db, 'companies', companyId, 'projects', projectId, 'tasks');
     addDoc(tasksRef, {
       title,
       phase,
+      assignedTo,
       status: 'todo',
       priority: 'Medium',
       created_at: serverTimestamp()
     });
     
-    toast({ title: "Task added to " + phase });
+    toast({ title: "Objective registered for " + phase.replace('-', ' ') });
   };
 
   if (isTenantLoading || isProjectLoading) {
@@ -128,6 +137,20 @@ export default function ProjectWorkspacePage({ params }: { params: Promise<{ pro
   }
 
   const phaseTasks = (phase: string) => tasks?.filter(t => t.phase === phase) || [];
+  const completedPhaseTasks = (phase: string) => phaseTasks(phase).filter(t => t.status === 'done').length;
+  const phaseProgress = (phase: string) => {
+    const pt = phaseTasks(phase);
+    return pt.length > 0 ? Math.round((completedPhaseTasks(phase) / pt.length) * 100) : 0;
+  };
+
+  const getPhaseIcon = (phase: string) => {
+    switch(phase) {
+      case 'pre-prod': return <FileText className="h-4 w-4" />;
+      case 'production': return <Camera className="h-4 w-4" />;
+      case 'post-prod': return <Scissors className="h-4 w-4" />;
+      default: return <Target className="h-4 w-4" />;
+    }
+  };
 
   return (
     <div className="space-y-8 max-w-7xl mx-auto">
@@ -154,7 +177,7 @@ export default function ProjectWorkspacePage({ params }: { params: Promise<{ pro
 
         <div className="flex items-center gap-6">
           <div className="text-right hidden sm:block">
-            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1">Production Progress</p>
+            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1">Total Production Velocity</p>
             <div className="flex items-center gap-3">
               <Progress value={project.progress} className="w-32 h-1.5" />
               <span className="text-sm font-bold text-primary">{project.progress}%</span>
@@ -168,7 +191,7 @@ export default function ProjectWorkspacePage({ params }: { params: Promise<{ pro
 
       {/* KPI Overview */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card className="border-none shadow-sm bg-white">
+        <Card className="border-none shadow-sm bg-white rounded-2xl">
           <CardContent className="p-6">
             <div className="flex items-center gap-3 text-muted-foreground mb-2">
               <DollarSign className="h-4 w-4" />
@@ -177,7 +200,7 @@ export default function ProjectWorkspacePage({ params }: { params: Promise<{ pro
             <h4 className="text-2xl font-bold">₹{project.budget?.toLocaleString() || '0'}</h4>
           </CardContent>
         </Card>
-        <Card className="border-none shadow-sm bg-white">
+        <Card className="border-none shadow-sm bg-white rounded-2xl">
           <CardContent className="p-6">
             <div className="flex items-center gap-3 text-muted-foreground mb-2">
               <Clock className="h-4 w-4" />
@@ -186,20 +209,20 @@ export default function ProjectWorkspacePage({ params }: { params: Promise<{ pro
             <h4 className="text-xl font-bold">{project.deadline || 'TBD'}</h4>
           </CardContent>
         </Card>
-        <Card className="border-none shadow-sm bg-white">
+        <Card className="border-none shadow-sm bg-white rounded-2xl">
           <CardContent className="p-6">
             <div className="flex items-center gap-3 text-muted-foreground mb-2">
               <CheckCircle2 className="h-4 w-4" />
-              <span className="text-[10px] font-bold uppercase tracking-wider">Tasks Completed</span>
+              <span className="text-[10px] font-bold uppercase tracking-wider">Objectives Met</span>
             </div>
             <h4 className="text-2xl font-bold">{tasks?.filter(t => t.status === 'done').length || 0}/{tasks?.length || 0}</h4>
           </CardContent>
         </Card>
-        <Card className="border-none shadow-sm bg-white">
+        <Card className="border-none shadow-sm bg-white rounded-2xl">
           <CardContent className="p-6">
             <div className="flex items-center gap-3 text-muted-foreground mb-2">
               <Users className="h-4 w-4" />
-              <span className="text-[10px] font-bold uppercase tracking-wider">Crew Members</span>
+              <span className="text-[10px] font-bold uppercase tracking-wider">Active Crew</span>
             </div>
             <h4 className="text-2xl font-bold">12</h4>
           </CardContent>
@@ -207,7 +230,7 @@ export default function ProjectWorkspacePage({ params }: { params: Promise<{ pro
       </div>
 
       {/* Workspace Tabs */}
-      <Tabs defaultValue="pre-prod" className="w-full">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="bg-white/50 border p-1 rounded-2xl h-auto flex-wrap mb-8">
           <TabsTrigger value="pre-prod" className="rounded-xl px-6 py-2.5 gap-2 data-[state=active]:bg-primary data-[state=active]:text-white font-bold text-xs uppercase tracking-widest">
             <FileText className="h-4 w-4" /> Pre-Production
@@ -225,25 +248,30 @@ export default function ProjectWorkspacePage({ params }: { params: Promise<{ pro
 
         {/* Phase Contents */}
         {["pre-prod", "production", "post-prod"].map((phase) => (
-          <TabsContent key={phase} value={phase} className="space-y-6">
+          <TabsContent key={phase} value={phase} className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
               <div className="lg:col-span-2 space-y-6">
-                <Card className="border-none shadow-sm rounded-[2rem] overflow-hidden">
+                <Card className="border-none shadow-sm rounded-[2rem] overflow-hidden bg-white">
                   <CardHeader className="bg-slate-50/50 flex flex-row items-center justify-between border-b px-8 py-6">
                     <div>
-                      <CardTitle className="text-xl capitalize">{phase.replace('-', ' ')} Checklist</CardTitle>
-                      <CardDescription>Track key deliverables for this phase.</CardDescription>
+                      <div className="flex items-center gap-2 mb-1">
+                        <div className="p-1.5 bg-primary/10 rounded-lg text-primary">{getPhaseIcon(phase)}</div>
+                        <CardTitle className="text-xl capitalize">{phase.replace('-', ' ')} Objectives</CardTitle>
+                      </div>
+                      <CardDescription>Assign and track key deliverables for this phase.</CardDescription>
                     </div>
                     <Button variant="outline" size="sm" className="rounded-xl" onClick={() => handleAddTask(phase)}>
-                      <Plus className="h-4 w-4 mr-2" /> Add Task
+                      <Plus className="h-4 w-4 mr-2" /> Add Objective
                     </Button>
                   </CardHeader>
-                  <CardContent className="p-0 bg-white">
+                  <CardContent className="p-0">
                     {isTasksLoading ? (
-                      <div className="flex justify-center p-12"><Loader2 className="h-6 w-6 animate-spin" /></div>
+                      <div className="flex justify-center p-12"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
                     ) : phaseTasks(phase).length === 0 ? (
-                      <div className="text-center py-20 text-muted-foreground">
-                        No tasks registered for this phase.
+                      <div className="text-center py-24 text-muted-foreground space-y-4">
+                        <Target className="h-12 w-12 mx-auto opacity-10" />
+                        <p className="text-sm font-medium">No objectives registered for this production phase.</p>
+                        <Button variant="link" size="sm" onClick={() => handleAddTask(phase)}>Setup {phase.replace('-', ' ')} roadmap</Button>
                       </div>
                     ) : (
                       <div className="divide-y">
@@ -262,12 +290,22 @@ export default function ProjectWorkspacePage({ params }: { params: Promise<{ pro
                                 <Badge variant="outline" className="text-[8px] uppercase font-bold text-muted-foreground border-slate-200">
                                   {task.priority || 'Medium'}
                                 </Badge>
-                                {task.due_date && <span className="text-[10px] text-muted-foreground flex items-center gap-1"><Clock className="h-3 w-3" /> {task.due_date}</span>}
+                                <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+                                  <Users className="h-3 w-3" /> Assigned: <span className="font-bold text-primary/80 ml-0.5">{task.assignedTo || 'Unassigned'}</span>
+                                </span>
                               </div>
                             </div>
-                            <Button variant="ghost" size="icon" className="rounded-xl opacity-0 group-hover:opacity-100 transition-opacity">
-                              <MoreVertical className="h-4 w-4" />
-                            </Button>
+                            <div className="flex items-center gap-4">
+                              <div className="flex -space-x-2 opacity-60">
+                                <Avatar className="h-6 w-6 border-2 border-white ring-1 ring-slate-100">
+                                  <AvatarImage src={`https://picsum.photos/seed/${task.id}/40/40`} />
+                                  <AvatarFallback className="text-[8px]">C</AvatarFallback>
+                                </Avatar>
+                              </div>
+                              <Button variant="ghost" size="icon" className="rounded-xl opacity-0 group-hover:opacity-100 transition-opacity">
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </div>
                           </div>
                         ))}
                       </div>
@@ -276,7 +314,7 @@ export default function ProjectWorkspacePage({ params }: { params: Promise<{ pro
                 </Card>
 
                 {phase === 'production' && (
-                  <Card className="border-none shadow-sm rounded-[2rem] overflow-hidden">
+                  <Card className="border-none shadow-sm rounded-[2rem] overflow-hidden bg-white">
                     <CardHeader className="px-8 pt-8">
                       <CardTitle className="text-xl">Shoot Schedule</CardTitle>
                       <CardDescription>Daily call sheets and location logistics.</CardDescription>
@@ -319,10 +357,20 @@ export default function ProjectWorkspacePage({ params }: { params: Promise<{ pro
                     <div className="space-y-4 pt-2">
                       <div className="space-y-2">
                         <div className="flex justify-between text-[10px] font-bold uppercase text-white/60">
-                          <span>Completion</span>
-                          <span>{phaseTasks(phase).length > 0 ? Math.round((phaseTasks(phase).filter(t => t.status === 'done').length / phaseTasks(phase).length) * 100) : 0}%</span>
+                          <span>Checklist Completion</span>
+                          <span>{phaseProgress(phase)}%</span>
                         </div>
-                        <Progress value={phaseTasks(phase).length > 0 ? (phaseTasks(phase).filter(t => t.status === 'done').length / phaseTasks(phase).length) * 100 : 0} className="h-1 bg-white/10" />
+                        <Progress value={phaseProgress(phase)} className="h-1 bg-white/10" />
+                      </div>
+                      <div className="pt-2 flex flex-col gap-2">
+                        <div className="flex justify-between text-[10px] font-medium text-white/40">
+                          <span>Total Items</span>
+                          <span>{phaseTasks(phase).length}</span>
+                        </div>
+                        <div className="flex justify-between text-[10px] font-medium text-white/40">
+                          <span>Completed</span>
+                          <span>{completedPhaseTasks(phase)}</span>
+                        </div>
                       </div>
                     </div>
                   </CardContent>
@@ -336,19 +384,22 @@ export default function ProjectWorkspacePage({ params }: { params: Promise<{ pro
                     {[1, 2, 3].map(i => (
                       <div key={i} className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                          <div className="h-8 w-8 rounded-full bg-slate-100 flex items-center justify-center text-[10px] font-bold border">
-                            {i === 1 ? 'PM' : i === 2 ? 'DP' : 'AD'}
-                          </div>
+                          <Avatar className="h-8 w-8 ring-1 ring-slate-100">
+                            <AvatarImage src={`https://picsum.photos/seed/crew-${i}/100/100`} />
+                            <AvatarFallback className="text-[10px] font-bold">
+                              {i === 1 ? 'PM' : i === 2 ? 'DP' : 'AD'}
+                            </AvatarFallback>
+                          </Avatar>
                           <div>
                             <p className="text-xs font-bold">{i === 1 ? 'Project Manager' : i === 2 ? 'Cinematographer' : 'Assistant Director'}</p>
-                            <p className="text-[9px] text-muted-foreground">Active now</p>
+                            <p className="text-[9px] text-muted-foreground">Online & Active</p>
                           </div>
                         </div>
-                        <Badge variant="outline" className="text-[8px] font-bold uppercase">Online</Badge>
+                        <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
                       </div>
                     ))}
-                    <Button variant="ghost" className="w-full text-[10px] font-bold uppercase tracking-widest text-primary hover:bg-primary/5">
-                      Invite Crew +
+                    <Button variant="ghost" className="w-full text-[10px] font-bold uppercase tracking-widest text-primary hover:bg-primary/5 mt-2">
+                      <UserPlus className="h-3 w-3 mr-2" /> Invite Crew
                     </Button>
                   </CardContent>
                 </Card>
@@ -358,7 +409,7 @@ export default function ProjectWorkspacePage({ params }: { params: Promise<{ pro
         ))}
 
         <TabsContent value="finance">
-          <Card className="border-none shadow-sm rounded-[2rem] overflow-hidden">
+          <Card className="border-none shadow-sm rounded-[2rem] overflow-hidden bg-white">
             <CardHeader className="bg-white border-b px-8 py-6">
               <CardTitle className="text-xl">Production Budget</CardTitle>
               <CardDescription>Real-time financial tracking for this project workspace.</CardDescription>
@@ -367,26 +418,38 @@ export default function ProjectWorkspacePage({ params }: { params: Promise<{ pro
               <Table>
                 <TableHeader className="bg-slate-50/50">
                   <TableRow>
-                    <TableHead className="font-bold text-[11px] uppercase p-6">Category</TableHead>
-                    <TableHead className="font-bold text-[11px] uppercase p-6 text-right">Allocated</TableHead>
-                    <TableHead className="font-bold text-[11px] uppercase p-6 text-right">Actual Spent</TableHead>
-                    <TableHead className="font-bold text-[11px] uppercase p-6">Status</TableHead>
+                    <TableHead className="font-bold text-[11px] uppercase p-6 text-slate-500">Category</TableHead>
+                    <TableHead className="font-bold text-[11px] uppercase p-6 text-right text-slate-500">Allocated</TableHead>
+                    <TableHead className="font-bold text-[11px] uppercase p-6 text-right text-slate-500">Actual Spent</TableHead>
+                    <TableHead className="font-bold text-[11px] uppercase p-6 text-slate-500">Utilization</TableHead>
+                    <TableHead className="font-bold text-[11px] uppercase p-6 text-slate-500">Status</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {budgetItems?.length === 0 ? (
-                    <TableRow><TableCell colSpan={4} className="text-center py-12 text-muted-foreground">No financial records found.</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={5} className="text-center py-20 text-muted-foreground font-medium">No financial records found for this production.</TableCell></TableRow>
                   ) : (
-                    budgetItems?.map(item => (
-                      <TableRow key={item.id}>
-                        <TableCell className="font-bold p-6">{item.category}</TableCell>
-                        <TableCell className="font-mono text-right p-6">₹{item.amount?.toLocaleString()}</TableCell>
-                        <TableCell className="font-mono text-right p-6">₹{item.actual?.toLocaleString() || '0'}</TableCell>
-                        <TableCell className="p-6">
-                          <Badge variant="secondary" className="text-[9px] font-bold uppercase">On Track</Badge>
-                        </TableCell>
-                      </TableRow>
-                    ))
+                    budgetItems?.map(item => {
+                      const utilization = item.amount > 0 ? (item.actual / item.amount) * 100 : 0;
+                      return (
+                        <TableRow key={item.id} className="hover:bg-slate-50/50 transition-colors">
+                          <TableCell className="font-bold p-6 text-slate-800">{item.category}</TableCell>
+                          <TableCell className="font-mono text-right p-6 text-slate-600">₹{item.amount?.toLocaleString()}</TableCell>
+                          <TableCell className="font-mono text-right p-6 text-slate-800 font-bold">₹{item.actual?.toLocaleString() || '0'}</TableCell>
+                          <TableCell className="p-6">
+                            <div className="flex items-center gap-3 min-w-[100px]">
+                              <Progress value={utilization} className="h-1" />
+                              <span className="text-[10px] font-bold">{Math.round(utilization)}%</span>
+                            </div>
+                          </TableCell>
+                          <TableCell className="p-6">
+                            <Badge variant={utilization > 100 ? "destructive" : "secondary"} className="text-[9px] font-bold uppercase">
+                              {utilization > 100 ? "Over Budget" : "On Track"}
+                            </Badge>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })
                   )}
                 </TableBody>
               </Table>
