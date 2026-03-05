@@ -182,7 +182,9 @@ export default function InvoicesPage() {
                       setNewInvoice({ 
                         ...newInvoice, 
                         project_id: val,
-                        project_name: proj?.project_name || "" 
+                        project_name: proj?.project_name || "",
+                        client_name: proj?.client_name || newInvoice.client_name,
+                        total: proj?.budget ? proj.budget.toString() : ""
                       });
                     }}
                   >
