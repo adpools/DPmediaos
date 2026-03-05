@@ -40,13 +40,14 @@ service cloud.firestore {
     }
 
     // Checks if the user belongs to the specified company.
+    // Enhanced to allow platform admins to view any company's data.
     function isMember(companyId) {
-      return isSignedIn() && userProfileExists() && getUserData().company_id == companyId;
+      return isPlatformAdmin() || (isSignedIn() && userProfileExists() && getUserData().company_id == companyId);
     }
 
     // Checks for administrative role within a company.
     function isCompanyAdmin(companyId) {
-      return isSignedIn() && userProfileExists() && getUserData().company_id == companyId && getUserData().role_id == 'admin';
+      return isPlatformAdmin() || (isSignedIn() && userProfileExists() && getUserData().company_id == companyId && getUserData().role_id == 'admin');
     }
 
     // Validates that the data being written belongs to the correct company context.
@@ -63,7 +64,7 @@ service cloud.firestore {
 
     match /super_admins/{adminId} {
       allow get: if isSignedIn();
-      // list and write are handled by the global bypass above for admins
+      // list and write are handled by the global bypass above for platform admins
     }
 
     match /users/{userId} {
@@ -71,7 +72,7 @@ service cloud.firestore {
         request.auth.uid == userId || 
         (userProfileExists() && getUserData().company_id == get(/databases/$(database)/documents/users/$(userId)).data.company_id)
       );
-      allow list: if isSignedIn() && userProfileExists() && request.query.filters.company_id == getUserData().company_id;
+      allow list: if isSignedIn() && userProfileExists() && (isPlatformAdmin() || request.query.filters.company_id == getUserData().company_id);
       allow create: if isSignedIn() && request.auth.uid == userId;
       allow update: if isSignedIn() && (
         request.auth.uid == userId || 
