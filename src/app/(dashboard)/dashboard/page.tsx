@@ -1,9 +1,10 @@
+
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { MoreHorizontal, Sparkles, Key, Loader2, Plus, ShieldCheck, Zap } from "lucide-react";
+import { MoreHorizontal, Sparkles, Key, Loader2, Plus, ShieldCheck, Zap, CheckCircle2, Clock } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useTenant } from "@/hooks/use-tenant";
@@ -59,6 +60,13 @@ export default function DashboardPage() {
 
   const { data: tasks, isLoading: isTasksLoading } = useCollection(tasksQuery);
 
+  // Calculate Overall Progress
+  const overallProgress = useMemo(() => {
+    if (!projects || projects.length === 0) return 0;
+    const total = projects.reduce((sum, p) => sum + (p.progress || 0), 0);
+    return Math.round(total / projects.length);
+  }, [projects]);
+
   if (isTenantLoading) {
     return (
       <div className="flex items-center justify-center h-[80vh]">
@@ -73,7 +81,7 @@ export default function DashboardPage() {
         <div>
           <div className="flex items-center gap-3 mb-2">
             <h1 className="text-4xl font-bold tracking-tight text-primary">
-              Hi {profile?.full_name?.split(' ')[0] || 'User'}!
+              Hi {profile?.fullName?.split(' ')[0] || profile?.full_name?.split(' ')[0] || 'User'}!
             </h1>
             <div className="flex items-center gap-2">
               {isSuperAdmin && (
@@ -92,8 +100,8 @@ export default function DashboardPage() {
         </div>
         <div className="flex flex-col items-end gap-2 mb-1">
           <div className="flex items-center gap-4 text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
-            <span>Overall Progress</span>
-            <Progress value={35} className="w-32 h-1.5 bg-white shadow-inner" />
+            <span>Production Velocity</span>
+            <Progress value={overallProgress} className="w-32 h-1.5 bg-white shadow-inner" />
           </div>
         </div>
       </div>
@@ -103,6 +111,15 @@ export default function DashboardPage() {
           <div className="flex gap-4">
             {[1, 2].map(i => <div key={i} className="min-w-[320px] h-[180px] bg-slate-200 animate-pulse rounded-[2rem]" />)}
           </div>
+        ) : projects?.length === 0 ? (
+          <Link href="/projects">
+            <Card className="min-w-[320px] h-[180px] border-2 border-dashed border-slate-300 bg-white rounded-[2rem] flex items-center justify-center text-muted-foreground cursor-pointer hover:bg-slate-50 transition-colors">
+              <div className="flex flex-col items-center gap-2">
+                <Plus className="h-6 w-6" />
+                <span className="text-xs font-bold uppercase tracking-widest">Launch First Project</span>
+              </div>
+            </Card>
+          </Link>
         ) : (
           <>
             {projects?.map((proj) => (
@@ -157,19 +174,19 @@ export default function DashboardPage() {
                 {[1, 2, 3].map(i => <div key={i} className="h-16 w-full bg-slate-100 animate-pulse rounded-2xl" />)}
               </div>
             ) : tasks?.length === 0 ? (
-              <div className="text-center py-12 text-muted-foreground">
-                <p className="text-sm">No pending tasks. Ready for something new?</p>
+              <div className="text-center py-12 text-muted-foreground bg-white/50 rounded-3xl border-2 border-dashed">
+                <p className="text-sm">No pending tasks. Your production queue is clear.</p>
               </div>
             ) : (
               tasks?.map(task => (
                 <div key={task.id} className="flex items-center justify-between group cursor-pointer p-4 hover:bg-white rounded-2xl transition-all shadow-sm">
                   <div className="flex items-center gap-4">
                     <div className={`h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary shadow-sm overflow-hidden`}>
-                       <Key className="h-5 w-5" />
+                       {task.status === 'in_progress' ? <Clock className="h-5 w-5" /> : <CheckCircle2 className="h-5 w-5" />}
                     </div>
                     <div className="space-y-1">
-                      <h4 className="font-bold text-sm leading-none">{task.name}</h4>
-                      <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">{task.priority} priority</p>
+                      <h4 className="font-bold text-sm leading-none">{task.name || task.title}</h4>
+                      <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">{task.priority || 'Medium'} priority</p>
                     </div>
                   </div>
                   <div className="flex -space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">

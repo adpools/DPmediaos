@@ -1,16 +1,16 @@
 
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { AppSidebar } from "@/components/layout/app-sidebar";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { Toaster } from "@/components/ui/toaster";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Calendar, LayoutGrid, MoreHorizontal, Phone, Smile, ArrowRight, Plus, Loader2, X } from "lucide-react";
+import { Calendar, LayoutGrid, MoreHorizontal, Phone, Smile, ArrowRight, Plus, Loader2, X, Video } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { useTenant } from "@/hooks/use-tenant";
-import { doc, serverTimestamp, collection, query } from "firebase/firestore";
+import { doc, serverTimestamp, collection, query, where, orderBy, limit, collectionGroup } from "firebase/firestore";
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { updateDocumentNonBlocking, setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { useRouter } from "next/navigation";
@@ -25,7 +25,7 @@ export default function DashboardLayout({
   const db = useFirestore();
   const router = useRouter();
 
-  // 1. Fetch Real Data for Sidebar Stats
+  // 1. Fetch Projects for Sidebar Stats
   const projectsQuery = useMemoFirebase(() => {
     if (!db || !companyId) return null;
     return query(collection(db, 'companies', companyId, 'projects'));
@@ -36,7 +36,21 @@ export default function DashboardLayout({
   const completedCount = projects?.filter(p => p.status === 'completed').length || 0;
   const inProgressCount = projects?.filter(p => p.status === 'in_progress').length || 0;
 
-  // 2. Protection & Redirection Logic
+  // 2. Fetch Upcoming Schedule Events from Production Days
+  const scheduleQuery = useMemoFirebase(() => {
+    if (!db || !companyId) return null;
+    return query(
+      collectionGroup(db, 'production_days'),
+      where('companyId', '==', companyId),
+      orderBy('date', 'asc'),
+      limit(1)
+    );
+  }, [db, companyId]);
+
+  const { data: upcomingEvents } = useCollection(scheduleQuery);
+  const nextEvent = upcomingEvents?.[0];
+
+  // 3. Protection & Redirection Logic
   useEffect(() => {
     if (!isLoading) {
       const cId = profile?.company_id || (profile as any)?.companyId;
@@ -47,23 +61,6 @@ export default function DashboardLayout({
       }
     }
   }, [isLoading, profile, isSuperAdmin, router, user]);
-
-  // 3. Bootstrap Promotion Logic
-  useEffect(() => {
-    if (user?.email === 'arundevv.com@gmail.com' && db) {
-      const currentRoleId = profile?.role_id || (profile as any)?.roleId;
-      if (profile && currentRoleId !== 'admin') {
-        const userRef = doc(db, 'users', user.uid);
-        updateDocumentNonBlocking(userRef, { role_id: 'admin' });
-      }
-      const superAdminRef = doc(db, 'super_admins', user.uid);
-      setDocumentNonBlocking(superAdminRef, {
-        uid: user.uid,
-        email: user.email,
-        granted_at: serverTimestamp()
-      }, { merge: true });
-    }
-  }, [user, profile, db]);
 
   if (isLoading) {
     return (
@@ -97,15 +94,19 @@ export default function DashboardLayout({
                 </div>
               </div>
 
-              {/* Schedule Card */}
+              {/* Dynamic Schedule Card */}
               <Card className="border-none shadow-soft rounded-[2.5rem] overflow-hidden">
                 <CardContent className="p-0">
                   <div className="p-8 bg-white space-y-4">
                     <div className="flex justify-between items-center">
-                      <span className="text-[10px] font-bold text-accent uppercase tracking-widest">30 minute call with Client</span>
-                      <button className="text-[11px] text-[#4F46E5] font-bold hover:underline">+ Invite</button>
+                      <span className="text-[10px] font-bold text-accent uppercase tracking-widest">
+                        {nextEvent ? `Next Production: ${new Date(nextEvent.date).toLocaleDateString()}` : 'No upcoming events'}
+                      </span>
+                      {nextEvent && <button className="text-[11px] text-[#4F46E5] font-bold hover:underline">+ Invite</button>}
                     </div>
-                    <h4 className="font-bold text-xl text-[#1A1D2C]">Project Discovery Call</h4>
+                    <h4 className="font-bold text-xl text-[#1A1D2C]">
+                      {nextEvent ? nextEvent.location || 'Production Briefing' : 'Planning Session'}
+                    </h4>
                   </div>
                   <div className="px-8 py-6 bg-[#34D399] flex items-center justify-between text-white">
                     <div className="flex items-center">
@@ -120,9 +121,8 @@ export default function DashboardLayout({
                       </div>
                     </div>
                     <div className="flex items-center gap-4">
-                      <span className="text-sm font-bold font-code opacity-90">28:35</span>
                       <div className="h-10 w-10 rounded-2xl bg-white/20 flex items-center justify-center hover:bg-white/30 transition-colors cursor-pointer">
-                        <Phone className="h-5 w-5 fill-current" />
+                        <Video className="h-5 w-5" />
                       </div>
                       <MoreHorizontal className="h-5 w-5 opacity-60" />
                     </div>
@@ -131,14 +131,14 @@ export default function DashboardLayout({
               </Card>
             </div>
 
-            {/* Design Project Stats */}
+            {/* Production Project Stats */}
             <div className="space-y-6">
               <div className="flex items-center justify-between">
                 <h3 className="text-2xl font-bold font-headline text-[#1A1D2C]">Production Stats</h3>
                 <MoreHorizontal className="h-5 w-5 text-slate-400" />
               </div>
               <div className="flex items-center gap-2 text-[11px] text-slate-400 font-bold uppercase tracking-widest">
-                <Smile className="h-4 w-4 text-orange-400" /> In Progress
+                <Smile className="h-4 w-4 text-orange-400" /> Team Pulse
               </div>
               
               <div className="grid grid-cols-3 gap-4 pt-2">
@@ -147,25 +147,25 @@ export default function DashboardLayout({
                   <p className="text-3xl font-bold font-headline text-[#1A1D2C]">{completedCount}</p>
                 </div>
                 <div className="space-y-1">
-                  <span className="text-[11px] font-bold text-slate-400 uppercase">In Progress</span>
+                  <span className="text-[11px] font-bold text-slate-400 uppercase">Active</span>
                   <div className="flex items-baseline gap-1">
                     <p className="text-3xl font-bold font-headline text-[#1A1D2C]">{inProgressCount}</p>
-                    <div className="h-2 w-2 rounded-full bg-rose-500" />
+                    <div className="h-2 w-2 rounded-full bg-rose-500 animate-pulse" />
                   </div>
                 </div>
                 <div className="space-y-1">
-                  <span className="text-[11px] font-bold text-slate-400 uppercase">Team members</span>
+                  <span className="text-[11px] font-bold text-slate-400 uppercase">Talent</span>
                   <div className="flex -space-x-2 pt-1">
                     <Avatar className="h-10 w-10 border-2 border-white shadow-sm">
                       <AvatarImage src="https://picsum.photos/seed/member1/100/100" />
                     </Avatar>
-                    <div className="h-10 w-10 rounded-full bg-rose-500 border-2 border-white flex items-center justify-center text-[10px] font-bold text-white shadow-sm">S</div>
+                    <div className="h-10 w-10 rounded-full bg-primary border-2 border-white flex items-center justify-center text-[10px] font-bold text-white shadow-sm">DP</div>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* New Task Section */}
+            {/* Quick Task Section */}
             <div className="mt-auto space-y-6">
               <div className="flex items-center justify-between">
                 <h3 className="text-2xl font-bold font-headline text-[#1A1D2C]">New Task</h3>
@@ -174,12 +174,12 @@ export default function DashboardLayout({
               <div className="bg-white rounded-[2.5rem] p-8 shadow-soft border border-white/50 space-y-8">
                 <div className="space-y-2">
                    <span className="text-[10px] font-black text-slate-300 uppercase tracking-[0.2em]">Task Title</span>
-                   <p className="text-sm font-semibold text-slate-300">Create new...</p>
+                   <p className="text-sm font-semibold text-slate-300">Quick production note...</p>
                 </div>
                 
-                {/* Emoji Row */}
+                {/* Emoji Quick Picker */}
                 <div className="flex items-center gap-4 overflow-x-auto pb-2 scrollbar-hide">
-                   {['🤠', '🎉', '👩', '🤔', '😂', '🔥', '😅', '🤣'].map(e => (
+                   {['🤠', '🎉', '👩', '🤔', '🔥', '😅'].map(e => (
                      <span key={e} className="text-xl cursor-pointer hover:scale-125 transition-transform grayscale hover:grayscale-0 opacity-60 hover:opacity-100">{e}</span>
                    ))}
                 </div>
@@ -187,22 +187,19 @@ export default function DashboardLayout({
                 <div className="h-px bg-slate-100 w-full" />
 
                 <div className="space-y-4">
-                  <span className="text-[10px] font-black text-slate-300 uppercase tracking-[0.2em]">Add Collaborators</span>
+                  <span className="text-[10px] font-black text-slate-300 uppercase tracking-[0.2em]">Collaborators</span>
                   <div className="flex flex-wrap items-center gap-3">
-                    <Badge className="bg-purple-100 hover:bg-purple-200 text-purple-700 border-none px-3 py-1.5 rounded-full flex items-center gap-2">
-                      <Avatar className="h-5 w-5"><AvatarImage src="https://picsum.photos/seed/angela/40/40" /></Avatar>
-                      <span className="text-[11px] font-bold">Angela</span>
-                      <X className="h-3 w-3 cursor-pointer opacity-60" />
-                    </Badge>
-                    <Badge className="bg-emerald-100 hover:bg-emerald-200 text-emerald-700 border-none px-3 py-1.5 rounded-full flex items-center gap-2">
-                      <Avatar className="h-5 w-5"><AvatarImage src="https://picsum.photos/seed/chris/40/40" /></Avatar>
-                      <span className="text-[11px] font-bold">Chris</span>
+                    <Badge className="bg-purple-100 text-purple-700 border-none px-3 py-1.5 rounded-full flex items-center gap-2">
+                      <Avatar className="h-5 w-5"><AvatarImage src="https://picsum.photos/seed/crew1/40/40" /></Avatar>
+                      <span className="text-[11px] font-bold">Crew</span>
                       <X className="h-3 w-3 cursor-pointer opacity-60" />
                     </Badge>
                     
                     <div className="flex items-center gap-3 ml-auto">
                       <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full bg-slate-50 text-slate-400 hover:bg-slate-100"><Plus className="h-5 w-5" /></Button>
-                      <Button size="icon" className="h-12 w-12 rounded-[1.25rem] bg-accent hover:bg-accent/90 shadow-lg shadow-accent/30"><ArrowRight className="h-6 w-6 text-white" /></Button>
+                      <Link href="/dashboard">
+                        <Button size="icon" className="h-12 w-12 rounded-[1.25rem] bg-accent hover:bg-accent/90 shadow-lg shadow-accent/30"><ArrowRight className="h-6 w-6 text-white" /></Button>
+                      </Link>
                     </div>
                   </div>
                 </div>
