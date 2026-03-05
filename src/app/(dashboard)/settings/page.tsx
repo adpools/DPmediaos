@@ -23,7 +23,8 @@ import {
   Phone,
   CreditCard,
   MapPin,
-  Camera
+  Camera,
+  AlertCircle
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -41,6 +42,7 @@ import { toast } from "@/hooks/use-toast";
 import { signOut } from "firebase/auth";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 function AccountCenterContent() {
   const searchParams = useSearchParams();
@@ -188,16 +190,28 @@ function AccountCenterContent() {
     const file = e.target.files?.[0];
     if (!file || !tenantProfile?.id || !storage || !db) return;
 
+    // 1. Client-side Validation
+    if (!file.type.startsWith('image/')) {
+      toast({ variant: "destructive", title: "Invalid File", description: "Please upload an image file." });
+      return;
+    }
+
+    if (file.size > 2 * 1024 * 1024) { // 2MB Limit
+      toast({ variant: "destructive", title: "File Too Large", description: "Image must be less than 2MB." });
+      return;
+    }
+
     setIsUploading(true);
     try {
+      // 2. Upload to Firebase Storage
       const storageRef = ref(storage, `users/${tenantProfile.id}/avatar`);
       await uploadBytes(storageRef, file);
       const downloadURL = await getDownloadURL(storageRef);
       
-      // Update local state for immediate feedback
+      // 3. Update local state
       setProfileData(prev => ({ ...prev, avatar: downloadURL }));
       
-      // Update Firestore immediately (non-blocking)
+      // 4. Persist to Firestore
       const userRef = doc(db, 'users', tenantProfile.id);
       updateDocumentNonBlocking(userRef, {
         avatar: downloadURL,
@@ -206,10 +220,25 @@ function AccountCenterContent() {
       
       toast({ title: "Profile Image Updated", description: "Your avatar has been synced successfully." });
     } catch (error: any) {
-      console.error(error);
-      toast({ variant: "destructive", title: "Upload Failed", description: "Could not upload image. Please try again." });
+      console.error("Storage upload error:", error);
+      
+      // Detailed error diagnostic
+      let errorMsg = "Could not upload image. Please try again.";
+      if (error.code === 'storage/unauthorized') {
+        errorMsg = "Unauthorized. Please ensure Firebase Storage is enabled in the console.";
+      } else if (error.code === 'storage/retry-limit-exceeded') {
+        errorMsg = "Network timeout. Please check your connection.";
+      }
+
+      toast({ 
+        variant: "destructive", 
+        title: "Upload Failed", 
+        description: errorMsg 
+      });
     } finally {
       setIsUploading(false);
+      // Reset input value so same file can be re-uploaded if fixed
+      if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };
 
@@ -294,6 +323,14 @@ function AccountCenterContent() {
               </div>
             </CardHeader>
             <CardContent className="p-8 space-y-6">
+              <Alert className="bg-blue-50 border-blue-100 rounded-2xl">
+                <AlertCircle className="h-4 w-4 text-blue-600" />
+                <AlertTitle className="text-blue-800 font-bold">Upload Troubleshooting</AlertTitle>
+                <AlertDescription className="text-blue-700 text-xs">
+                  If upload fails, ensure <strong>Firebase Storage</strong> is activated in your project console and rules are deployed.
+                </AlertDescription>
+              </Alert>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <Label>Full Name</Label>
