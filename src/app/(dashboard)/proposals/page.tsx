@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, Suspense } from "react";
@@ -128,7 +127,6 @@ function ProposalsContent() {
         additionalDetails: aiInputs.additionalDetails
       });
       
-      // Fixed: Genkit flows return the output object directly
       setNewProposal(prev => ({ ...prev, content: result.content }));
       setGenerationStep('preview');
       toast({ title: "Draft Synthesized", description: "Your AI-powered proposal is ready for review." });
@@ -225,7 +223,12 @@ function ProposalsContent() {
                             client_name: lead.company_name,
                             title: `${lead.company_name} - ${new Date().getFullYear()} Project`
                           }));
-                          toast({ title: "Lead Connected", description: `Drafting for ${lead.company_name}.` });
+                          // Preload services from service vertical
+                          setAIInputs(prev => ({
+                            ...prev,
+                            servicesRequired: lead.service_vertical ? `${lead.service_vertical} Production Services` : ""
+                          }));
+                          toast({ title: "Lead Connected", description: `Drafting for ${lead.company_name} (${lead.service_vertical || 'General Production'}).` });
                         }
                       }}>
                         <SelectTrigger className="bg-white/5 border-white/10 rounded-xl h-10 text-xs text-slate-300">
@@ -237,7 +240,7 @@ function ProposalsContent() {
                           ) : (
                             leads?.map((lead) => (
                               <SelectItem key={lead.id} value={lead.id} className="text-xs">
-                                {lead.company_name} (₹{lead.deal_value?.toLocaleString()})
+                                {lead.company_name} (Vertical: {lead.service_vertical || 'N/A'})
                               </SelectItem>
                             ))
                           )}
