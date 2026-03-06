@@ -20,7 +20,11 @@ import {
   Package,
   Zap,
   Lightbulb,
-  Cpu
+  Cpu,
+  CheckCircle2,
+  Info,
+  ArrowRight,
+  Plus
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useTenant } from "@/hooks/use-tenant";
@@ -30,6 +34,15 @@ import { addDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { Slider } from "@/components/ui/slider";
 import Link from "next/link";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogDescription, 
+  DialogHeader, 
+  DialogTitle,
+  DialogFooter
+} from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 const LOCATION_SUGGESTIONS = [
   "Mumbai, India",
@@ -45,9 +58,13 @@ export default function MarketResearchPage() {
   const db = useFirestore();
   const [industry, setIndustry] = useState("");
   const [location, setLocation] = useState("");
-  const [radius, setRadius] = useState([25]); // Default 25km
+  const [radius, setRadius] = useState([25]); 
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<AnalyzeMarketAndSuggestPitchOutput | null>(null);
+
+  // Detail Dialog State
+  const [selectedDetail, setSelectedDetail] = useState<{ type: 'package' | 'automation', data: any } | null>(null);
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
 
   // Fetch recent research history
   const historyQuery = useMemoFirebase(() => {
@@ -111,6 +128,11 @@ export default function MarketResearchPage() {
     setIndustry(session.industry);
     setLocation(session.location);
     if (session.radius) setRadius([session.radius]);
+  };
+
+  const openDetail = (type: 'package' | 'automation', data: any) => {
+    setSelectedDetail({ type, data });
+    setIsDetailOpen(true);
   };
 
   return (
@@ -295,7 +317,11 @@ export default function MarketResearchPage() {
                 <TabsContent value="packages" className="animate-in fade-in slide-in-from-bottom-2">
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     {result.suggestedServicePackages?.map((pkg, idx) => (
-                      <Card key={idx} className="border-none shadow-sm rounded-[2rem] bg-white group hover:shadow-md transition-all">
+                      <Card 
+                        key={idx} 
+                        className="border-none shadow-sm rounded-[2rem] bg-white group hover:shadow-md transition-all cursor-pointer border border-transparent hover:border-primary/10"
+                        onClick={() => openDetail('package', pkg)}
+                      >
                         <CardContent className="p-8 space-y-4">
                           <div className="flex justify-between items-start">
                             <div className="h-10 w-10 bg-accent/10 rounded-xl flex items-center justify-center text-accent">
@@ -303,11 +329,11 @@ export default function MarketResearchPage() {
                             </div>
                             <span className="font-mono font-black text-xs text-primary">{pkg.priceEstimate}</span>
                           </div>
-                          <h4 className="font-bold text-lg leading-tight">{pkg.name}</h4>
-                          <p className="text-xs text-muted-foreground leading-relaxed">{pkg.description}</p>
-                          <Button variant="ghost" size="sm" className="w-full rounded-xl text-[10px] font-black uppercase tracking-widest h-9 border border-slate-100 group-hover:bg-primary group-hover:text-white group-hover:border-primary transition-colors">
-                            Add to Catalog
-                          </Button>
+                          <h4 className="font-bold text-lg leading-tight group-hover:text-primary transition-colors">{pkg.name}</h4>
+                          <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">{pkg.description}</p>
+                          <div className="pt-2 flex items-center gap-2 text-[10px] font-black uppercase text-primary opacity-0 group-hover:opacity-100 transition-opacity">
+                            View Blueprint <ChevronRight className="h-3 w-3" />
+                          </div>
                         </CardContent>
                       </Card>
                     ))}
@@ -334,17 +360,24 @@ export default function MarketResearchPage() {
                 <TabsContent value="automation" className="animate-in fade-in slide-in-from-bottom-2">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {result.aiAutomationSuggestions?.map((auto, idx) => (
-                      <Card key={idx} className="border-none shadow-soft bg-slate-900 text-white rounded-[2rem]">
+                      <Card 
+                        key={idx} 
+                        className="border-none shadow-soft bg-slate-900 text-white rounded-[2rem] cursor-pointer group hover:ring-2 hover:ring-accent/50 transition-all"
+                        onClick={() => openDetail('automation', auto)}
+                      >
                         <CardContent className="p-8 space-y-4">
-                          <div className="flex items-center gap-3">
-                            <div className="h-10 w-10 bg-white/10 rounded-xl flex items-center justify-center">
-                              <Cpu className="h-5 w-5 text-accent" />
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <div className="h-10 w-10 bg-white/10 rounded-xl flex items-center justify-center group-hover:bg-accent/20 transition-colors">
+                                <Cpu className="h-5 w-5 text-accent" />
+                              </div>
+                              <h4 className="font-bold text-lg">{auto.workflow}</h4>
                             </div>
-                            <h4 className="font-bold text-lg">{auto.workflow}</h4>
+                            <Badge className="bg-emerald-500/20 text-emerald-400 border-none font-black text-[9px] uppercase">ROI: {auto.roi || 'High'}</Badge>
                           </div>
                           <p className="text-xs text-slate-400 leading-relaxed">{auto.benefit}</p>
-                          <div className="pt-2">
-                            <Badge className="bg-emerald-500/20 text-emerald-400 border-none font-black text-[9px] uppercase">Operational Efficiency Boost</Badge>
+                          <div className="pt-2 flex items-center gap-2 text-[10px] font-black uppercase text-accent opacity-0 group-hover:opacity-100 transition-opacity">
+                            View Implementation <ArrowRight className="h-3 w-3" />
                           </div>
                         </CardContent>
                       </Card>
@@ -428,6 +461,115 @@ export default function MarketResearchPage() {
           </Card>
         </div>
       </div>
+
+      {/* DETAIL DIALOG */}
+      <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
+        <DialogContent className="sm:max-w-[650px] rounded-[3rem] p-0 overflow-hidden border-none shadow-2xl">
+          <div className={selectedDetail?.type === 'automation' ? "bg-slate-900 text-white" : "bg-white text-slate-900"}>
+            <div className="p-10">
+              <div className="flex items-center gap-4 mb-8">
+                <div className={`h-12 w-12 rounded-2xl flex items-center justify-center shadow-lg ${selectedDetail?.type === 'automation' ? 'bg-accent/20 text-accent' : 'bg-primary/10 text-primary'}`}>
+                  {selectedDetail?.type === 'automation' ? <Cpu className="h-6 w-6" /> : <Package className="h-6 w-6" />}
+                </div>
+                <div>
+                  <Badge variant="outline" className={`uppercase text-[9px] font-black tracking-widest mb-1 ${selectedDetail?.type === 'automation' ? 'text-accent border-accent/20' : 'text-primary border-primary/20'}`}>
+                    {selectedDetail?.type === 'automation' ? 'Operational Efficiency' : 'Production Package'}
+                  </Badge>
+                  <DialogTitle className="text-3xl font-black tracking-tighter">
+                    {selectedDetail?.data.name || selectedDetail?.data.workflow}
+                  </DialogTitle>
+                </div>
+              </div>
+
+              <ScrollArea className="max-h-[60vh] pr-4">
+                <div className="space-y-10 pb-6">
+                  {/* Summary */}
+                  <div className="space-y-3">
+                    <h3 className={`text-[10px] font-black uppercase tracking-[0.2em] flex items-center gap-2 ${selectedDetail?.type === 'automation' ? 'text-slate-500' : 'text-slate-400'}`}>
+                      <Info className="h-3.5 w-3.5" /> Overview
+                    </h3>
+                    <p className={`text-base leading-relaxed font-medium ${selectedDetail?.type === 'automation' ? 'text-slate-300' : 'text-slate-600'}`}>
+                      {selectedDetail?.data.description || selectedDetail?.data.benefit}
+                    </p>
+                  </div>
+
+                  {/* Strategic Context */}
+                  {selectedDetail?.type === 'package' && (
+                    <>
+                      <div className="space-y-4">
+                        <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 flex items-center gap-2">
+                          <CheckCircle2 className="h-3.5 w-3.5 text-primary" /> Key Deliverables
+                        </h3>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          {selectedDetail?.data.deliverables?.map((item: string, i: number) => (
+                            <div key={i} className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl border border-slate-100 text-xs font-bold text-slate-700">
+                              <CheckCircle2 className="h-3 w-3 text-emerald-500" />
+                              {item}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="space-y-3">
+                        <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Strategic Value</h3>
+                        <div className="bg-primary/5 p-6 rounded-3xl border border-primary/10">
+                          <p className="text-sm font-medium italic text-primary leading-relaxed">
+                            "{selectedDetail?.data.strategicValue || "Optimized for the identified market gap and trend velocity."}"
+                          </p>
+                        </div>
+                      </div>
+                    </>
+                  )}
+
+                  {/* Implementation Steps */}
+                  {selectedDetail?.type === 'automation' && (
+                    <>
+                      <div className="space-y-4">
+                        <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 flex items-center gap-2">
+                          <Zap className="h-3.5 w-3.5 text-accent" /> Implementation Blueprint
+                        </h3>
+                        <div className="bg-white/5 p-6 rounded-3xl border border-white/10 space-y-4">
+                          <p className="text-sm text-slate-300 leading-relaxed">
+                            {selectedDetail?.data.implementation || "Contact engineering to initialize this AI pipeline."}
+                          </p>
+                          <div className="flex items-center gap-4 pt-2">
+                            <div className="flex flex-col">
+                              <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Est. ROI</span>
+                              <span className="text-xl font-black text-emerald-400">{selectedDetail?.data.roi || '35%'} Efficiency</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </ScrollArea>
+
+              <div className={`mt-8 pt-8 border-t flex flex-col md:flex-row items-center justify-between gap-6 ${selectedDetail?.type === 'automation' ? 'border-white/10' : 'border-slate-100'}`}>
+                {selectedDetail?.type === 'package' ? (
+                  <>
+                    <div className="flex flex-col">
+                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Market Value</span>
+                      <span className="text-2xl font-black text-primary">{selectedDetail?.data.priceEstimate}</span>
+                    </div>
+                    <Button className="rounded-2xl h-12 px-10 font-black uppercase text-xs tracking-widest gap-2">
+                      <Plus className="h-4 w-4" /> Add to Service Catalog
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <div className="flex items-center gap-2 text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                      <Zap className="h-3.5 w-3.5 text-accent" /> Ready for Deployment
+                    </div>
+                    <Button className="bg-white text-slate-900 hover:bg-slate-100 rounded-2xl h-12 px-10 font-black uppercase text-xs tracking-widest gap-2">
+                      Initialize Workflow <ArrowRight className="h-4 w-4" />
+                    </Button>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

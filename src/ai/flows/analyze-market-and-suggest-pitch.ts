@@ -27,10 +27,14 @@ const AnalyzeMarketAndSuggestPitchOutputSchema = z.object({
     name: z.string().describe('Name of the production bundle.'),
     description: z.string().describe('Brief of what is included.'),
     priceEstimate: z.string().describe('Estimated market value in INR.'),
+    strategicValue: z.string().describe('Detailed explanation of why this package wins in this market.'),
+    deliverables: z.array(z.string()).describe('Specific list of items the client receives.'),
   })).describe('Bundled production services tailored for this specific market gap.'),
   aiAutomationSuggestions: z.array(z.object({
     workflow: z.string().describe('Name of the AI automation workflow.'),
     benefit: z.string().describe('The operational benefit for the producer.'),
+    implementation: z.string().describe('Specific steps or tools to implement this workflow.'),
+    roi: z.string().describe('Estimated time or cost savings percentage.'),
   })).describe('AI-driven automation ideas to streamline production in this industry.'),
 });
 export type AnalyzeMarketAndSuggestPitchOutput = z.infer<typeof AnalyzeMarketAndSuggestPitchOutputSchema>;
@@ -55,8 +59,8 @@ Based on the above, provide:
 2. Specific content opportunities for campaigns (e.g., "Short-form vertical video for local artisans").
 3. An overall opportunity score (0-100) reflecting market entry potential.
 4. Optimal pitch angles for marketing campaigns.
-5. 3 Suggested Production Packages (Bundles) that a production house could sell to this market, including estimated prices in INR.
-6. 2-3 AI Automation suggestions that the producer can use to deliver these services faster (e.g., "AI Script Generation for Real Estate Listings").
+5. 3 Suggested Production Packages (Bundles) that a production house could sell to this market, including estimated prices in INR, a list of deliverables, and the strategic value.
+6. 2-3 AI Automation suggestions that the producer can use to deliver these services faster, including implementation steps and estimated ROI.
 
 Please format your response as a JSON object matching the output schema provided.`,
 });
