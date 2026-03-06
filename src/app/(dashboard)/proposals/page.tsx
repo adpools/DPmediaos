@@ -18,7 +18,8 @@ import {
   BrainCircuit,
   ArrowRight,
   Target,
-  FileCheck
+  FileCheck,
+  Database
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -41,6 +42,7 @@ import { toast } from "@/hooks/use-toast";
 import { generateProposalContent } from "@/ai/flows/generate-proposal-content";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 function ProposalsContent() {
   const { profile, isLoading: isTenantLoading, companyId } = useTenant();
@@ -89,6 +91,7 @@ function ProposalsContent() {
     }
   }, [searchParams]);
 
+  // 1. Fetch Existing Proposals
   const proposalsQuery = useMemoFirebase(() => {
     if (!db || !companyId) return null;
     return query(
@@ -99,6 +102,17 @@ function ProposalsContent() {
 
   const { data: proposals, isLoading: isProposalsLoading } = useCollection(proposalsQuery);
 
+  // 2. Fetch CRM Leads for Smart Import
+  const leadsQuery = useMemoFirebase(() => {
+    if (!db || !companyId) return null;
+    return query(
+      collection(db, 'companies', companyId, 'leads'),
+      orderBy('company_name', 'asc')
+    );
+  }, [db, companyId]);
+
+  const { data: leads } = useCollection(leadsQuery);
+
   const handleGenerateAI = async () => {
     if (!newProposal.title || !newProposal.client_name || !aiInputs.servicesRequired) {
       toast({ variant: "destructive", title: "Missing Context", description: "Please ensure Project, Client, and Services are defined." });
@@ -107,13 +121,15 @@ function ProposalsContent() {
 
     setIsGenerating(true);
     try {
-      const { content } = await generateProposalContent({
+      const result = await generateProposalContent({
         projectName: newProposal.title,
         clientName: newProposal.client_name,
         servicesRequired: aiInputs.servicesRequired,
         additionalDetails: aiInputs.additionalDetails
       });
-      setNewProposal(prev => ({ ...prev, content }));
+      
+      // Fixed: Genkit flows return the output object directly
+      setNewProposal(prev => ({ ...prev, content: result.content }));
       setGenerationStep('preview');
       toast({ title: "Draft Synthesized", description: "Your AI-powered proposal is ready for review." });
     } catch (error) {
@@ -196,6 +212,39 @@ function ProposalsContent() {
 
                 {generationStep === 'input' ? (
                   <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2">
+                    {/* Smart Link Section */}
+                    <div className="space-y-2 p-4 bg-indigo-500/10 rounded-2xl border border-indigo-500/20">
+                      <Label className="text-[10px] font-black uppercase text-indigo-400 tracking-widest flex items-center gap-2">
+                        <Database className="h-3 w-3" /> Smart Link from CRM
+                      </Label>
+                      <Select onValueChange={(val) => {
+                        const lead = leads?.find(l => l.id === val);
+                        if (lead) {
+                          setNewProposal(prev => ({
+                            ...prev,
+                            client_name: lead.company_name,
+                            title: `${lead.company_name} - ${new Date().getFullYear()} Project`
+                          }));
+                          toast({ title: "Lead Connected", description: `Drafting for ${lead.company_name}.` });
+                        }
+                      }}>
+                        <SelectTrigger className="bg-white/5 border-white/10 rounded-xl h-10 text-xs text-slate-300">
+                          <SelectValue placeholder="Select active lead to fetch data..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {leads?.length === 0 ? (
+                            <div className="p-4 text-center text-xs text-muted-foreground">No active leads found.</div>
+                          ) : (
+                            leads?.map((lead) => (
+                              <SelectItem key={lead.id} value={lead.id} className="text-xs">
+                                {lead.company_name} (₹{lead.deal_value?.toLocaleString()})
+                              </SelectItem>
+                            ))
+                          )}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Project Title</Label>
