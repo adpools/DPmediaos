@@ -7,7 +7,7 @@ import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { Toaster } from "@/components/ui/toaster";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Calendar, LayoutGrid, MoreHorizontal, Phone, Smile, ArrowRight, Plus, Loader2, X, Video } from "lucide-react";
+import { Calendar, LayoutGrid, MoreHorizontal, Smile, ArrowRight, Plus, Loader2, X, Video } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { useTenant } from "@/hooks/use-tenant";
 import { doc, serverTimestamp, collection, query, where, orderBy, limit, collectionGroup } from "firebase/firestore";
@@ -37,7 +37,16 @@ export default function DashboardLayout({
   const completedCount = projects?.filter(p => p.status === 'completed').length || 0;
   const inProgressCount = projects?.filter(p => p.status === 'in_progress').length || 0;
 
-  // 2. Fetch Upcoming Schedule Events from Production Days
+  // 2. Fetch Talent for Sidebar Stats
+  const talentsQuery = useMemoFirebase(() => {
+    if (!db || !companyId) return null;
+    return query(collection(db, 'companies', companyId, 'talents'));
+  }, [db, companyId]);
+
+  const { data: talents } = useCollection(talentsQuery);
+  const talentCount = talents?.length || 0;
+
+  // 3. Fetch Upcoming Schedule Events from Production Days
   const scheduleQuery = useMemoFirebase(() => {
     if (!db || !companyId) return null;
     return query(
@@ -51,7 +60,7 @@ export default function DashboardLayout({
   const { data: upcomingEvents } = useCollection(scheduleQuery);
   const nextEvent = upcomingEvents?.[0];
 
-  // 3. Protection & Redirection Logic
+  // 4. Protection & Redirection Logic
   useEffect(() => {
     if (!isLoading) {
       const cId = profile?.company_id || (profile as any)?.companyId;
@@ -142,17 +151,18 @@ export default function DashboardLayout({
                 <Smile className="h-4 w-4 text-orange-400" /> Team Pulse
               </div>
               
-              <div className="grid grid-cols-2 gap-4 pt-2">
+              <div className="grid grid-cols-3 gap-4 pt-2">
                 <div className="space-y-1">
-                  <span className="text-[11px] font-bold text-slate-400 uppercase">Completed</span>
-                  <p className="text-3xl font-bold font-headline text-[#1A1D2C]">{completedCount}</p>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase">Done</span>
+                  <p className="text-2xl font-bold font-headline text-[#1A1D2C]">{completedCount}</p>
                 </div>
                 <div className="space-y-1">
-                  <span className="text-[11px] font-bold text-slate-400 uppercase">Active</span>
-                  <div className="flex items-baseline gap-1">
-                    <p className="text-3xl font-bold font-headline text-[#1A1D2C]">{inProgressCount}</p>
-                    <div className="h-2 w-2 rounded-full bg-rose-500 animate-pulse" />
-                  </div>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase">Active</span>
+                  <p className="text-2xl font-bold font-headline text-[#1A1D2C]">{inProgressCount}</p>
+                </div>
+                <div className="space-y-1">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase">Talent</span>
+                  <p className="text-2xl font-bold font-headline text-[#1A1D2C]">{talentCount}</p>
                 </div>
               </div>
             </div>
