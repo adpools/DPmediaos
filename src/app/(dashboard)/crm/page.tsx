@@ -4,7 +4,7 @@
 import { useState, useMemo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, MoreHorizontal, Building2, Calendar, Search, Loader2, IndianRupee, Sparkles, ExternalLink, ArrowRight, Database } from "lucide-react";
+import { Plus, MoreHorizontal, Building2, Calendar, Search, Loader2, IndianRupee, Sparkles, ExternalLink, ArrowRight, Database, Zap } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { useTenant } from "@/hooks/use-tenant";
@@ -29,7 +29,7 @@ export default function CRMPage() {
   // Quick Add State
   const [newLead, setNewLead] = useState({
     company_name: "",
-    contact_person: "",
+    service_vertical: "Brand Film",
     industry: "",
     deal_value: "",
     stage: "lead"
@@ -97,7 +97,7 @@ export default function CRMPage() {
       description: `${newLead.company_name} has been added to your pipeline.`,
     });
 
-    setNewLead({ company_name: "", contact_person: "", industry: "", deal_value: "", stage: "lead" });
+    setNewLead({ company_name: "", service_vertical: "Brand Film", industry: "", deal_value: "", stage: "lead" });
     setIsAddOpen(false);
     setIsSubmitting(false);
   };
@@ -174,17 +174,28 @@ export default function CRMPage() {
                     className="rounded-xl"
                   />
                 </div>
+                
                 <div className="space-y-2">
-                  <Label htmlFor="contact">Primary Contact</Label>
-                  <Input 
-                    id="contact" 
-                    placeholder="e.g. Jane Smith" 
-                    value={newLead.contact_person}
-                    onChange={(e) => setNewLead({...newLead, contact_person: e.target.value})}
-                    required
-                    className="rounded-xl"
-                  />
+                  <Label htmlFor="vertical">Service Vertical</Label>
+                  <Select 
+                    value={newLead.service_vertical} 
+                    onValueChange={(val) => setNewLead({...newLead, service_vertical: val})}
+                  >
+                    <SelectTrigger className="rounded-xl">
+                      <SelectValue placeholder="Select vertical" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Brand Film">Brand Film</SelectItem>
+                      <SelectItem value="Corporate Video">Corporate Video</SelectItem>
+                      <SelectItem value="TV Commercial">TV Commercial</SelectItem>
+                      <SelectItem value="Social Content">Social Content</SelectItem>
+                      <SelectItem value="Documentary">Documentary</SelectItem>
+                      <SelectItem value="Music Video">Music Video</SelectItem>
+                      <SelectItem value="Virtual Production">Virtual Production</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
+
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="value">Deal Value (₹)</Label>
@@ -269,8 +280,8 @@ export default function CRMPage() {
                       
                       <div className="space-y-2">
                         <div className="flex items-center gap-2 text-[11px] text-muted-foreground font-medium">
-                          <Building2 className="h-3.5 w-3.5" />
-                          <span>{lead.contact_person}</span>
+                          <Zap className="h-3.5 w-3.5 text-accent" />
+                          <span>{lead.service_vertical || 'General Production'}</span>
                         </div>
                         <div className="flex items-center gap-2 text-[11px] text-muted-foreground font-medium">
                           <Calendar className="h-3.5 w-3.5" />

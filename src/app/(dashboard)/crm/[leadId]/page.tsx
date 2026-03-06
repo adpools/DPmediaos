@@ -18,7 +18,8 @@ import {
   CheckCircle2,
   Clock,
   ChevronRight,
-  MapPin
+  MapPin,
+  Zap
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useTenant } from "@/hooks/use-tenant";
@@ -275,37 +276,37 @@ export default function LeadDetailPage({ params }: { params: Promise<{ leadId: s
             </CardContent>
           </Card>
 
-          {/* Contact Details */}
+          {/* Opportunity Context */}
           <Card className="border-none shadow-sm rounded-[2rem] bg-white">
             <CardHeader>
-              <CardTitle className="text-lg">Key Contact</CardTitle>
+              <CardTitle className="text-lg">Deal Context</CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="flex items-center gap-4">
-                <div className="h-12 w-12 rounded-2xl bg-primary/5 flex items-center justify-center text-primary text-xl font-bold">
-                  {lead.contact_person?.[0]}
+                <div className="h-12 w-12 rounded-2xl bg-accent/5 flex items-center justify-center text-accent text-xl font-bold">
+                  <Zap className="h-6 w-6" />
                 </div>
                 <div>
-                  <p className="font-bold text-base leading-none">{lead.contact_person}</p>
-                  <p className="text-xs text-muted-foreground mt-1 uppercase font-bold tracking-tighter">Decision Maker</p>
+                  <p className="font-bold text-base leading-none">{lead.service_vertical || 'General Production'}</p>
+                  <p className="text-xs text-muted-foreground mt-1 uppercase font-bold tracking-tighter">Service Vertical</p>
                 </div>
               </div>
               <div className="space-y-3 pt-4 border-t">
                 <div className="flex items-center gap-3 text-xs">
-                  <Mail className="h-4 w-4 text-muted-foreground" />
-                  <span className="font-medium">{lead.email || 'contact@client.com'}</span>
-                </div>
-                <div className="flex items-center gap-3 text-xs">
                   <Briefcase className="h-4 w-4 text-muted-foreground" />
-                  <span className="font-medium">{lead.industry || 'Media Production'}</span>
+                  <span className="font-medium">Industry: {lead.industry || 'Media Production'}</span>
                 </div>
                 <div className="flex items-center gap-3 text-xs">
                   <TrendingUp className="h-4 w-4 text-muted-foreground" />
                   <span className="font-medium">Lead Source: Referral</span>
                 </div>
+                <div className="flex items-center gap-3 text-xs">
+                  <Clock className="h-4 w-4 text-muted-foreground" />
+                  <span className="font-medium">Created: {lead.created_at?.toDate ? lead.created_at.toDate().toLocaleDateString() : 'Just now'}</span>
+                </div>
               </div>
               <Button variant="secondary" className="w-full rounded-xl h-10 text-xs font-bold uppercase tracking-wider">
-                Log New Interaction
+                Update Vertical
               </Button>
             </CardContent>
           </Card>
