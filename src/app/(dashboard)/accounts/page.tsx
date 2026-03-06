@@ -77,6 +77,7 @@ export default function AccountsPage() {
   const [selectedFilingPeriod, setSelectedFilingPeriod] = useState<any>(null);
   const [filingStep, setFilingStep] = useState<'review' | 'validating' | 'syncing' | 'complete'>('review');
   const [automationProgress, setAutomationProgress] = useState(0);
+  const [sessionARN, setSessionARN] = useState<string | null>(null);
 
   // Assistant State
   const [isAssistantRunning, setIsAssistantRunning] = useState(false);
@@ -185,10 +186,12 @@ export default function AccountsPage() {
       totalOutput += amount;
 
       if (!aggregatedData[periodKey]) {
+        const existingFiling = filings?.find(f => f.period === periodKey);
         aggregatedData[periodKey] = {
           period: periodKey,
           output: 0,
-          status: filings?.find(f => f.period === periodKey) ? 'Filed' : 'Pending',
+          status: existingFiling ? 'Filed' : 'Pending',
+          arn: existingFiling?.arn_number || null,
           count: 0
         };
       }
@@ -252,8 +255,16 @@ export default function AccountsPage() {
 
   const handleStartFiling = (periodData: any) => {
     setSelectedFilingPeriod(periodData);
+    setSessionARN(null);
     setFilingStep('review');
     setAutomationProgress(0);
+    setIsFilingOpen(true);
+  };
+
+  const handleViewARN = (periodData: any) => {
+    setSelectedFilingPeriod(periodData);
+    setSessionARN(periodData.arn);
+    setFilingStep('complete');
     setIsFilingOpen(true);
   };
 
@@ -292,6 +303,7 @@ export default function AccountsPage() {
       submitted_at: serverTimestamp()
     });
 
+    setSessionARN(arn);
     setAutomationProgress(100);
     setFilingStep('complete');
     
@@ -702,7 +714,7 @@ export default function AccountsPage() {
                                     <Zap className="h-3 w-3" /> Initiate Automation
                                   </Button>
                                 ) : (
-                                  <Button variant="ghost" size="sm" className="h-8 text-[10px] font-bold uppercase tracking-wider text-emerald-600 hover:bg-emerald-50 gap-2">
+                                  <Button variant="ghost" size="sm" className="h-8 text-[10px] font-bold uppercase tracking-wider text-emerald-600 hover:bg-emerald-50 gap-2" onClick={() => handleViewARN(m)}>
                                     <CheckCircle2 className="h-3 w-3" /> View ARN
                                   </Button>
                                 )}
@@ -940,7 +952,7 @@ export default function AccountsPage() {
                   </div>
                   <div className="bg-slate-800 p-4 rounded-2xl border border-slate-700 w-full max-w-[300px]">
                     <p className="text-[10px] font-bold text-slate-500 uppercase mb-1">Acknowledgement Number</p>
-                    <p className="font-mono font-bold text-indigo-400">ARN-{Math.random().toString(36).substring(2, 10).toUpperCase()}</p>
+                    <p className="font-mono font-bold text-indigo-400">{sessionARN || 'ARN-PENDING'}</p>
                   </div>
                   <Button onClick={() => setIsFilingOpen(false)} className="bg-white text-slate-900 font-bold rounded-xl px-12 h-11 mt-4">
                     Acknowledge
