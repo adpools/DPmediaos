@@ -179,12 +179,12 @@ export default function ProjectsPage() {
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-primary">Media Productions</h1>
-          <p className="text-muted-foreground">Manage your content lifecycle from pre to post.</p>
+          <h1 className="text-2xl md:text-3xl font-bold text-primary">Media Productions</h1>
+          <p className="text-xs md:text-sm text-muted-foreground">Manage your content lifecycle from pre to post.</p>
         </div>
         
-        <div className="flex items-center gap-3">
-          <div className="relative w-full md:w-64">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+          <div className="relative w-full sm:w-64">
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input 
               placeholder="Search projects..." 
@@ -195,7 +195,7 @@ export default function ProjectsPage() {
           </div>
           <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
             <DialogTrigger asChild>
-              <Button className="gap-2 rounded-xl shadow-lg shadow-primary/20 shrink-0">
+              <Button className="gap-2 rounded-xl shadow-lg shadow-primary/20 shrink-0 h-10">
                 <Plus className="h-4 w-4" /> New Project
               </Button>
             </DialogTrigger>
@@ -304,13 +304,13 @@ export default function ProjectsPage() {
         </div>
       </div>
 
-      <div className="flex items-center justify-between bg-white p-2 rounded-xl border shadow-sm">
-        <div className="flex items-center gap-1">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between bg-white p-2 rounded-xl border shadow-sm gap-2">
+        <div className="flex items-center gap-1 overflow-x-auto scrollbar-hide pb-1 sm:pb-0">
           <Button 
             variant="ghost" 
             size="sm" 
             onClick={() => setViewMode('grid')}
-            className={cn("h-8 gap-2 rounded-lg", viewMode === 'grid' && "bg-muted text-primary font-bold")}
+            className={cn("h-8 gap-2 rounded-lg shrink-0", viewMode === 'grid' && "bg-muted text-primary font-bold")}
           >
             <LayoutGrid className="h-4 w-4" /> Grid
           </Button>
@@ -318,23 +318,23 @@ export default function ProjectsPage() {
             variant="ghost" 
             size="sm" 
             onClick={() => setViewMode('list')}
-            className={cn("h-8 gap-2 rounded-lg", viewMode === 'list' && "bg-muted text-primary font-bold")}
+            className={cn("h-8 gap-2 rounded-lg shrink-0", viewMode === 'list' && "bg-muted text-primary font-bold")}
           >
             <ListIcon className="h-4 w-4" /> List
           </Button>
-          <div className="h-4 w-px bg-border mx-2" />
+          <div className="h-4 w-px bg-border mx-1 shrink-0" />
           <Button 
             variant="ghost" 
             size="sm" 
             onClick={() => setViewMode('timeline')}
-            className={cn("h-8 gap-2 rounded-lg", viewMode === 'timeline' && "bg-muted text-primary font-bold")}
+            className={cn("h-8 gap-2 rounded-lg shrink-0", viewMode === 'timeline' && "bg-muted text-primary font-bold")}
           >
             <Calendar className="h-4 w-4" /> Timeline
           </Button>
         </div>
         <div className="flex items-center gap-2">
           {statusFilter !== 'all' && (
-            <Badge variant="secondary" className="gap-1 h-8 rounded-lg pl-3 pr-1 bg-primary/10 text-primary border-none">
+            <Badge variant="secondary" className="gap-1 h-8 rounded-lg pl-3 pr-1 bg-primary/10 text-primary border-none hidden sm:flex">
               Status: {statusFilter.replace('_', ' ')}
               <Button variant="ghost" size="icon" className="h-5 w-5 hover:bg-transparent" onClick={() => setStatusFilter('all')}>
                 <X className="h-3 w-3" />
@@ -343,7 +343,7 @@ export default function ProjectsPage() {
           )}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="h-8 gap-2 rounded-lg">
+              <Button variant="outline" size="sm" className="h-8 gap-2 rounded-lg w-full sm:w-auto">
                 <Filter className="h-4 w-4" /> Filter
               </Button>
             </DropdownMenuTrigger>
@@ -384,8 +384,8 @@ export default function ProjectsPage() {
 
       <div className="min-h-[400px]">
         {filteredProjects.length === 0 ? (
-          <div className="text-center py-20 bg-white rounded-3xl border-2 border-dashed">
-            <p className="text-muted-foreground">No projects found matching your criteria.</p>
+          <div className="text-center py-20 bg-white rounded-3xl border-2 border-dashed px-4">
+            <p className="text-muted-foreground text-sm">No projects found matching your criteria.</p>
             {(searchQuery || statusFilter !== 'all') ? (
               <Button variant="link" onClick={() => { setSearchQuery(""); setStatusFilter("all"); }}>Clear Filters</Button>
             ) : (
@@ -394,7 +394,7 @@ export default function ProjectsPage() {
           </div>
         ) : (
           <div className={cn(
-            viewMode === 'grid' && "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6",
+            viewMode === 'grid' && "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6",
             viewMode === 'list' && "space-y-4",
             viewMode === 'timeline' && "relative space-y-8 before:absolute before:left-4 md:before:left-[50%] before:top-0 before:bottom-0 before:w-px before:bg-slate-200"
           )}>
@@ -428,7 +428,7 @@ function ProjectCard({ project, view, index }: { project: any, view: ViewMode, i
           </div>
           <CardContent className="p-6 space-y-4 bg-white">
             <div className="flex justify-between items-center text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
-              <span>Client: {project.client_name}</span>
+              <span className="truncate max-w-[70%]">Client: {project.client_name}</span>
               <span>{project.progress || 0}%</span>
             </div>
             <Progress value={project.progress || 0} className="h-1.5" />
@@ -502,20 +502,20 @@ function ProjectCard({ project, view, index }: { project: any, view: ViewMode, i
           {/* Main Title Area */}
           <Link 
             href={`/projects/${project.id}`} 
-            className="p-6 md:w-[35%] flex flex-col gap-2 relative group-hover:bg-slate-50/50 transition-colors"
+            className="p-5 md:p-6 md:w-[35%] flex flex-col gap-2 relative group-hover:bg-slate-50/50 transition-colors"
           >
             <div className="absolute left-0 top-0 bottom-0 w-1.5" style={{ backgroundColor: project.color === 'card-pink' ? '#FF4B82' : '#B199FF' }} />
             <div className="flex items-center gap-3">
-              <h3 className="font-bold text-lg leading-none text-slate-800 group-hover:text-primary transition-colors truncate">
+              <h3 className="font-bold text-base md:text-lg leading-none text-slate-800 group-hover:text-primary transition-colors truncate">
                 {project.project_name}
               </h3>
               <ExternalLink className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-all transform group-hover:translate-x-1" />
             </div>
-            <div className="flex items-center gap-3">
-              <Badge variant="outline" className="text-[9px] uppercase font-bold tracking-widest py-0.5 px-2 bg-slate-50 border-slate-200 text-slate-500">
+            <div className="flex flex-wrap items-center gap-2 md:gap-3">
+              <Badge variant="outline" className="text-[8px] md:text-[9px] uppercase font-bold tracking-widest py-0.5 px-2 bg-slate-50 border-slate-200 text-slate-500">
                 {project.status?.replace('_', ' ')}
               </Badge>
-              <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium">
+              <div className="flex items-center gap-1.5 text-[10px] md:text-xs text-muted-foreground font-medium">
                 <Briefcase className="h-3 w-3" />
                 {project.client_name}
               </div>
@@ -523,27 +523,27 @@ function ProjectCard({ project, view, index }: { project: any, view: ViewMode, i
           </Link>
 
           {/* Progress Area */}
-          <div className="flex-1 px-6 py-4 md:py-0 border-y md:border-y-0 md:border-x border-slate-100">
-            <div className="space-y-3">
+          <div className="flex-1 px-5 md:px-6 py-4 md:py-0 border-y md:border-y-0 md:border-x border-slate-100">
+            <div className="space-y-2 md:space-y-3">
               <div className="flex justify-between items-end">
                 <div className="flex items-center gap-2">
                   <Layers className="h-3.5 w-3.5 text-primary/60" />
-                  <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Production Health</span>
+                  <span className="text-[9px] md:text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Production Health</span>
                 </div>
-                <span className="text-sm font-black text-primary">{project.progress || 0}%</span>
+                <span className="text-xs md:text-sm font-black text-primary">{project.progress || 0}%</span>
               </div>
-              <Progress value={project.progress || 0} className="h-2 rounded-full bg-slate-100" />
+              <Progress value={project.progress || 0} className="h-1.5 md:h-2 rounded-full bg-slate-100" />
             </div>
           </div>
 
           {/* Metadata & Actions Area */}
-          <div className="p-6 md:w-[30%] flex items-center justify-between gap-6 bg-slate-50/30">
-            <div className="flex items-center gap-8">
+          <div className="p-5 md:p-6 md:w-[30%] flex items-center justify-between gap-4 md:gap-6 bg-slate-50/30">
+            <div className="flex items-center gap-4 md:gap-8">
               <div className="flex flex-col">
-                <span className="text-[9px] uppercase font-black text-slate-400 tracking-[0.15em] mb-1">Deadline</span>
+                <span className="text-[8px] md:text-[9px] uppercase font-black text-slate-400 tracking-[0.15em] mb-1">Deadline</span>
                 <div className="flex items-center gap-1.5">
                   <Calendar className="h-3.5 w-3.5 text-rose-400" />
-                  <span className="text-sm font-bold text-slate-700">{project.deadline || 'TBD'}</span>
+                  <span className="text-xs md:text-sm font-bold text-slate-700">{project.deadline || 'TBD'}</span>
                 </div>
               </div>
               

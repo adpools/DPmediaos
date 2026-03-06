@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useMemo } from "react";
@@ -154,11 +155,11 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="space-y-10">
+    <div className="space-y-6 md:space-y-10">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
-          <div className="flex items-center gap-3 mb-2">
-            <h1 className="text-4xl font-bold tracking-tight text-primary">
+          <div className="flex flex-wrap items-center gap-3 mb-2">
+            <h1 className="text-2xl md:text-4xl font-bold tracking-tight text-primary">
               Hi {profile?.fullName?.split(' ')[0] || 'Producer'}!
             </h1>
             <div className="flex items-center gap-2">
@@ -174,9 +175,9 @@ export default function DashboardPage() {
               )}
             </div>
           </div>
-          <p className="text-muted-foreground">{company?.name || 'Your'} Workspace Overview</p>
+          <p className="text-xs md:text-sm text-muted-foreground">{company?.name || 'Your'} Workspace Overview</p>
         </div>
-        <div className="flex flex-col items-end gap-2 mb-1">
+        <div className="hidden sm:flex flex-col items-end gap-2 mb-1">
           <div className="flex items-center gap-4 text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
             <span>Production Velocity</span>
             <Progress value={overallProgress} className="w-32 h-1.5 bg-white shadow-inner" />
@@ -185,7 +186,7 @@ export default function DashboardPage() {
       </div>
 
       {/* KPI Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
         {[
           { label: "Total Revenue", val: `₹${(stats.revenue / 1000).toFixed(1)}k`, icon: IndianRupee, color: "text-emerald-500", desc: "Real-time ledger" },
           { label: "Pipeline Value", val: `₹${(stats.pipeline / 100000).toFixed(1)}L`, icon: Target, color: "text-accent", desc: "Projected deals" },
@@ -193,9 +194,9 @@ export default function DashboardPage() {
           { label: "Talent Pool", val: stats.team, icon: Users, color: "text-purple-500", desc: "Verified network" },
         ].map((stat, i) => (
           <Card key={i} className="border-none shadow-sm group hover:shadow-md transition-all rounded-[1.5rem]">
-            <CardContent className="p-6">
+            <CardContent className="p-5 md:p-6">
               <div className="flex justify-between items-start mb-4">
-                <div className={`p-2.5 rounded-xl bg-slate-50 ${stat.color} group-hover:scale-110 transition-transform`}>
+                <div className={`p-2 rounded-xl bg-slate-50 ${stat.color} group-hover:scale-110 transition-transform`}>
                   <stat.icon className="h-5 w-5" />
                 </div>
                 <div className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full flex items-center gap-1">
@@ -204,7 +205,7 @@ export default function DashboardPage() {
               </div>
               <div className="space-y-1">
                 <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">{stat.label}</p>
-                <p className="text-2xl font-bold font-headline">{stat.val}</p>
+                <p className="text-xl md:text-2xl font-bold font-headline">{stat.val}</p>
                 <p className="text-[10px] text-muted-foreground font-medium">{stat.desc}</p>
               </div>
             </CardContent>
@@ -213,18 +214,18 @@ export default function DashboardPage() {
       </div>
 
       {/* Analytics Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
         <Card className="lg:col-span-2 border-none shadow-sm rounded-[2rem] bg-white">
-          <CardHeader className="flex flex-row items-center justify-between">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0">
             <div>
-              <CardTitle className="text-xl">Revenue Velocity</CardTitle>
-              <CardDescription>Monthly billing trends</CardDescription>
+              <CardTitle className="text-lg md:text-xl">Revenue Velocity</CardTitle>
+              <CardDescription className="text-xs">Monthly billing trends</CardDescription>
             </div>
             <Link href="/reports">
-              <Button variant="ghost" size="sm" className="text-primary font-bold text-xs">Full Audit</Button>
+              <Button variant="ghost" size="sm" className="text-primary font-bold text-xs">Audit</Button>
             </Link>
           </CardHeader>
-          <CardContent className="h-[250px] pt-4">
+          <CardContent className="h-[200px] md:h-[250px] pt-4">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={revenueChartData}>
                 <XAxis dataKey="month" axisLine={false} tickLine={false} style={{ fontSize: '10px', fontWeight: 'bold' }} />
@@ -233,7 +234,7 @@ export default function DashboardPage() {
                   contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 30px rgba(0,0,0,0.1)' }}
                   formatter={(v: any) => `₹${v.toLocaleString()}`}
                 />
-                <Bar dataKey="revenue" fill="#B199FF" radius={[6, 6, 0, 0]} barSize={40} />
+                <Bar dataKey="revenue" fill="#B199FF" radius={[6, 6, 0, 0]} barSize={30} />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
@@ -241,12 +242,12 @@ export default function DashboardPage() {
 
         <Card className="border-none shadow-sm rounded-[2rem] bg-white">
           <CardHeader>
-            <CardTitle className="text-xl">Production Pulse</CardTitle>
-            <CardDescription>Project distribution</CardDescription>
+            <CardTitle className="text-lg md:text-xl">Production Pulse</CardTitle>
+            <CardDescription className="text-xs">Project distribution</CardDescription>
           </CardHeader>
-          <CardContent className="h-[250px] flex items-center justify-center">
+          <CardContent className="h-[200px] md:h-[250px] flex items-center justify-center">
             {stats.active === 0 && stats.revenue === 0 ? (
-              <div className="text-center text-xs text-muted-foreground bg-slate-50 p-8 rounded-2xl border-2 border-dashed">
+              <div className="text-center text-[10px] text-muted-foreground bg-slate-50 p-6 rounded-2xl border-2 border-dashed">
                 Add projects to see pulse
               </div>
             ) : (
@@ -254,8 +255,8 @@ export default function DashboardPage() {
                 <PieChart>
                   <Pie
                     data={projectBreakdown}
-                    innerRadius={60}
-                    outerRadius={80}
+                    innerRadius={50}
+                    outerRadius={70}
                     paddingAngle={8}
                     dataKey="value"
                   >
@@ -272,60 +273,60 @@ export default function DashboardPage() {
       </div>
 
       {/* Projects Horizon */}
-      <div className="space-y-6">
+      <div className="space-y-4 md:space-y-6">
         <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-bold">Recent Projects</h2>
+          <h2 className="text-xl md:text-2xl font-bold">Recent Projects</h2>
           <Link href="/projects">
-            <Button variant="link" className="text-primary font-bold">View Pipeline</Button>
+            <Button variant="link" className="text-primary font-bold text-sm">View All</Button>
           </Link>
         </div>
-        <div className="flex gap-6 overflow-x-auto pb-4 scrollbar-hide">
+        <div className="flex gap-4 md:gap-6 overflow-x-auto pb-4 scrollbar-hide -mx-4 px-4 md:mx-0 md:px-0">
           {isProjectsLoading ? (
             <div className="flex gap-4">
-              {[1, 2].map(i => <div key={i} className="min-w-[320px] h-[180px] bg-slate-200 animate-pulse rounded-[2rem]" />)}
+              {[1, 2].map(i => <div key={i} className="min-w-[280px] md:min-w-[320px] h-[160px] md:h-[180px] bg-slate-200 animate-pulse rounded-[2rem]" />)}
             </div>
           ) : projects?.length === 0 ? (
-            <Link href="/projects">
-              <Card className="min-w-[320px] h-[180px] border-2 border-dashed border-slate-300 bg-white rounded-[2rem] flex items-center justify-center text-muted-foreground cursor-pointer hover:bg-slate-50 transition-colors">
+            <Link href="/projects" className="w-full">
+              <Card className="w-full h-[160px] md:h-[180px] border-2 border-dashed border-slate-300 bg-white rounded-[2rem] flex items-center justify-center text-muted-foreground cursor-pointer hover:bg-slate-50 transition-colors">
                 <div className="flex flex-col items-center gap-2">
                   <Plus className="h-6 w-6" />
-                  <span className="text-xs font-bold uppercase tracking-widest">Launch First Project</span>
+                  <span className="text-[10px] font-bold uppercase tracking-widest">Launch First Project</span>
                 </div>
               </Card>
             </Link>
           ) : (
             <>
               {projects?.map((proj) => (
-                <Link key={proj.id} href={`/projects`}>
-                  <Card className={`min-w-[320px] h-[180px] border-none shadow-lg text-white rounded-[2rem] p-8 flex flex-col justify-between group cursor-pointer hover:scale-[1.02] transition-transform ${proj.color || 'card-pink'}`}>
+                <Link key={proj.id} href={`/projects/${proj.id}`}>
+                  <Card className={`min-w-[280px] md:min-w-[320px] h-[160px] md:h-[180px] border-none shadow-lg text-white rounded-[2rem] p-6 md:p-8 flex flex-col justify-between group cursor-pointer hover:scale-[1.02] transition-transform ${proj.color || 'card-pink'}`}>
                     <div className="flex justify-between items-start">
-                      <div className="h-10 w-10 rounded-2xl bg-white/20 flex items-center justify-center backdrop-blur-md">
-                        <Sparkles className="h-5 w-5" />
+                      <div className="h-8 md:h-10 w-8 md:w-10 rounded-xl md:rounded-2xl bg-white/20 flex items-center justify-center backdrop-blur-md">
+                        <Sparkles className="h-4 md:h-5 w-4 md:w-5" />
                       </div>
-                      <MoreHorizontal className="h-5 w-5 opacity-50 group-hover:opacity-100 transition-opacity" />
+                      <MoreHorizontal className="h-4 md:h-5 w-4 md:w-5 opacity-50 group-hover:opacity-100 transition-opacity" />
                     </div>
-                    <div className="space-y-4">
-                      <h3 className="font-bold text-lg leading-tight w-2/3 line-clamp-2">{proj.project_name}</h3>
+                    <div className="space-y-3 md:space-y-4">
+                      <h3 className="font-bold text-base md:text-lg leading-tight w-2/3 line-clamp-2">{proj.project_name}</h3>
                       <div className="flex items-center justify-between">
                         <div className="flex -space-x-2">
                           {[1, 2].map(i => (
-                            <Avatar key={i} className="h-6 w-6 border-2 border-white/20">
+                            <Avatar key={i} className="h-5 md:h-6 w-5 md:w-6 border-2 border-white/20">
                               <AvatarImage src={`https://picsum.photos/seed/p${proj.id+i}/40/40`} />
                               <AvatarFallback>U</AvatarFallback>
                             </Avatar>
                           ))}
                         </div>
-                        <span className="text-[10px] font-bold uppercase tracking-widest">{proj.progress}%</span>
+                        <span className="text-[9px] md:text-[10px] font-bold uppercase tracking-widest">{proj.progress}%</span>
                       </div>
                     </div>
                   </Card>
                 </Link>
               ))}
               <Link href="/projects">
-                <Card className="min-w-[320px] h-[180px] border-2 border-dashed border-primary/20 bg-primary/5 rounded-[2rem] flex items-center justify-center text-primary cursor-pointer hover:bg-primary/10 transition-colors">
+                <Card className="min-w-[200px] md:min-w-[320px] h-[160px] md:h-[180px] border-2 border-dashed border-primary/20 bg-primary/5 rounded-[2rem] flex items-center justify-center text-primary cursor-pointer hover:bg-primary/10 transition-colors">
                   <div className="flex flex-col items-center gap-2">
-                    <div className="h-10 w-10 rounded-full border-2 border-dashed border-primary/40 flex items-center justify-center"><Plus className="h-4 w-4" /></div>
-                    <span className="text-xs font-bold uppercase tracking-widest">New Production</span>
+                    <div className="h-8 md:h-10 w-8 md:w-10 rounded-full border-2 border-dashed border-primary/40 flex items-center justify-center"><Plus className="h-4 w-4" /></div>
+                    <span className="text-[10px] font-bold uppercase tracking-widest">New Production</span>
                   </div>
                 </Card>
               </Link>
@@ -334,48 +335,48 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      <div className="space-y-6">
+      <div className="space-y-4 md:space-y-6">
         <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-bold">Workspace Feed</h2>
+          <h2 className="text-xl md:text-2xl font-bold">Workspace Feed</h2>
         </div>
 
         <Tabs defaultValue="active" className="w-full">
-          <TabsList className="bg-transparent h-auto p-0 gap-8 border-b border-slate-200 w-full justify-start rounded-none">
+          <TabsList className="bg-transparent h-auto p-0 gap-6 md:gap-8 border-b border-slate-200 w-full justify-start rounded-none">
             <TabsTrigger value="active" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none text-xs font-bold px-0 pb-3">Active Tasks</TabsTrigger>
             <TabsTrigger value="done" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none text-xs font-bold px-0 pb-3 text-muted-foreground/60">Archive</TabsTrigger>
           </TabsList>
           
-          <TabsContent value="active" className="space-y-4 pt-4">
+          <TabsContent value="active" className="space-y-3 md:space-y-4 pt-4">
             {isTasksLoading ? (
-              <div className="space-y-4">
-                {[1, 2, 3].map(i => <div key={i} className="h-16 w-full bg-slate-100 animate-pulse rounded-2xl" />)}
+              <div className="space-y-3 md:space-y-4">
+                {[1, 2, 3].map(i => <div key={i} className="h-14 md:h-16 w-full bg-slate-100 animate-pulse rounded-2xl" />)}
               </div>
             ) : tasks?.length === 0 ? (
-              <div className="text-center py-12 text-muted-foreground bg-white/50 rounded-3xl border-2 border-dashed">
-                <p className="text-sm">No pending tasks. Your production queue is clear.</p>
+              <div className="text-center py-10 md:py-12 text-muted-foreground bg-white/50 rounded-3xl border-2 border-dashed">
+                <p className="text-xs md:text-sm">No pending tasks. Your queue is clear.</p>
               </div>
             ) : (
               tasks?.map(task => (
-                <div key={task.id} className="flex items-center justify-between group cursor-pointer p-4 hover:bg-white rounded-2xl transition-all shadow-sm border border-transparent hover:border-slate-100">
-                  <div className="flex items-center gap-4">
-                    <div className={`h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary shadow-sm overflow-hidden`}>
-                       {task.status === 'in_progress' ? <Clock className="h-5 w-5" /> : <CheckCircle2 className="h-5 w-5" />}
+                <div key={task.id} className="flex items-center justify-between group cursor-pointer p-3 md:p-4 hover:bg-white rounded-2xl transition-all shadow-sm border border-transparent hover:border-slate-100">
+                  <div className="flex items-center gap-3 md:gap-4">
+                    <div className={`h-9 md:h-10 w-9 md:w-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary shadow-sm overflow-hidden`}>
+                       {task.status === 'in_progress' ? <Clock className="h-4 md:h-5 w-4 md:w-5" /> : <CheckCircle2 className="h-4 md:h-5 w-4 md:w-5" />}
                     </div>
-                    <div className="space-y-1">
-                      <h4 className="font-bold text-sm leading-none">{task.name || task.title}</h4>
-                      <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider flex items-center gap-2">
-                        <TrendingUp className="h-3 w-3" /> {task.priority || 'Medium'} priority
+                    <div className="space-y-0.5 md:space-y-1">
+                      <h4 className="font-bold text-xs md:text-sm leading-none">{task.name || task.title}</h4>
+                      <p className="text-[9px] md:text-[11px] text-muted-foreground font-medium uppercase tracking-wider flex items-center gap-1.5 md:gap-2">
+                        <TrendingUp className="h-2.5 md:h-3 w-2.5 md:w-3" /> {task.priority || 'Medium'} priority
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-4">
-                    <div className="flex -space-x-2">
-                      <Avatar className="h-6 w-6 border-2 border-white">
+                  <div className="flex items-center gap-2 md:gap-4">
+                    <div className="flex -space-x-1.5 md:-space-x-2">
+                      <Avatar className="h-5 md:h-6 w-5 md:w-6 border-2 border-white">
                         <AvatarImage src={`https://picsum.photos/seed/${task.id}/40/40`} />
                         <AvatarFallback>U</AvatarFallback>
                       </Avatar>
                     </div>
-                    <Button variant="ghost" size="icon" className="rounded-xl opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Button variant="ghost" size="icon" className="h-8 md:h-9 w-8 md:w-9 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity hidden sm:flex">
                       <ArrowUpRight className="h-4 w-4" />
                     </Button>
                   </div>
