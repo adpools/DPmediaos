@@ -49,7 +49,7 @@ export default function DashboardLayout({
   const { data: talents } = useCollection(talentsQuery);
   const talentCount = talents?.length || 0;
 
-  // 3. Fetch Upcoming Schedule Events from Production Days
+  // 3. Fetch Upcoming Schedule Events from Production Days (Standardized to company_id)
   const scheduleQuery = useMemoFirebase(() => {
     if (!db || !companyId) return null;
     return query(

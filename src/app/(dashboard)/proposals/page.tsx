@@ -29,7 +29,8 @@ import {
   Layers,
   ChevronRight,
   List,
-  Printer
+  Printer,
+  FileDown
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -210,12 +211,12 @@ function ProposalsContent() {
     }
   };
 
-  const handleDownload = (proposal: any) => {
-    // Open specialized print view
+  const handleDownloadPDF = (proposal: any) => {
     handleViewProposal(proposal);
+    // Give time for state to sync and dialog to render before print
     setTimeout(() => {
       window.print();
-    }, 500);
+    }, 300);
   };
 
   const handleExportText = (proposal: any) => {
@@ -530,8 +531,8 @@ function ProposalsContent() {
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
-                      <Button variant="outline" size="icon" className="h-11 w-11 rounded-xl" onClick={() => handleExportText(prop)}>
-                        <Download className="h-4 w-4" />
+                      <Button variant="outline" size="icon" className="h-11 w-11 rounded-xl" onClick={() => handleDownloadPDF(prop)}>
+                        <FileDown className="h-4 w-4" />
                       </Button>
                     </div>
                   </div>
@@ -595,7 +596,7 @@ function ProposalsContent() {
                 </ScrollArea>
               </div>
 
-              <ScrollArea className="flex-1 p-12 bg-white print:p-0">
+              <ScrollArea className="flex-1 p-12 bg-white print:p-0 print:overflow-visible">
                 <div className="max-w-3xl mx-auto space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
                   {/* Print Cover Page (only visible in print) */}
                   <div className="hidden print:block space-y-12 py-20 text-center">
@@ -613,38 +614,62 @@ function ProposalsContent() {
                     </div>
                   </div>
 
-                  <div className="space-y-4 print:break-before-page">
-                    <Badge variant="outline" className="text-[10px] font-black uppercase tracking-widest border-primary/20 text-primary no-print">
-                      Phase {activeSectionIdx + 1}
-                    </Badge>
-                    <h1 className="text-4xl font-black text-slate-900 tracking-tighter">
-                      {viewingProposal?.parsedContent?.sections[activeSectionIdx].title}
-                    </h1>
-                  </div>
-                  
-                  <div className="prose prose-slate prose-lg max-w-none">
-                    <div className="text-lg leading-relaxed text-slate-600 font-medium whitespace-pre-line border-l-4 border-primary/10 pl-8 py-2 print:border-none print:pl-0">
-                      {viewingProposal?.parsedContent?.sections[activeSectionIdx].content}
-                    </div>
+                  {/* Print Sections (all visible in print) */}
+                  <div className="print:block hidden">
+                    {viewingProposal?.parsedContent?.sections.map((section: any, idx: number) => (
+                      <div key={idx} className="space-y-6 pt-16 break-before-page">
+                        <div className="space-y-4">
+                          <Badge variant="outline" className="text-[10px] font-black uppercase tracking-widest border-primary/20 text-primary">
+                            Phase {idx + 1}
+                          </Badge>
+                          <h2 className="text-4xl font-black text-slate-900 tracking-tighter">
+                            {section.title}
+                          </h2>
+                        </div>
+                        <div className="prose prose-slate prose-lg max-w-none">
+                          <div className="text-lg leading-relaxed text-slate-600 font-medium whitespace-pre-line border-l-4 border-primary/10 pl-8 py-2">
+                            {section.content}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
                   </div>
 
-                  {/* NAV CONTROLS */}
-                  <div className="pt-12 border-t flex justify-between items-center no-print">
-                    <Button 
-                      variant="ghost" 
-                      disabled={activeSectionIdx === 0}
-                      onClick={() => setActiveSectionIdx(prev => prev - 1)}
-                      className="rounded-xl font-black uppercase text-[10px] tracking-widest"
-                    >
-                      Previous Section
-                    </Button>
-                    <Button 
-                      disabled={activeSectionIdx === viewingProposal?.parsedContent?.sections.length - 1}
-                      onClick={() => setActiveSectionIdx(prev => prev + 1)}
-                      className="rounded-xl font-black uppercase text-[10px] tracking-widest px-10 h-11 shadow-lg shadow-primary/20"
-                    >
-                      Next: {viewingProposal?.parsedContent?.sections[activeSectionIdx + 1]?.title || 'Finish'}
-                    </Button>
+                  {/* Interactive View (visible only on screen) */}
+                  <div className="no-print space-y-10">
+                    <div className="space-y-4">
+                      <Badge variant="outline" className="text-[10px] font-black uppercase tracking-widest border-primary/20 text-primary">
+                        Phase {activeSectionIdx + 1}
+                      </Badge>
+                      <h1 className="text-4xl font-black text-slate-900 tracking-tighter">
+                        {viewingProposal?.parsedContent?.sections[activeSectionIdx].title}
+                      </h1>
+                    </div>
+                    
+                    <div className="prose prose-slate prose-lg max-w-none">
+                      <div className="text-lg leading-relaxed text-slate-600 font-medium whitespace-pre-line border-l-4 border-primary/10 pl-8 py-2">
+                        {viewingProposal?.parsedContent?.sections[activeSectionIdx].content}
+                      </div>
+                    </div>
+
+                    {/* NAV CONTROLS */}
+                    <div className="pt-12 border-t flex justify-between items-center">
+                      <Button 
+                        variant="ghost" 
+                        disabled={activeSectionIdx === 0}
+                        onClick={() => setActiveSectionIdx(prev => prev - 1)}
+                        className="rounded-xl font-black uppercase text-[10px] tracking-widest"
+                      >
+                        Previous Section
+                      </Button>
+                      <Button 
+                        disabled={activeSectionIdx === viewingProposal?.parsedContent?.sections.length - 1}
+                        onClick={() => setActiveSectionIdx(prev => prev + 1)}
+                        className="rounded-xl font-black uppercase text-[10px] tracking-widest px-10 h-11 shadow-lg shadow-primary/20"
+                      >
+                        Next: {viewingProposal?.parsedContent?.sections[activeSectionIdx + 1]?.title || 'Finish'}
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </ScrollArea>
@@ -656,7 +681,7 @@ function ProposalsContent() {
               </p>
               <div className="flex gap-3">
                 <Button variant="outline" className="rounded-xl font-bold h-11 px-6 gap-2" onClick={() => window.print()}>
-                  <Printer className="h-4 w-4" /> Print Strategy
+                  <Printer className="h-4 w-4" /> Download as PDF
                 </Button>
                 <Button className="rounded-xl font-bold h-11 px-8 shadow-lg shadow-primary/20" onClick={() => setIsViewOpen(false)}>Close Strategy</Button>
               </div>
@@ -669,12 +694,14 @@ function ProposalsContent() {
         @media print {
           .no-print { display: none !important; }
           body { background: white !important; }
-          main { padding: 0 !important; }
+          main { padding: 0 !important; margin: 0 !important; }
           .max-w-7xl { max-width: 100% !important; margin: 0 !important; }
           .bg-white { box-shadow: none !important; border: none !important; padding: 0 !important; }
           .h-\[90vh\] { height: auto !important; overflow: visible !important; }
           .overflow-hidden { overflow: visible !important; }
-          .print\:break-before-page { break-before: page; }
+          .print\:overflow-visible { overflow: visible !important; }
+          .break-before-page { break-before: page; }
+          [role="dialog"] { position: relative !important; overflow: visible !important; }
         }
       `}</style>
     </div>
