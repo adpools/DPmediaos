@@ -21,7 +21,7 @@ export default function BudgetsPage() {
     if (!db || !companyId) return null;
     return query(
       collectionGroup(db, 'budgets'),
-      where('companyId', '==', companyId)
+      where('company_id', '==', companyId)
     );
   }, [db, companyId]);
 

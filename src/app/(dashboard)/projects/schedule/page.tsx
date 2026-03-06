@@ -1,3 +1,4 @@
+
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,18 +11,18 @@ import { collectionGroup, query, where, orderBy } from "firebase/firestore";
 import { useFirestore } from "@/firebase";
 
 export default function ProductionSchedulePage() {
-  const { profile, isLoading: isTenantLoading } = useTenant();
+  const { profile, companyId, isLoading: isTenantLoading } = useTenant();
   const db = useFirestore();
 
   // Fetch all production days across projects
   const scheduleQuery = useMemoFirebase(() => {
-    if (!db || !profile?.companyId) return null;
+    if (!db || !companyId) return null;
     return query(
       collectionGroup(db, 'production_days'),
-      where('companyId', '==', profile.companyId),
+      where('company_id', '==', companyId),
       orderBy('date', 'asc')
     );
-  }, [db, profile?.companyId]);
+  }, [db, companyId]);
 
   const { data: shootDays, isLoading: isScheduleLoading } = useCollection(scheduleQuery);
 

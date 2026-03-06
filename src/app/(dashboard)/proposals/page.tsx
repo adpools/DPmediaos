@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, Suspense } from "react";
@@ -27,7 +28,8 @@ import {
   Calendar,
   Layers,
   ChevronRight,
-  List
+  List,
+  Printer
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -164,7 +166,7 @@ function ProposalsContent() {
       title: generatedDraft.proposal_title,
       client_name: generatedDraft.client,
       proposal_number: `PROP-${Date.now().toString().slice(-6)}`,
-      content: JSON.stringify(generatedDraft), // Store structured data as string
+      content: JSON.stringify(generatedDraft), 
       status: 'draft',
       created_at: serverTimestamp(),
     });
@@ -191,13 +193,11 @@ function ProposalsContent() {
 
   const handleViewProposal = (proposal: any) => {
     try {
-      // Content is stored as stringified JSON
       const parsed = JSON.parse(proposal.content);
       setViewingProposal({ ...proposal, parsedContent: parsed });
       setActiveSectionIdx(0);
       setIsViewOpen(true);
     } catch (e) {
-      // Fallback for legacy text proposals
       setViewingProposal({ 
         ...proposal, 
         parsedContent: { 
@@ -207,6 +207,38 @@ function ProposalsContent() {
         } 
       });
       setIsViewOpen(true);
+    }
+  };
+
+  const handleDownload = (proposal: any) => {
+    // Open specialized print view
+    handleViewProposal(proposal);
+    setTimeout(() => {
+      window.print();
+    }, 500);
+  };
+
+  const handleExportText = (proposal: any) => {
+    try {
+      const parsed = JSON.parse(proposal.content);
+      let content = `${parsed.proposal_title}\nClient: ${parsed.client}\n\n`;
+      parsed.sections.forEach((s: any) => {
+        content += `### ${s.title}\n${s.content}\n\n`;
+      });
+      
+      const blob = new Blob([content], { type: 'text/markdown' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${proposal.proposal_number}_${proposal.title.replace(/\s+/g, '_')}.md`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      
+      toast({ title: "Export Successful", description: "Proposal content downloaded as Markdown." });
+    } catch (e) {
+      toast({ variant: "destructive", title: "Export Failed" });
     }
   };
 
@@ -254,7 +286,6 @@ function ProposalsContent() {
                 <ScrollArea className="flex-1 px-8 md:px-10 pb-8">
                   {generationStep === 'input' ? (
                     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2">
-                      {/* Smart Link Section */}
                       <div className="space-y-2 p-5 bg-indigo-500/10 rounded-3xl border border-indigo-500/20">
                         <Label className="text-[10px] font-black uppercase text-indigo-400 tracking-widest flex items-center gap-2 mb-2">
                           <Database className="h-3 w-3" /> Smart Import from CRM
@@ -363,7 +394,6 @@ function ProposalsContent() {
                   ) : (
                     <div className="space-y-8 animate-in zoom-in-95 duration-300">
                       <div className="flex flex-col md:flex-row gap-8">
-                        {/* Table of Contents */}
                         <div className="w-full md:w-64 space-y-4">
                           <h3 className="text-[10px] font-black uppercase text-indigo-400 tracking-[0.2em] mb-4">Proposal Contents</h3>
                           <div className="space-y-1">
@@ -384,7 +414,6 @@ function ProposalsContent() {
                           </div>
                         </div>
 
-                        {/* Content Area */}
                         <div className="flex-1 space-y-6">
                           <div className="bg-white/5 rounded-[2.5rem] border border-white/10 p-8 md:p-10 relative overflow-hidden min-h-[400px]">
                             <BrainCircuit className="absolute -top-4 -right-4 h-24 w-24 opacity-5 text-indigo-400" />
@@ -501,7 +530,7 @@ function ProposalsContent() {
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
-                      <Button variant="outline" size="icon" className="h-11 w-11 rounded-xl">
+                      <Button variant="outline" size="icon" className="h-11 w-11 rounded-xl" onClick={() => handleExportText(prop)}>
                         <Download className="h-4 w-4" />
                       </Button>
                     </div>
@@ -513,12 +542,10 @@ function ProposalsContent() {
         )}
       </div>
 
-      {/* FULL BLUEPRINT VIEW DIALOG */}
       <Dialog open={isViewOpen} onOpenChange={setIsViewOpen}>
         <DialogContent className="sm:max-w-[1000px] rounded-[3.5rem] p-0 overflow-hidden border-none shadow-2xl h-[90vh]">
           <div className="bg-white flex flex-col h-full">
-            {/* Modal Header */}
-            <div className="p-10 pb-6 border-b flex items-center justify-between">
+            <div className="p-10 pb-6 border-b flex items-center justify-between no-print">
               <div className="flex items-center gap-5">
                 <div className="h-16 w-16 bg-primary/10 rounded-3xl flex items-center justify-center text-primary shadow-inner">
                   <FileText className="h-8 w-8" />
@@ -540,10 +567,8 @@ function ProposalsContent() {
               </div>
             </div>
 
-            {/* Document Body */}
             <div className="flex-1 flex overflow-hidden">
-              {/* Internal Sidebar */}
-              <div className="w-72 border-r bg-slate-50/50 p-8 space-y-6 hidden md:block">
+              <div className="w-72 border-r bg-slate-50/50 p-8 space-y-6 hidden md:block no-print">
                 <h3 className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em] px-2">Table of Contents</h3>
                 <ScrollArea className="h-[calc(100%-40px)]">
                   <div className="space-y-1 pr-4">
@@ -570,11 +595,26 @@ function ProposalsContent() {
                 </ScrollArea>
               </div>
 
-              {/* Page Content */}
-              <ScrollArea className="flex-1 p-12 bg-white">
+              <ScrollArea className="flex-1 p-12 bg-white print:p-0">
                 <div className="max-w-3xl mx-auto space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                  <div className="space-y-4">
-                    <Badge variant="outline" className="text-[10px] font-black uppercase tracking-widest border-primary/20 text-primary">
+                  {/* Print Cover Page (only visible in print) */}
+                  <div className="hidden print:block space-y-12 py-20 text-center">
+                    <div className="h-24 w-24 bg-primary mx-auto rounded-3xl flex items-center justify-center text-white text-4xl font-black">DP</div>
+                    <div className="space-y-4">
+                      <h1 className="text-6xl font-black tracking-tighter">{viewingProposal?.title}</h1>
+                      <p className="text-2xl text-muted-foreground font-bold uppercase tracking-widest">Business Strategy Blueprint</p>
+                    </div>
+                    <div className="pt-20 space-y-2">
+                      <p className="font-black text-slate-400 uppercase tracking-widest text-xs">Prepared For</p>
+                      <p className="text-3xl font-black">{viewingProposal?.client_name}</p>
+                    </div>
+                    <div className="pt-10">
+                      <p className="font-bold text-slate-400 text-sm">{new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4 print:break-before-page">
+                    <Badge variant="outline" className="text-[10px] font-black uppercase tracking-widest border-primary/20 text-primary no-print">
                       Phase {activeSectionIdx + 1}
                     </Badge>
                     <h1 className="text-4xl font-black text-slate-900 tracking-tighter">
@@ -583,13 +623,13 @@ function ProposalsContent() {
                   </div>
                   
                   <div className="prose prose-slate prose-lg max-w-none">
-                    <div className="text-lg leading-relaxed text-slate-600 font-medium whitespace-pre-line border-l-4 border-primary/10 pl-8 py-2">
+                    <div className="text-lg leading-relaxed text-slate-600 font-medium whitespace-pre-line border-l-4 border-primary/10 pl-8 py-2 print:border-none print:pl-0">
                       {viewingProposal?.parsedContent?.sections[activeSectionIdx].content}
                     </div>
                   </div>
 
-                  {/* Nav Controls */}
-                  <div className="pt-12 border-t flex justify-between items-center">
+                  {/* NAV CONTROLS */}
+                  <div className="pt-12 border-t flex justify-between items-center no-print">
                     <Button 
                       variant="ghost" 
                       disabled={activeSectionIdx === 0}
@@ -610,19 +650,33 @@ function ProposalsContent() {
               </ScrollArea>
             </div>
 
-            {/* Footer Footer */}
-            <div className="p-8 border-t bg-slate-50 flex items-center justify-between">
+            <div className="p-8 border-t bg-slate-50 flex items-center justify-between no-print">
               <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">
                 Generated via DP Intelligence Engine • {new Date().getFullYear()}
               </p>
               <div className="flex gap-3">
-                <Button variant="outline" className="rounded-xl font-bold h-11 px-6">Export as PDF</Button>
+                <Button variant="outline" className="rounded-xl font-bold h-11 px-6 gap-2" onClick={() => window.print()}>
+                  <Printer className="h-4 w-4" /> Print Strategy
+                </Button>
                 <Button className="rounded-xl font-bold h-11 px-8 shadow-lg shadow-primary/20" onClick={() => setIsViewOpen(false)}>Close Strategy</Button>
               </div>
             </div>
           </div>
         </DialogContent>
       </Dialog>
+      
+      <style jsx global>{`
+        @media print {
+          .no-print { display: none !important; }
+          body { background: white !important; }
+          main { padding: 0 !important; }
+          .max-w-7xl { max-width: 100% !important; margin: 0 !important; }
+          .bg-white { box-shadow: none !important; border: none !important; padding: 0 !important; }
+          .h-\[90vh\] { height: auto !important; overflow: visible !important; }
+          .overflow-hidden { overflow: visible !important; }
+          .print\:break-before-page { break-before: page; }
+        }
+      `}</style>
     </div>
   );
 }

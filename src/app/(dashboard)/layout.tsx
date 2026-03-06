@@ -54,7 +54,7 @@ export default function DashboardLayout({
     if (!db || !companyId) return null;
     return query(
       collectionGroup(db, 'production_days'),
-      where('companyId', '==', companyId),
+      where('company_id', '==', companyId),
       orderBy('date', 'asc'),
       limit(1)
     );

@@ -21,7 +21,7 @@
       "collectionGroup": "budgets",
       "queryScope": "COLLECTION_GROUP",
       "fields": [
-        { "fieldPath": "companyId", "order": "ASCENDING" },
+        { "fieldPath": "company_id", "order": "ASCENDING" },
         { "fieldPath": "amount", "order": "DESCENDING" }
       ]
     },
@@ -29,7 +29,7 @@
       "collectionGroup": "production_days",
       "queryScope": "COLLECTION_GROUP",
       "fields": [
-        { "fieldPath": "companyId", "order": "ASCENDING" },
+        { "fieldPath": "company_id", "order": "ASCENDING" },
         { "fieldPath": "date", "order": "ASCENDING" }
       ]
     }
