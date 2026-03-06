@@ -13,7 +13,8 @@ import {
   CheckCircle2, 
   UserCog,
   UserMinus,
-  Sparkles
+  Sparkles,
+  X
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTenant } from "@/hooks/use-tenant";
@@ -50,6 +51,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { updateDocumentNonBlocking, addDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { toast } from "@/hooks/use-toast";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 const MODULES = [
   { id: 'dashboard', name: 'Dashboard' },
@@ -62,6 +64,8 @@ const MODULES = [
   { id: 'research', name: 'Market Intelligence' },
   { id: 'reports', name: 'Analytics' },
 ];
+
+const PERMISSIONS = ['view', 'create', 'edit', 'delete'] as const;
 
 export default function RBACPage() {
   const { companyId, isLoading: isTenantLoading, profile } = useTenant();
@@ -110,7 +114,7 @@ export default function RBACPage() {
     });
 
     setSelectedRole({ ...selectedRole, permissions: updatedPermissions });
-    toast({ title: "Permissions Updated" });
+    toast({ title: "Permissions Updated", description: `${moduleId.toUpperCase()} ${action} access modified.` });
   };
 
   const handleInvite = (e: React.FormEvent) => {
@@ -329,6 +333,63 @@ export default function RBACPage() {
           ))}
         </TabsContent>
       </Tabs>
+
+      {/* Permission Management Dialog */}
+      <Dialog open={isEditRoleOpen} onOpenChange={setIsEditRoleOpen}>
+        <DialogContent className="sm:max-w-[600px] rounded-[2rem] p-0 overflow-hidden">
+          <DialogHeader className="p-8 pb-0">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-primary/10 rounded-xl text-primary">
+                <ShieldCheck className="h-6 w-6" />
+              </div>
+              <div>
+                <DialogTitle className="text-2xl font-bold">Configure {selectedRole?.name} Permissions</DialogTitle>
+                <DialogDescription>Define module-level access granularly for this role profile.</DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+          
+          <ScrollArea className="max-h-[60vh] p-8 pt-6">
+            <div className="space-y-6">
+              <table className="w-full">
+                <thead className="sticky top-0 bg-white z-10">
+                  <tr className="border-b">
+                    <th className="text-left py-3 font-bold text-[10px] uppercase tracking-widest text-muted-foreground">Module</th>
+                    {PERMISSIONS.map(p => (
+                      <th key={p} className="text-center py-3 font-bold text-[10px] uppercase tracking-widest text-muted-foreground">{p}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y">
+                  {MODULES.map((module) => (
+                    <tr key={module.id} className="group hover:bg-slate-50/50 transition-colors">
+                      <td className="py-4 font-bold text-sm text-slate-700">{module.name}</td>
+                      {PERMISSIONS.map((action) => {
+                        const isEnabled = selectedRole?.permissions?.[module.id]?.[action] || false;
+                        return (
+                          <td key={action} className="py-4 text-center">
+                            <Switch 
+                              checked={isEnabled} 
+                              onCheckedChange={(checked) => handleUpdatePermission(module.id, action, checked)}
+                              className="mx-auto scale-75"
+                            />
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </ScrollArea>
+
+          <DialogFooter className="p-8 bg-slate-50 border-t">
+            <Button onClick={() => setIsEditRoleOpen(false)} className="rounded-xl font-bold w-full md:w-auto px-8 h-11">
+              Close & Finalize
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={isChangeRoleOpen} onOpenChange={setIsChangeRoleOpen}>
         <DialogContent className="sm:max-w-[400px] rounded-[2rem]">
