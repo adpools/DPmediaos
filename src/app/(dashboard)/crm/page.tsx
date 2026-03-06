@@ -1,10 +1,10 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, MoreHorizontal, Building2, Calendar, Search, Loader2, IndianRupee, Sparkles, ExternalLink, ArrowRight } from "lucide-react";
+import { Plus, MoreHorizontal, Building2, Calendar, Search, Loader2, IndianRupee, Sparkles, ExternalLink, ArrowRight, Database } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { useTenant } from "@/hooks/use-tenant";
@@ -44,6 +44,39 @@ export default function CRMPage() {
   }, [db, companyId]);
 
   const { data: leads, isLoading: isLeadsLoading } = useCollection(leadsQuery);
+
+  // Derived: Unique existing clients for the dropdown
+  const uniqueClients = useMemo(() => {
+    if (!leads) return [];
+    const names = new Set();
+    const unique = [];
+    for (const lead of leads) {
+      if (!names.has(lead.company_name)) {
+        names.add(lead.company_name);
+        unique.push({
+          id: lead.id,
+          name: lead.company_name,
+          industry: lead.industry
+        });
+      }
+    }
+    return unique.sort((a, b) => a.name.localeCompare(b.name));
+  }, [leads]);
+
+  const handleSelectExistingClient = (clientId: string) => {
+    const client = uniqueClients.find(c => c.id === clientId);
+    if (client) {
+      setNewLead({
+        ...newLead,
+        company_name: client.name,
+        industry: client.industry || "",
+      });
+      toast({
+        title: "Client Linked",
+        description: `Adding a new deal for ${client.name}.`,
+      });
+    }
+  };
 
   const handleAddLead = (e: React.FormEvent) => {
     e.preventDefault();
@@ -103,10 +136,33 @@ export default function CRMPage() {
                   Capture Opportunity
                 </DialogTitle>
                 <DialogDescription>
-                  Enter the core details for this potential client.
+                  Enter details for a new deal. You can link to an existing client or enter a new one.
                 </DialogDescription>
               </DialogHeader>
               <form onSubmit={handleAddLead} className="space-y-4 py-4">
+                {/* Existing Client Link */}
+                <div className="space-y-2 p-4 bg-indigo-50 rounded-2xl border border-indigo-100">
+                  <Label className="text-[10px] font-black uppercase text-indigo-600 tracking-widest flex items-center gap-2">
+                    <Database className="h-3 w-3" /> Link to Existing Client
+                  </Label>
+                  <Select onValueChange={handleSelectExistingClient}>
+                    <SelectTrigger className="rounded-xl h-9 bg-white shadow-none text-xs border-indigo-100">
+                      <SelectValue placeholder="Select from your directory..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {uniqueClients.length === 0 ? (
+                        <div className="p-4 text-center text-xs text-muted-foreground">No existing clients found.</div>
+                      ) : (
+                        uniqueClients.map((client) => (
+                          <SelectItem key={client.id} value={client.id} className="text-xs">
+                            {client.name}
+                          </SelectItem>
+                        ))
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+
                 <div className="space-y-2">
                   <Label htmlFor="companyName">Client Company</Label>
                   <Input 
@@ -143,7 +199,7 @@ export default function CRMPage() {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="stage">Initial Stage</Label>
-                    <Select onValueChange={(val) => setNewLead({...newLead, stage: val})} defaultValue="lead">
+                    <Select onValueChange={(val) => setNewLead({...newLead, stage: val})} value={newLead.stage}>
                       <SelectTrigger className="rounded-xl">
                         <SelectValue placeholder="Select stage" />
                       </SelectTrigger>
