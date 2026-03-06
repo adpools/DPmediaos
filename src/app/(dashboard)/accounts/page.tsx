@@ -53,6 +53,10 @@ export default function AccountsPage() {
   const [isAddAccountOpen, setIsAddOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Filing Flow State
+  const [isFilingOpen, setIsFilingOpen] = useState(false);
+  const [filingMonth, setFilingMonth] = useState("");
+
   // Form State
   const [newAccount, setNewAccount] = useState({
     name: "",
@@ -146,6 +150,25 @@ export default function AccountsPage() {
     toast({ title: "Account Registered", description: `${newAccount.name} has been added to your vault.` });
     setNewAccount({ name: "", type: "Bank", balance: "", account_number: "", bank_name: "" });
     setIsAddOpen(false);
+    setIsSubmitting(false);
+  };
+
+  const handleStartFiling = (month?: string) => {
+    setFilingMonth(month || gstStats.months[0]?.period || format(new Date(), 'MMM yyyy'));
+    setIsFilingOpen(true);
+  };
+
+  const completeFiling = async () => {
+    setIsSubmitting(true);
+    // Simulate API call to finalize filing
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    
+    toast({
+      title: "Filing Successful",
+      description: `GST Returns for ${filingMonth} have been marked as filed in your digital audit trail.`,
+    });
+    
+    setIsFilingOpen(false);
     setIsSubmitting(false);
   };
 
@@ -464,7 +487,14 @@ export default function AccountsPage() {
                                 </Badge>
                               </td>
                               <td className="px-8 py-5 text-right">
-                                <Button variant="ghost" size="sm" className="rounded-xl text-[10px] font-bold uppercase text-primary">Mark Filed</Button>
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm" 
+                                  className="rounded-xl text-[10px] font-bold uppercase text-primary"
+                                  onClick={() => handleStartFiling(m.period)}
+                                >
+                                  Mark Filed
+                                </Button>
                               </td>
                             </tr>
                           ))
@@ -514,7 +544,10 @@ export default function AccountsPage() {
                     Your GSTR-1 filing for the previous month is due in <span className="font-bold">4 days</span>. Ensure all invoices are finalized.
                   </p>
                   <div className="pt-2">
-                    <Button className="w-full bg-amber-600 hover:bg-amber-700 text-white rounded-xl h-10 text-xs font-bold uppercase">
+                    <Button 
+                      className="w-full bg-amber-600 hover:bg-amber-700 text-white rounded-xl h-10 text-xs font-bold uppercase"
+                      onClick={() => handleStartFiling()}
+                    >
                       Start Filing Flow
                     </Button>
                   </div>
@@ -538,6 +571,62 @@ export default function AccountsPage() {
           </div>
         </TabsContent>
       </Tabs>
+
+      {/* GST Filing Wizard Dialog */}
+      <Dialog open={isFilingOpen} onOpenChange={setIsFilingOpen}>
+        <DialogContent className="sm:max-w-[425px] rounded-[2rem]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileCheck className="h-5 w-5 text-emerald-500" />
+              GST Filing Wizard
+            </DialogTitle>
+            <DialogDescription>
+              Confirm and mark the GSTR returns as filed for your digital ledger.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="bg-slate-50 p-5 rounded-2xl border border-slate-100 space-y-3">
+              <div className="flex justify-between items-center">
+                <span className="text-[10px] font-bold text-muted-foreground uppercase">Reporting Month</span>
+                <span className="text-sm font-bold text-slate-800">{filingMonth}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-[10px] font-bold text-muted-foreground uppercase">Total GST Output</span>
+                <span className="text-sm font-bold text-primary">
+                  ₹{gstStats.months.find(m => m.period === filingMonth)?.output.toLocaleString() || '0.00'}
+                </span>
+              </div>
+              <div className="flex justify-between items-center border-t pt-2 mt-2">
+                <span className="text-[10px] font-bold text-muted-foreground uppercase">Returns Type</span>
+                <Badge variant="outline" className="text-[9px] font-bold uppercase h-5">GSTR-1</Badge>
+              </div>
+            </div>
+            
+            <div className="space-y-2">
+              <Label className="text-[10px] font-bold uppercase text-muted-foreground">Compliance Verification</Label>
+              <div className="flex items-start gap-3 p-3 bg-blue-50/50 rounded-xl border border-blue-100">
+                <CheckCircle2 className="h-4 w-4 text-blue-500 shrink-0 mt-0.5" />
+                <p className="text-[10px] text-blue-700 leading-tight">
+                  By confirming, you certify that all invoices for this period have been synchronized and are accurately represented in your government portal.
+                </p>
+              </div>
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="ghost" onClick={() => setIsFilingOpen(false)} className="rounded-xl flex-1">
+              Review Ledger
+            </Button>
+            <Button 
+              onClick={completeFiling} 
+              disabled={isSubmitting} 
+              className="rounded-xl px-8 bg-emerald-600 hover:bg-emerald-700 text-white font-bold flex-1"
+            >
+              {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              Confirm Filing
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
