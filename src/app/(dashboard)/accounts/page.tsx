@@ -69,6 +69,9 @@ export default function AccountsPage() {
   const [isLogExpenseOpen, setIsLogExpenseOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Frequency State
+  const [filingFrequency, setFilingFrequency] = useState<'monthly' | 'quarterly'>('monthly');
+
   // Automation Flow State
   const [isFilingOpen, setIsFilingOpen] = useState(false);
   const [selectedFilingPeriod, setSelectedFilingPeriod] = useState<any>(null);
@@ -160,34 +163,52 @@ export default function AccountsPage() {
   }, [expenses]);
 
   const gstStats = useMemo(() => {
-    if (!invoices) return { output: 0, months: [] };
+    if (!invoices) return { output: 0, periods: [] };
     
-    const monthlyData: Record<string, any> = {};
+    const aggregatedData: Record<string, any> = {};
     let totalOutput = 0;
 
     invoices.forEach(inv => {
       const date = new Date(inv.issue_date);
-      const monthKey = format(date, 'MMM yyyy');
+      let periodKey = '';
+      
+      if (filingFrequency === 'monthly') {
+        periodKey = format(date, 'MMM yyyy');
+      } else {
+        const month = date.getMonth(); // 0-11
+        const year = date.getFullYear();
+        const q = Math.floor(month / 3) + 1;
+        periodKey = `Q${q} ${year}`;
+      }
+
       const amount = inv.gst_amount || 0;
       totalOutput += amount;
 
-      if (!monthlyData[monthKey]) {
-        monthlyData[monthKey] = {
-          period: monthKey,
+      if (!aggregatedData[periodKey]) {
+        aggregatedData[periodKey] = {
+          period: periodKey,
           output: 0,
-          status: filings?.find(f => f.period === monthKey) ? 'Filed' : 'Pending',
+          status: filings?.find(f => f.period === periodKey) ? 'Filed' : 'Pending',
           count: 0
         };
       }
-      monthlyData[monthKey].output += amount;
-      monthlyData[monthKey].count += 1;
+      aggregatedData[periodKey].output += amount;
+      aggregatedData[periodKey].count += 1;
     });
 
     return {
       output: totalOutput,
-      months: Object.values(monthlyData).sort((a, b) => new Date(b.period).getTime() - new Date(a.period).getTime())
+      periods: Object.values(aggregatedData).sort((a, b) => {
+        if (filingFrequency === 'quarterly') {
+          const [aq, ay] = a.period.split(' ');
+          const [bq, by] = b.period.split(' ');
+          if (ay !== by) return parseInt(by) - parseInt(ay);
+          return bq.localeCompare(aq);
+        }
+        return new Date(b.period).getTime() - new Date(a.period).getTime();
+      })
     };
-  }, [invoices, filings]);
+  }, [invoices, filings, filingFrequency]);
 
   // --- ACTIONS ---
 
@@ -218,7 +239,6 @@ export default function AccountsPage() {
     const expensesRef = collection(db, 'companies', companyId, 'expenses');
     
     addDocumentNonBlocking(expensesRef, {
-      ...newExpense,
       company_id: companyId,
       amount: parseFloat(newExpense.amount) || 0,
       created_at: serverTimestamp(),
@@ -230,40 +250,36 @@ export default function AccountsPage() {
     setIsSubmitting(false);
   };
 
-  const handleStartFiling = (monthData: any) => {
-    setSelectedFilingPeriod(monthData);
+  const handleStartFiling = (periodData: any) => {
+    setSelectedFilingPeriod(periodData);
     setFilingStep('review');
     setAutomationProgress(0);
     setIsFilingOpen(true);
   };
 
   const handleBulkAutomate = async () => {
-    const pending = gstStats.months.filter(m => m.status === 'Pending');
+    const pending = gstStats.periods.filter(m => m.status === 'Pending');
     if (pending.length === 0) {
       toast({ title: "All Filed", description: "No pending periods detected for automation." });
       return;
     }
-    // Start with the first pending period
     handleStartFiling(pending[0]);
   };
 
   const handleAutomateFiling = async () => {
     setFilingStep('validating');
     
-    // Step 1: Validating Data
     for (let i = 0; i <= 30; i += 5) {
       setAutomationProgress(i);
       await new Promise(r => setTimeout(r, 100));
     }
 
-    // Step 2: Portal Handshake
     setFilingStep('syncing');
     for (let i = 35; i <= 85; i += 5) {
       setAutomationProgress(i);
       await new Promise(r => setTimeout(r, 150));
     }
 
-    // Step 3: Finalizing & Ack
     const filingsRef = collection(db, 'companies', companyId!, 'gst_filings');
     const arn = `ARN-${Math.random().toString(36).substring(2, 10).toUpperCase()}`;
     
@@ -314,7 +330,7 @@ export default function AccountsPage() {
 
     setIsConsultingAI(true);
     try {
-      const pendingPeriods = gstStats.months.filter(m => m.status === 'Pending').map(m => m.period);
+      const pendingPeriods = gstStats.periods.filter(m => m.status === 'Pending').map(m => m.period);
       const advice = await consultAIAccountant({
         companyName: company.name || "DP Studio",
         totalLiquidity,
@@ -471,7 +487,7 @@ export default function AccountsPage() {
               </h3>
               <Card className="border-none shadow-soft rounded-[2rem] bg-white overflow-hidden">
                 <CardContent className="p-0">
-                  {expenses?.length === 0 && gstStats.months.length === 0 ? (
+                  {expenses?.length === 0 && gstStats.periods.length === 0 ? (
                     <div className="p-12 text-center text-[10px] text-muted-foreground italic">
                       Zero movements recorded.
                     </div>
@@ -625,15 +641,34 @@ export default function AccountsPage() {
                   <CardContent className="pt-6">
                     <p className="text-[10px] font-bold text-white/60 uppercase tracking-[0.2em] mb-1">Net Liability</p>
                     <h4 className="text-2xl font-bold">₹{Math.max(0, gstStats.output - (totalExpensesMonth * 0.18)).toLocaleString()}</h4>
-                    <p className="text-[9px] text-white/40 font-bold mt-1">Payable this Quarter</p>
+                    <p className="text-[9px] text-white/40 font-bold mt-1">Payable this Period</p>
                   </CardContent>
                 </Card>
               </div>
 
               <Card className="border-none shadow-soft rounded-[2.5rem] overflow-hidden bg-white">
                 <CardHeader className="bg-slate-50/50 border-b px-8 py-6">
-                  <CardTitle className="text-xl font-bold">Automated Compliance Ledger</CardTitle>
-                  <CardDescription>Initiate one-click statutory filings via simulated portal handshake.</CardDescription>
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                      <CardTitle className="text-xl font-bold">Automated Compliance Ledger</CardTitle>
+                      <CardDescription>Initiate one-click statutory filings via simulated portal handshake.</CardDescription>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <Label className="text-[10px] font-black uppercase text-slate-400">Frequency</Label>
+                      <Select 
+                        value={filingFrequency} 
+                        onValueChange={(val: any) => setFilingFrequency(val)}
+                      >
+                        <SelectTrigger className="w-[130px] rounded-xl h-9 text-xs font-bold bg-white">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="monthly">Monthly</SelectItem>
+                          <SelectItem value="quarterly">Quarterly</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
                 </CardHeader>
                 <CardContent className="p-0">
                   <div className="overflow-x-auto">
@@ -647,12 +682,12 @@ export default function AccountsPage() {
                         </tr>
                       </thead>
                       <tbody className="divide-y">
-                        {gstStats.months.length === 0 ? (
+                        {gstStats.periods.length === 0 ? (
                           <tr>
                             <td colSpan={4} className="px-8 py-16 text-center text-muted-foreground italic text-xs">No invoices generated for this fiscal year.</td>
                           </tr>
                         ) : (
-                          gstStats.months.map((m, idx) => (
+                          gstStats.periods.map((m, idx) => (
                             <tr key={idx} className="hover:bg-slate-50/50 transition-colors">
                               <td className="px-8 py-5 font-bold text-slate-700 text-sm">{m.period}</td>
                               <td className="px-8 py-5 font-mono font-bold text-xs text-primary">₹{m.output.toLocaleString()}</td>
@@ -690,7 +725,7 @@ export default function AccountsPage() {
                     <h4 className="font-bold text-sm">Portal Handshake Ready</h4>
                   </div>
                   <p className="text-xs text-indigo-800/70 leading-relaxed font-medium">
-                    Your workspace is authorized for direct filing. We've detected <strong>{gstStats.months.filter(m => m.status === 'Pending').length}</strong> periods ready for statutory submission.
+                    Your workspace is authorized for direct filing. We've detected <strong>{gstStats.periods.filter(m => m.status === 'Pending').length}</strong> periods ready for statutory submission.
                   </p>
                   <Button className="w-full rounded-xl text-[10px] font-black uppercase tracking-widest h-9 bg-indigo-600 hover:bg-indigo-700" onClick={handleBulkAutomate}>
                     Bulk Automate All
