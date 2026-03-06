@@ -2,7 +2,7 @@
 /**
  * @fileOverview A specialized AI Accountant flow for production companies.
  *
- * - aiAccountantFlow - Analyzes financial data and provides tax/liquidity advice.
+ * - consultAIAccountant - A function that handles the AI accountant consultation process.
  * - AIAccountantInput - Input data including GST stats and liquidity.
  * - AIAccountantOutput - AI-generated insights and recommendations.
  */
@@ -32,8 +32,7 @@ const AIAccountantOutputSchema = z.object({
 export type AIAccountantOutput = z.infer<typeof AIAccountantOutputSchema>;
 
 export async function consultAIAccountant(input: AIAccountantInput): Promise<AIAccountantOutput> {
-  const { output } = await aiAccountantFlow(input);
-  return output!;
+  return aiAccountantFlow(input);
 }
 
 const aiAccountantFlow = ai.defineFlow(
