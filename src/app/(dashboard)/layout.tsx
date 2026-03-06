@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useMemo } from "react";
@@ -141,7 +142,7 @@ export default function DashboardLayout({
                 <Smile className="h-4 w-4 text-orange-400" /> Team Pulse
               </div>
               
-              <div className="grid grid-cols-3 gap-4 pt-2">
+              <div className="grid grid-cols-2 gap-4 pt-2">
                 <div className="space-y-1">
                   <span className="text-[11px] font-bold text-slate-400 uppercase">Completed</span>
                   <p className="text-3xl font-bold font-headline text-[#1A1D2C]">{completedCount}</p>
@@ -151,15 +152,6 @@ export default function DashboardLayout({
                   <div className="flex items-baseline gap-1">
                     <p className="text-3xl font-bold font-headline text-[#1A1D2C]">{inProgressCount}</p>
                     <div className="h-2 w-2 rounded-full bg-rose-500 animate-pulse" />
-                  </div>
-                </div>
-                <div className="space-y-1">
-                  <span className="text-[11px] font-bold text-slate-400 uppercase">Talent</span>
-                  <div className="flex -space-x-2 pt-1">
-                    <Avatar className="h-10 w-10 border-2 border-white shadow-sm">
-                      <AvatarImage src="https://picsum.photos/seed/member1/100/100" />
-                    </Avatar>
-                    <div className="h-10 w-10 rounded-full bg-primary border-2 border-white flex items-center justify-center text-[10px] font-bold text-white shadow-sm">DP</div>
                   </div>
                 </div>
               </div>
