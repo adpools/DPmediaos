@@ -33,7 +33,7 @@ import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { collection, query, orderBy, limit, serverTimestamp } from "firebase/firestore";
 import { addDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { Slider } from "@/components/ui/slider";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   Dialog, 
@@ -58,6 +58,7 @@ const LOCATION_SUGGESTIONS = [
 export default function MarketResearchPage() {
   const { profile, companyId } = useTenant();
   const db = useFirestore();
+  const router = useRouter();
   const { toast } = useToast();
   const [industry, setIndustry] = useState("");
   const [location, setLocation] = useState("");
@@ -141,7 +142,6 @@ export default function MarketResearchPage() {
 
   const handleInitializeWorkflow = async () => {
     setIsActionLoading(true);
-    // Simulate a handshake or deployment
     await new Promise(r => setTimeout(r, 1500));
     setIsActionLoading(false);
     setIsDetailOpen(false);
@@ -151,9 +151,23 @@ export default function MarketResearchPage() {
     });
   };
 
+  const handleDraftProposal = () => {
+    if (!selectedDetail || !industry) return;
+    
+    const pkg = selectedDetail.data;
+    const params = new URLSearchParams({
+      source: 'research',
+      projectName: pkg.name,
+      industry: industry,
+      services: pkg.deliverables?.join(', ') || pkg.description,
+      context: pkg.strategicValue || ''
+    });
+    
+    router.push(`/proposals?${params.toString()}`);
+  };
+
   const handleAddToCatalog = async () => {
     setIsActionLoading(true);
-    // Simulate saving
     await new Promise(r => setTimeout(r, 1000));
     setIsActionLoading(false);
     setIsDetailOpen(false);
@@ -579,14 +593,23 @@ export default function MarketResearchPage() {
                       <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Market Value</span>
                       <span className="text-2xl font-black text-primary">{selectedDetail?.data.priceEstimate}</span>
                     </div>
-                    <Button 
-                      onClick={handleAddToCatalog}
-                      disabled={isActionLoading}
-                      className="rounded-2xl h-12 px-10 font-black uppercase text-xs tracking-widest gap-2"
-                    >
-                      {isActionLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-                      Add to Service Catalog
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button 
+                        variant="secondary"
+                        onClick={handleDraftProposal}
+                        className="rounded-2xl h-12 px-6 font-black uppercase text-[10px] tracking-widest gap-2"
+                      >
+                        <FileText className="h-4 w-4" /> Draft AI Proposal
+                      </Button>
+                      <Button 
+                        onClick={handleAddToCatalog}
+                        disabled={isActionLoading}
+                        className="rounded-2xl h-12 px-6 font-black uppercase text-[10px] tracking-widest gap-2"
+                      >
+                        {isActionLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+                        Add to Catalog
+                      </Button>
+                    </div>
                   </>
                 ) : (
                   <>

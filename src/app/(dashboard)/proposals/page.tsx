@@ -1,33 +1,93 @@
+
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { FileText, Plus, Search, Loader2, Clock, Download, ExternalLink, Sparkles } from "lucide-react";
+import { 
+  FileText, 
+  Plus, 
+  Search, 
+  Loader2, 
+  Clock, 
+  Download, 
+  ExternalLink, 
+  Sparkles, 
+  Zap, 
+  BrainCircuit,
+  ArrowRight,
+  Target,
+  FileCheck
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { useTenant } from "@/hooks/use-tenant";
 import { useCollection, useMemoFirebase } from "@/firebase";
 import { collection, query, orderBy, serverTimestamp } from "firebase/firestore";
 import { useFirestore } from "@/firebase";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogDescription, 
+  DialogFooter, 
+  DialogHeader, 
+  DialogTitle, 
+  DialogTrigger 
+} from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { addDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { toast } from "@/hooks/use-toast";
+import { generateProposalContent } from "@/ai/flows/generate-proposal-content";
+import { Textarea } from "@/components/ui/textarea";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
-export default function ProposalsPage() {
+function ProposalsContent() {
   const { profile, isLoading: isTenantLoading, companyId } = useTenant();
+  const searchParams = useSearchParams();
   const db = useFirestore();
+  
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [generationStep, setGenerationStep] = useState<'input' | 'preview'>('input');
 
   // Proposal State
   const [newProposal, setNewProposal] = useState({
     title: "",
     client_name: "",
     proposal_number: `PROP-${Date.now().toString().slice(-6)}`,
-    content: "Production services including filming, editing, and distribution."
+    content: ""
   });
+
+  const [aiInputs, setAIInputs] = useState({
+    servicesRequired: "",
+    additionalDetails: ""
+  });
+
+  // Listen for research source
+  useEffect(() => {
+    const source = searchParams.get('source');
+    if (source === 'research') {
+      const projectName = searchParams.get('projectName') || '';
+      const industry = searchParams.get('industry') || '';
+      const services = searchParams.get('services') || '';
+      const context = searchParams.get('context') || '';
+
+      setNewProposal(prev => ({
+        ...prev,
+        title: `${projectName} for ${industry}`,
+        client_name: industry // Placeholder, can be edited
+      }));
+
+      setAIInputs({
+        servicesRequired: services,
+        additionalDetails: `Strategic Research Context: ${context}`
+      });
+
+      setIsAddOpen(true);
+    }
+  }, [searchParams]);
 
   const proposalsQuery = useMemoFirebase(() => {
     if (!db || !companyId) return null;
@@ -38,6 +98,31 @@ export default function ProposalsPage() {
   }, [db, companyId]);
 
   const { data: proposals, isLoading: isProposalsLoading } = useCollection(proposalsQuery);
+
+  const handleGenerateAI = async () => {
+    if (!newProposal.title || !newProposal.client_name || !aiInputs.servicesRequired) {
+      toast({ variant: "destructive", title: "Missing Context", description: "Please ensure Project, Client, and Services are defined." });
+      return;
+    }
+
+    setIsGenerating(true);
+    try {
+      const { content } = await generateProposalContent({
+        projectName: newProposal.title,
+        clientName: newProposal.client_name,
+        servicesRequired: aiInputs.servicesRequired,
+        additionalDetails: aiInputs.additionalDetails
+      });
+      setNewProposal(prev => ({ ...prev, content }));
+      setGenerationStep('preview');
+      toast({ title: "Draft Synthesized", description: "Your AI-powered proposal is ready for review." });
+    } catch (error) {
+      console.error(error);
+      toast({ variant: "destructive", title: "AI Generation Failed" });
+    } finally {
+      setIsGenerating(false);
+    }
+  };
 
   const handleCreateProposal = (e: React.FormEvent) => {
     e.preventDefault();
@@ -62,8 +147,10 @@ export default function ProposalsPage() {
       title: "", 
       client_name: "", 
       proposal_number: `PROP-${Date.now().toString().slice(-6)}`, 
-      content: "Production services..." 
+      content: "" 
     });
+    setAIInputs({ servicesRequired: "", additionalDetails: "" });
+    setGenerationStep('input');
     setIsAddOpen(false);
     setIsSubmitting(false);
   };
@@ -95,55 +182,113 @@ export default function ProposalsPage() {
                 <Plus className="h-4 w-4" /> New Proposal
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px] rounded-[2rem]">
-              <DialogHeader>
-                <DialogTitle className="flex items-center gap-2">
-                  <Sparkles className="h-5 w-5 text-accent" />
-                  New Production Proposal
-                </DialogTitle>
-                <DialogDescription>
-                  Define the project scope and client for this pitch.
-                </DialogDescription>
-              </DialogHeader>
-              <form onSubmit={handleCreateProposal} className="space-y-4 py-4">
-                <div className="space-y-2">
-                  <Label htmlFor="title">Proposal Title</Label>
-                  <Input 
-                    id="title" 
-                    placeholder="e.g. Summer Brand Film 2024" 
-                    value={newProposal.title}
-                    onChange={(e) => setNewProposal({...newProposal, title: e.target.value})}
-                    required
-                    className="rounded-xl"
-                  />
+            <DialogContent className="sm:max-w-[650px] rounded-[3rem] p-0 overflow-hidden border-none shadow-2xl">
+              <div className="bg-slate-900 text-white p-8 md:p-10">
+                <div className="flex items-center gap-4 mb-8">
+                  <div className="h-12 w-12 bg-indigo-500 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-500/20">
+                    <FileText className="h-6 w-6 text-white" />
+                  </div>
+                  <div>
+                    <DialogTitle className="text-2xl font-black">Proposal Wizard</DialogTitle>
+                    <DialogDescription className="text-slate-400 text-xs">AI-Assisted Production Drafting</DialogDescription>
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="client">Client Name</Label>
-                  <Input 
-                    id="client" 
-                    placeholder="e.g. Nike Global" 
-                    value={newProposal.client_name}
-                    onChange={(e) => setNewProposal({...newProposal, client_name: e.target.value})}
-                    required
-                    className="rounded-xl"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="num">Reference Number</Label>
-                  <Input 
-                    id="num" 
-                    value={newProposal.proposal_number}
-                    disabled
-                    className="rounded-xl bg-muted"
-                  />
-                </div>
-                <DialogFooter className="pt-4">
-                  <Button type="submit" disabled={isSubmitting} className="w-full rounded-xl h-11 font-bold">
-                    {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                    Create Draft
-                  </Button>
-                </DialogFooter>
-              </form>
+
+                {generationStep === 'input' ? (
+                  <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Project Title</Label>
+                        <Input 
+                          placeholder="e.g. Summer Brand Film" 
+                          value={newProposal.title}
+                          onChange={(e) => setNewProposal({...newProposal, title: e.target.value})}
+                          className="bg-white/5 border-white/10 rounded-xl h-11 text-white focus:ring-indigo-500"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Target Client</Label>
+                        <Input 
+                          placeholder="e.g. Nike Global" 
+                          value={newProposal.client_name}
+                          onChange={(e) => setNewProposal({...newProposal, client_name: e.target.value})}
+                          className="bg-white/5 border-white/10 rounded-xl h-11 text-white focus:ring-indigo-500"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Services Required</Label>
+                      <Textarea 
+                        placeholder="Detail the scope of production..." 
+                        value={aiInputs.servicesRequired}
+                        onChange={(e) => setAIInputs({...aiInputs, servicesRequired: e.target.value})}
+                        className="bg-white/5 border-white/10 rounded-xl min-h-[100px] text-white focus:ring-indigo-500"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Additional Context (Optional)</Label>
+                      <Textarea 
+                        placeholder="Strategic trends, client pain points..." 
+                        value={aiInputs.additionalDetails}
+                        onChange={(e) => setAIInputs({...aiInputs, additionalDetails: e.target.value})}
+                        className="bg-white/5 border-white/10 rounded-xl min-h-[80px] text-white focus:ring-indigo-500"
+                      />
+                    </div>
+
+                    <div className="pt-4 flex gap-3">
+                      <Button 
+                        onClick={handleGenerateAI} 
+                        disabled={isGenerating}
+                        className="flex-1 bg-indigo-600 hover:bg-indigo-700 h-12 rounded-2xl font-black uppercase tracking-widest text-[10px] gap-2"
+                      >
+                        {isGenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}
+                        Generate with AI
+                      </Button>
+                      <Button 
+                        onClick={() => setIsAddOpen(false)}
+                        variant="outline"
+                        className="bg-transparent border-white/10 text-white hover:bg-white/5 rounded-2xl h-12"
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-6 animate-in zoom-in-95 duration-300">
+                    <div className="bg-white/5 rounded-[2rem] border border-white/10 p-6 relative overflow-hidden">
+                      <BrainCircuit className="absolute -top-4 -right-4 h-24 w-24 opacity-5 text-indigo-400" />
+                      <h3 className="text-xs font-black uppercase text-indigo-400 mb-4 flex items-center gap-2">
+                        <Sparkles className="h-3 w-3" /> AI Draft Preview
+                      </h3>
+                      <ScrollArea className="h-[300px] pr-4">
+                        <div className="text-xs leading-relaxed text-slate-300 whitespace-pre-line font-medium italic">
+                          {newProposal.content}
+                        </div>
+                      </ScrollArea>
+                    </div>
+
+                    <div className="flex gap-3 pt-4">
+                      <Button 
+                        onClick={handleCreateProposal} 
+                        disabled={isSubmitting}
+                        className="flex-1 bg-indigo-600 hover:bg-indigo-700 h-12 rounded-2xl font-black uppercase tracking-widest text-[10px] gap-2"
+                      >
+                        {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileCheck className="h-4 w-4" />}
+                        Commit to Ledger
+                      </Button>
+                      <Button 
+                        onClick={() => setGenerationStep('input')}
+                        variant="outline"
+                        className="bg-transparent border-white/10 text-white hover:bg-white/5 rounded-2xl h-12 text-[10px] font-black uppercase tracking-widest"
+                      >
+                        Edit Inputs
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
             </DialogContent>
           </Dialog>
         </div>
@@ -158,10 +303,10 @@ export default function ProposalsPage() {
           </Card>
         ) : (
           proposals?.map((prop) => (
-            <Card key={prop.id} className="hover:shadow-md transition-all border-none shadow-sm group">
+            <Card key={prop.id} className="hover:shadow-md transition-all border-none shadow-sm group rounded-[2rem] overflow-hidden bg-white">
               <CardContent className="p-6 flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div className="flex items-center gap-4">
-                  <div className="h-12 w-12 rounded-xl bg-primary/5 flex items-center justify-center text-primary">
+                  <div className="h-12 w-12 rounded-2xl bg-primary/5 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-colors">
                     <FileText className="h-6 w-6" />
                   </div>
                   <div>
@@ -187,13 +332,13 @@ export default function ProposalsPage() {
                   </div>
 
                   <div className="flex items-center gap-2">
-                    <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl">
+                    <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl hover:bg-slate-100">
                       <Download className="h-4 w-4" />
                     </Button>
-                    <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl">
+                    <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl hover:bg-slate-100">
                       <ExternalLink className="h-4 w-4" />
                     </Button>
-                    <Button className="rounded-xl text-xs h-9 px-4 font-bold">Edit</Button>
+                    <Button className="rounded-xl text-xs h-9 px-6 font-bold shadow-lg shadow-primary/10">Edit</Button>
                   </div>
                 </div>
               </CardContent>
@@ -202,5 +347,13 @@ export default function ProposalsPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function ProposalsPage() {
+  return (
+    <Suspense fallback={<div className="flex justify-center p-20"><Loader2 className="animate-spin" /></div>}>
+      <ProposalsContent />
+    </Suspense>
   );
 }
