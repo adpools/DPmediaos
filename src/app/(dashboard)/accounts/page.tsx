@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useMemo } from "react";
@@ -23,7 +22,9 @@ import {
   Calendar,
   AlertCircle,
   CheckCircle2,
-  Download
+  Download,
+  BrainCircuit,
+  ChevronRight
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -45,9 +46,10 @@ import { addDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { toast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { format, startOfMonth, endOfMonth, isSameMonth } from "date-fns";
+import { consultAIAccountant, type AIAccountantOutput } from "@/ai/flows/ai-accountant-flow";
 
 export default function AccountsPage() {
-  const { companyId, isLoading: isTenantLoading, company } = useTenant();
+  const { companyId, isLoading: isTenantLoading, company, profile } = useTenant();
   const db = useFirestore();
   const [activeTab, setActiveTab] = useState("overview");
   const [isAddAccountOpen, setIsAddOpen] = useState(false);
@@ -56,6 +58,11 @@ export default function AccountsPage() {
   // Filing Flow State
   const [isFilingOpen, setIsFilingOpen] = useState(false);
   const [filingMonth, setFilingMonth] = useState("");
+
+  // AI State
+  const [isAIResultOpen, setIsAIResultOpen] = useState(false);
+  const [aiAdvice, setAIAdvice] = useState<AIAccountantOutput | null>(null);
+  const [isConsultingAI, setIsConsultingAI] = useState(false);
 
   // Form State
   const [newAccount, setNewAccount] = useState({
@@ -170,6 +177,29 @@ export default function AccountsPage() {
     
     setIsFilingOpen(false);
     setIsSubmitting(false);
+  };
+
+  const handleConsultAI = async () => {
+    if (!company || isConsultingAI) return;
+
+    setIsConsultingAI(true);
+    try {
+      const pendingPeriods = gstStats.months.filter(m => m.status === 'Pending').map(m => m.period);
+      const advice = await consultAIAccountant({
+        companyName: company.name || "DP Studio",
+        totalLiquidity,
+        totalGstOutput: gstStats.output,
+        pendingPeriods,
+        billingVelocity: invoices?.length && invoices.length > 5 ? "High volume production billing" : "Stable periodic billing"
+      });
+      setAIAdvice(advice);
+      setIsAIResultOpen(true);
+    } catch (error) {
+      console.error("AI Consultant failed:", error);
+      toast({ variant: "destructive", title: "AI Offline", description: "Our AI accountant is taking a short break. Try again in a moment." });
+    } finally {
+      setIsConsultingAI(false);
+    }
   };
 
   if (isTenantLoading || isAccountsLoading) {
@@ -557,12 +587,17 @@ export default function AccountsPage() {
               {/* AI Guidance */}
               <Card className="border-none shadow-sm rounded-[2rem] bg-primary text-white overflow-hidden">
                 <CardContent className="p-8 space-y-4">
-                  <Sparkles className="h-8 w-8 text-accent" />
+                  <BrainCircuit className="h-8 w-8 text-accent" />
                   <h4 className="text-lg font-bold">Tax Intelligence</h4>
                   <p className="text-xs text-white/70 leading-relaxed">
                     Based on your production velocity, we recommend switching to quarterly filing to optimize cash flow management.
                   </p>
-                  <Button className="w-full bg-white text-primary font-bold rounded-xl h-10 text-xs uppercase hover:bg-white/90">
+                  <Button 
+                    className="w-full bg-white text-primary font-bold rounded-xl h-10 text-xs uppercase hover:bg-white/90"
+                    onClick={handleConsultAI}
+                    disabled={isConsultingAI}
+                  >
+                    {isConsultingAI ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                     Consult AI Accountant
                   </Button>
                 </CardContent>
@@ -623,6 +658,65 @@ export default function AccountsPage() {
             >
               {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
               Confirm Filing
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* AI Accountant Advice Dialog */}
+      <Dialog open={isAIResultOpen} onOpenChange={setIsAIResultOpen}>
+        <DialogContent className="sm:max-w-[600px] rounded-[2rem] p-0 overflow-hidden">
+          <DialogHeader className="p-8 pb-0 bg-primary text-white">
+            <div className="flex items-center gap-3 mb-2">
+              <BrainCircuit className="h-8 w-8 text-accent" />
+              <DialogTitle className="text-2xl font-bold">AI Financial Intelligence</DialogTitle>
+            </div>
+            <DialogDescription className="text-white/70">
+              Tax optimization and compliance insights for {company?.name}.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="p-8 space-y-6">
+            <div className="space-y-2">
+              <h4 className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">Current Summary</h4>
+              <p className="text-sm leading-relaxed text-slate-700 font-medium bg-slate-50 p-4 rounded-2xl border">
+                {aiAdvice?.summary}
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-4">
+                <h4 className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">Recommendations</h4>
+                {aiAdvice?.recommendations.map((rec, i) => (
+                  <div key={i} className="space-y-1">
+                    <Badge variant="secondary" className="text-[8px] uppercase font-bold bg-primary/5 text-primary border-none">{rec.category}</Badge>
+                    <p className="text-xs font-bold leading-tight">{rec.advice}</p>
+                    <p className="text-[10px] text-muted-foreground italic">Impact: {rec.impact}</p>
+                  </div>
+                ))}
+              </div>
+              <div className="space-y-4">
+                <h4 className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">Compliance Alerts</h4>
+                <div className="space-y-2">
+                  {aiAdvice?.riskAlerts.map((risk, i) => (
+                    <div key={i} className="flex items-start gap-2 p-2 bg-rose-50 rounded-xl border border-rose-100">
+                      <AlertCircle className="h-3 w-3 text-rose-500 mt-0.5 shrink-0" />
+                      <p className="text-[10px] text-rose-700 font-bold">{risk}</p>
+                    </div>
+                  ))}
+                </div>
+                <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-100">
+                  <div className="flex items-center gap-2 mb-1">
+                    <CheckCircle2 className="h-3 w-3 text-emerald-600" />
+                    <span className="text-[10px] font-black text-emerald-700 uppercase">Filing Tip</span>
+                  </div>
+                  <p className="text-[10px] text-emerald-800 font-medium leading-tight">{aiAdvice?.filingTip}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+          <DialogFooter className="p-8 bg-slate-50 border-t">
+            <Button onClick={() => setIsAIResultOpen(false)} className="w-full rounded-xl h-12 font-bold gap-2">
+              Apply Strategy <ChevronRight className="h-4 w-4" />
             </Button>
           </DialogFooter>
         </DialogContent>
