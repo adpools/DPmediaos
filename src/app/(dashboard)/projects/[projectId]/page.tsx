@@ -24,7 +24,8 @@ import {
   Target,
   UserPlus,
   Rocket,
-  Sparkles
+  Sparkles,
+  Trash2
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -32,7 +33,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useTenant } from "@/hooks/use-tenant";
 import { useDoc, useCollection, useMemoFirebase, useFirestore } from "@/firebase";
 import { collection, query, where, orderBy, doc, serverTimestamp } from "firebase/firestore";
-import { updateDocumentNonBlocking, addDocumentNonBlocking } from "@/firebase/non-blocking-updates";
+import { updateDocumentNonBlocking, addDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import Link from "next/link";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "@/hooks/use-toast";
@@ -40,6 +41,14 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
 
 export default function ProjectWorkspacePage({ params }: { params: Promise<{ projectId: string }> }) {
   const { projectId } = use(params);
@@ -99,6 +108,13 @@ export default function ProjectWorkspacePage({ params }: { params: Promise<{ pro
       const newProgress = total > 0 ? Math.round((completed / total) * 100) : 0;
       updateDocumentNonBlocking(projectRef, { progress: newProgress });
     }
+  };
+
+  const handleDeleteTask = (taskId: string) => {
+    if (!db || !companyId || !projectId) return;
+    const taskRef = doc(db, 'companies', companyId, 'projects', projectId, 'tasks', taskId);
+    deleteDocumentNonBlocking(taskRef);
+    toast({ title: "Objective Removed", description: "The task has been deleted from the roadmap." });
   };
 
   const handleSeedPhase = (phase: string) => {
@@ -346,9 +362,24 @@ export default function ProjectWorkspacePage({ params }: { params: Promise<{ pro
                                   <AvatarFallback className="text-[8px]">C</AvatarFallback>
                                 </Avatar>
                               </div>
-                              <Button variant="ghost" size="icon" className="rounded-xl opacity-0 group-hover:opacity-100 transition-opacity">
-                                <MoreVertical className="h-4 w-4" />
-                              </Button>
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="icon" className="rounded-xl opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <MoreVertical className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="rounded-xl w-48">
+                                  <DropdownMenuLabel className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground px-3 py-2">Actions</DropdownMenuLabel>
+                                  <DropdownMenuItem className="cursor-pointer gap-2 py-2" onClick={() => handleToggleTask(task.id, task.status)}>
+                                    {task.status === 'done' ? <Clock className="h-4 w-4" /> : <CheckCircle2 className="h-4 w-4" />}
+                                    Mark as {task.status === 'done' ? 'Pending' : 'Completed'}
+                                  </DropdownMenuItem>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem className="cursor-pointer gap-2 py-2 text-rose-500 focus:text-rose-600 focus:bg-rose-50" onClick={() => handleDeleteTask(task.id)}>
+                                    <Trash2 className="h-4 w-4" /> Delete Objective
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
                             </div>
                           </div>
                         ))}
