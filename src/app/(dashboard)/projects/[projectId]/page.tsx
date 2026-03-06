@@ -1,7 +1,7 @@
 
 "use client";
 
-import { use, useState, useMemo } from "react";
+import { use, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { 
@@ -23,7 +23,8 @@ import {
   Scissors,
   Target,
   UserPlus,
-  Rocket
+  Rocket,
+  Sparkles
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -36,12 +37,20 @@ import Link from "next/link";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "@/hooks/use-toast";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 
 export default function ProjectWorkspacePage({ params }: { params: Promise<{ projectId: string }> }) {
   const { projectId } = use(params);
   const { companyId, isLoading: isTenantLoading } = useTenant();
   const db = useFirestore();
   const [activeTab, setActiveTab] = useState("pre-prod");
+  
+  // Add Objective Dialog State
+  const [isAddTaskOpen, setIsAddTaskOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [newTask, setNewTask] = useState({ title: "", assignedTo: "" });
 
   // 1. Fetch Project Details
   const projectRef = useMemoFirebase(() => {
@@ -122,32 +131,35 @@ export default function ProjectWorkspacePage({ params }: { params: Promise<{ pro
     });
   };
 
-  const handleAddTask = (phase: string) => {
-    if (!db || !companyId || !projectId) {
-      toast({ variant: "destructive", title: "Missing Context", description: "Workspace parameters not fully loaded." });
-      return;
+  const handleAddTask = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!db || !companyId || !projectId || !newTask.title) return;
+
+    setIsSubmitting(true);
+    try {
+      const tasksRef = collection(db, 'companies', companyId, 'projects', projectId, 'tasks');
+      
+      await addDocumentNonBlocking(tasksRef, {
+        title: newTask.title,
+        phase: activeTab,
+        assignedTo: newTask.assignedTo || "Producer",
+        status: 'todo',
+        priority: 'Medium',
+        created_at: serverTimestamp()
+      });
+      
+      toast({ 
+        title: "Objective Registered", 
+        description: `${newTask.title} added to ${activeTab.replace('-', ' ')} roadmap.` 
+      });
+
+      setNewTask({ title: "", assignedTo: "" });
+      setIsAddTaskOpen(false);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsSubmitting(false);
     }
-
-    const title = window.prompt(`Register ${phase.replace('-', ' ')} objective:`);
-    if (!title) return;
-
-    const assignedTo = window.prompt("Assign to role (e.g. Producer, Lead Editor, PR Team)?") || "Unassigned";
-
-    const tasksRef = collection(db, 'companies', companyId, 'projects', projectId, 'tasks');
-    
-    addDocumentNonBlocking(tasksRef, {
-      title,
-      phase,
-      assignedTo,
-      status: 'todo',
-      priority: 'Medium',
-      created_at: serverTimestamp()
-    });
-    
-    toast({ 
-      title: "Objective Registered", 
-      description: `${title} added to ${phase.replace('-', ' ')} roadmap.` 
-    });
   };
 
   if (isTenantLoading || isProjectLoading) {
@@ -292,7 +304,7 @@ export default function ProjectWorkspacePage({ params }: { params: Promise<{ pro
                       </div>
                       <CardDescription>Assign and track key deliverables for this phase.</CardDescription>
                     </div>
-                    <Button variant="outline" size="sm" className="rounded-xl" onClick={() => handleAddTask(phase)}>
+                    <Button variant="outline" size="sm" className="rounded-xl" onClick={() => setIsAddTaskOpen(true)}>
                       <Plus className="h-4 w-4 mr-2" /> Add Objective
                     </Button>
                   </CardHeader>
@@ -467,6 +479,50 @@ export default function ProjectWorkspacePage({ params }: { params: Promise<{ pro
           </TabsContent>
         ))}
       </Tabs>
+
+      {/* Add Task/Objective Dialog */}
+      <Dialog open={isAddTaskOpen} onOpenChange={setIsAddTaskOpen}>
+        <DialogContent className="sm:max-w-[425px] rounded-[2rem]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-accent" />
+              New {activeTab.replace('-', ' ')} Objective
+            </DialogTitle>
+            <DialogDescription>
+              Define a specific deliverable for this production phase.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleAddTask} className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="title">Objective Title</Label>
+              <Input 
+                id="title" 
+                placeholder="e.g. Color Grade Final" 
+                value={newTask.title}
+                onChange={(e) => setNewTask({ ...newTask, title: e.target.value })}
+                required
+                className="rounded-xl"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="assignee">Assign to Role</Label>
+              <Input 
+                id="assignee" 
+                placeholder="e.g. Lead Editor" 
+                value={newTask.assignedTo}
+                onChange={(e) => setNewTask({ ...newTask, assignedTo: e.target.value })}
+                className="rounded-xl"
+              />
+            </div>
+            <DialogFooter className="pt-4">
+              <Button type="submit" disabled={isSubmitting} className="w-full rounded-xl h-11 font-bold">
+                {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                Register Objective
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
