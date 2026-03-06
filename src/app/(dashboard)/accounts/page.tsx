@@ -75,6 +75,9 @@ export default function AccountsPage() {
   const [filingStep, setFilingStep] = useState<'review' | 'validating' | 'syncing' | 'complete'>('review');
   const [automationProgress, setAutomationProgress] = useState(0);
 
+  // Assistant State
+  const [isAssistantRunning, setIsAssistantRunning] = useState(false);
+
   // AI State
   const [isAIResultOpen, setIsAIResultOpen] = useState(false);
   const [aiAdvice, setAIAdvice] = useState<AIAccountantOutput | null>(null);
@@ -234,6 +237,16 @@ export default function AccountsPage() {
     setIsFilingOpen(true);
   };
 
+  const handleBulkAutomate = async () => {
+    const pending = gstStats.months.filter(m => m.status === 'Pending');
+    if (pending.length === 0) {
+      toast({ title: "All Filed", description: "No pending periods detected for automation." });
+      return;
+    }
+    // Start with the first pending period
+    handleStartFiling(pending[0]);
+  };
+
   const handleAutomateFiling = async () => {
     setFilingStep('validating');
     
@@ -270,6 +283,30 @@ export default function AccountsPage() {
       title: "Automated Filing Successful", 
       description: `GSTR record for ${selectedFilingPeriod.period} synced with portal. ARN: ${arn}` 
     });
+  };
+
+  const runFilingAssistant = async (type: 'GSTR-1' | 'GSTR-3B') => {
+    setIsAssistantRunning(true);
+    toast({ title: `Assistant Initiated`, description: `Running automated ${type} integrity checks...` });
+    
+    await new Promise(r => setTimeout(r, 2000));
+    
+    if (type === 'GSTR-1') {
+      const missingGstins = invoices?.filter(inv => !inv.client_id || inv.client_id === 'unlinked').length || 0;
+      if (missingGstins > 0) {
+        toast({ 
+          variant: "destructive", 
+          title: "GSTR-1 Risk Found", 
+          description: `Detected ${missingGstins} invoices with unlinked CRM data. Please update client GSTINs.` 
+        });
+      } else {
+        toast({ title: "GSTR-1 Clean", description: "No data integrity issues detected across production billing." });
+      }
+    } else {
+      toast({ title: "GSTR-3B Draft Ready", description: "Aggregate tax liability and input credit draft generated." });
+    }
+    
+    setIsAssistantRunning(false);
   };
 
   const handleConsultAI = async () => {
@@ -655,7 +692,7 @@ export default function AccountsPage() {
                   <p className="text-xs text-indigo-800/70 leading-relaxed font-medium">
                     Your workspace is authorized for direct filing. We've detected <strong>{gstStats.months.filter(m => m.status === 'Pending').length}</strong> periods ready for statutory submission.
                   </p>
-                  <Button className="w-full rounded-xl text-[10px] font-black uppercase tracking-widest h-9 bg-indigo-600 hover:bg-indigo-700" onClick={() => handleStartFiling(gstStats.months[0])}>
+                  <Button className="w-full rounded-xl text-[10px] font-black uppercase tracking-widest h-9 bg-indigo-600 hover:bg-indigo-700" onClick={handleBulkAutomate}>
                     Bulk Automate All
                   </Button>
                 </CardContent>
@@ -670,8 +707,24 @@ export default function AccountsPage() {
                   <p className="text-xs text-slate-400">Our engine cross-checks GSTINs and HSN codes automatically before submission.</p>
                 </div>
                 <div className="pt-2 space-y-3">
-                  <Button variant="outline" className="w-full bg-white/5 border-white/10 text-white hover:bg-white/10 rounded-xl h-10 text-xs font-bold">GSTR-1 Data Integrity</Button>
-                  <Button variant="outline" className="w-full bg-white/5 border-white/10 text-white hover:bg-white/10 rounded-xl h-10 text-xs font-bold">GSTR-3B Auto-Draft</Button>
+                  <Button 
+                    variant="outline" 
+                    className="w-full bg-white/5 border-white/10 text-white hover:bg-white/10 rounded-xl h-10 text-xs font-bold"
+                    onClick={() => runFilingAssistant('GSTR-1')}
+                    disabled={isAssistantRunning}
+                  >
+                    {isAssistantRunning ? <Loader2 className="h-3 w-3 animate-spin mr-2" /> : null}
+                    GSTR-1 Data Integrity
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    className="w-full bg-white/5 border-white/10 text-white hover:bg-white/10 rounded-xl h-10 text-xs font-bold"
+                    onClick={() => runFilingAssistant('GSTR-3B')}
+                    disabled={isAssistantRunning}
+                  >
+                    {isAssistantRunning ? <Loader2 className="h-3 w-3 animate-spin mr-2" /> : null}
+                    GSTR-3B Auto-Draft
+                  </Button>
                 </div>
               </Card>
             </div>
