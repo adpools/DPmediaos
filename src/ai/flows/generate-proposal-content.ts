@@ -1,25 +1,36 @@
 'use server';
 /**
- * @fileOverview A Genkit flow for generating sales proposal content.
- *
- * - generateProposalContent - A function that handles the AI proposal content generation process.
- * - GenerateProposalContentInput - The input type for the generateProposalContent function.
- * - GenerateProposalContentOutput - The return type for the generateProposalContent function.
+ * @fileOverview AI Proposal Architect flow for generating high-premium sales proposals.
+ * 
+ * This flow performs a 5-step analysis:
+ * 1. Project Understanding
+ * 2. Market Research
+ * 3. Proposal Structuring
+ * 4. Content Generation
+ * 5. Structured JSON Output
  */
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 
 const GenerateProposalContentInputSchema = z.object({
-  projectName: z.string().describe('The name of the project for the proposal.').min(1),
-  clientName: z.string().describe('The name of the client receiving the proposal.').min(1),
-  servicesRequired: z.string().describe('A detailed description of the services the client requires.').min(1),
-  additionalDetails: z.string().optional().describe('Any additional specific details or context relevant to the proposal.'),
+  service_vertical: z.string().describe('The type of service, e.g., Brand Film, SEO, Social Media.'),
+  client_type: z.string().describe('The industry or type of client business.'),
+  location: z.string().describe('The geographical location of the client/project.'),
+  project_description: z.string().describe('Detailed description of the project requirements.'),
+  project_duration: z.string().describe('Estimated timeline for the project.'),
+  target_market: z.string().describe('The specific audience the project aims to reach.'),
+  budget: z.string().optional().describe('Budget range if provided.'),
 });
 export type GenerateProposalContentInput = z.infer<typeof GenerateProposalContentInputSchema>;
 
 const GenerateProposalContentOutputSchema = z.object({
-  content: z.string().describe('The generated draft content for the sales proposal.'),
+  proposal_title: z.string(),
+  client: z.string(),
+  sections: z.array(z.object({
+    title: z.string(),
+    content: z.string().describe('Professional agency-level markdown content for this section.'),
+  })),
 });
 export type GenerateProposalContentOutput = z.infer<typeof GenerateProposalContentOutputSchema>;
 
@@ -33,24 +44,53 @@ const proposalContentPrompt = ai.definePrompt({
   name: 'proposalContentPrompt',
   input: { schema: GenerateProposalContentInputSchema },
   output: { schema: GenerateProposalContentOutputSchema },
-  prompt: `You are an expert sales proposal writer. Your goal is to generate draft content and placeholder text for a sales proposal based on the provided project details. The content should be professional, engaging, and directly address the client's needs. Ensure the output is formatted as a JSON object with a single 'content' field.
+  prompt: `You are an AI Proposal Architect for a premium creative media and digital marketing agency.
+Your task is to automatically generate a professional business proposal structure and research insights based on the following inputs:
 
-Project Name: {{{projectName}}}
-Client Name: {{{clientName}}}
-Services Required: {{{servicesRequired}}}
-Additional Details: {{{additionalDetails}}}
+INPUT DATA:
+- Service Vertical: {{{service_vertical}}}
+- Client Industry / Type: {{{client_type}}}
+- Client Location: {{{location}}}
+- Project Description: {{{project_description}}}
+- Project Duration: {{{project_duration}}}
+- Target Market: {{{target_market}}}
+- Budget Range: {{#if budget}}{{{budget}}}{{else}}Standard Agency Rates{{/if}}
 
-Please generate a comprehensive proposal draft that includes the following sections:
-1.  Executive Summary: Provide a brief overview of the client's challenge and your proposed solution.
-2.  Understanding of Client's Needs: Elaborate on your understanding of the client's specific requirements and challenges.
-3.  Proposed Solution & Services: Detail the specific services and solutions you are offering to address their needs.
-4.  Benefits & Value Proposition: Explain the benefits the client will receive and the unique value your solution brings.
-5.  Project Approach & Methodology: Describe your plan for execution and the methodology you will follow.
-6.  Timeline: Provide a placeholder for the estimated project timeline (e.g., "[Project Timeline: To be determined based on final scope]").
-7.  Investment: Provide a placeholder for the pricing details (e.g., "[Investment: Detailed pricing will be provided upon scope finalization]").
-8.  Next Steps & Call to Action: Clearly outline what the client should do next.
+Please follow these steps to generate the proposal:
 
-Ensure to use placeholders where specific details (like exact timelines or pricing) would normally go, indicating where further information is needed.`, 
+STEP 1 — Understand the Project
+Analyze the service vertical and description to determine business goals, challenges, and trends.
+
+STEP 2 — Perform Market Research
+Include industry overview, market trends, competitor analysis (strengths/weaknesses), and digital presence opportunities.
+
+STEP 3 — Generate Proposal Structure (18 Sections)
+1. Cover Page
+2. Proposal Introduction
+3. Executive Summary
+4. Client Business Overview
+5. Digital Presence Audit
+6. Competitor Analysis
+7. Keyword & Search Opportunity
+8. Strategic Framework
+9. 12-Month Marketing Roadmap
+10. Media Production Plan
+11. Digital Marketing Plan
+12. Deliverables Summary
+13. KPI Targets
+14. Budget Structure
+15. Expected ROI
+16. Implementation Timeline
+17. Next Steps
+18. Terms & Conditions
+
+STEP 4 — Generate Content
+- Premium agency tone (strategic and data-driven).
+- Adapt tone to the client industry.
+- Include data-backed insights and measurable outcomes.
+
+STEP 5 — Format Output
+Return a structured JSON object with a "proposal_title", "client", and an array of "sections" each with a "title" and "content".`,
 });
 
 const generateProposalContentFlow = ai.defineFlow(

@@ -132,14 +132,14 @@
     "Proposal": {
       "title": "Proposal",
       "type": "object",
-      "description": "Represents a sales production proposal generated via AI.",
+      "description": "Represents a high-premium sales production blueprint.",
       "properties": {
         "id": { "type": "string" },
         "company_id": { "type": "string" },
         "title": { "type": "string" },
         "client_name": { "type": "string" },
         "proposal_number": { "type": "string" },
-        "content": { "type": "string" },
+        "content": { "type": "string", "description": "Structured JSON blueprint stringified." },
         "status": { "type": "string", "enum": ["draft", "sent", "accepted", "rejected"] },
         "created_at": { "type": "string", "format": "date-time" }
       }
@@ -186,7 +186,7 @@
     },
     "companies/{companyId}/proposals/{proposalId}": {
       "schema": { "$ref": "#/backend/entities/Proposal" },
-      "description": "Sales production pitches."
+      "description": "AI-Architected high-premium pitch blueprints."
     }
   }
 }
