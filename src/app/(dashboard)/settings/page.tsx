@@ -50,7 +50,7 @@ function AccountCenterContent() {
   const db = useFirestore();
   const auth = useAuth();
   const storage = useStorage();
-  const { profile: tenantProfile, settings, company, companyId, isLoading: isTenantLoading } = useTenant();
+  const { profile: tenantProfile, user, settings, company, companyId, isLoading: isTenantLoading } = useTenant();
   
   const initialTab = searchParams.get("tab") || "profile";
   const [activeTab, setActiveTab] = useState(initialTab);
@@ -188,7 +188,12 @@ function AccountCenterContent() {
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file || !tenantProfile?.id || !storage || !db) return;
+    const uid = user?.uid || tenantProfile?.id;
+
+    if (!file || !uid || !storage || !db) {
+      console.warn("Upload aborted: missing required context", { file: !!file, uid, storage: !!storage, db: !!db });
+      return;
+    }
 
     // 1. Client-side Validation
     if (!file.type.startsWith('image/')) {
@@ -204,7 +209,10 @@ function AccountCenterContent() {
     setIsUploading(true);
     try {
       // 2. Upload to Firebase Storage
-      const storageRef = ref(storage, `users/${tenantProfile.id}/avatar`);
+      // Using user.uid for path reliability
+      const storageRef = ref(storage, `users/${uid}/avatar`);
+      console.log("Initiating upload to:", storageRef.fullPath);
+      
       await uploadBytes(storageRef, file);
       const downloadURL = await getDownloadURL(storageRef);
       
@@ -212,7 +220,7 @@ function AccountCenterContent() {
       setProfileData(prev => ({ ...prev, avatar: downloadURL }));
       
       // 4. Persist to Firestore
-      const userRef = doc(db, 'users', tenantProfile.id);
+      const userRef = doc(db, 'users', uid);
       updateDocumentNonBlocking(userRef, {
         avatar: downloadURL,
         updatedAt: serverTimestamp()
@@ -220,14 +228,15 @@ function AccountCenterContent() {
       
       toast({ title: "Profile Image Updated", description: "Your avatar has been synced successfully." });
     } catch (error: any) {
-      console.error("Storage upload error:", error);
+      console.error("Storage upload error details:", error);
       
-      // Detailed error diagnostic
       let errorMsg = "Could not upload image. Please try again.";
       if (error.code === 'storage/unauthorized') {
         errorMsg = "Unauthorized. Please ensure Firebase Storage is enabled in the console.";
       } else if (error.code === 'storage/retry-limit-exceeded') {
         errorMsg = "Network timeout. Please check your connection.";
+      } else if (error.code === 'storage/no-default-bucket') {
+        errorMsg = "Configuration error: No default storage bucket found.";
       }
 
       toast({ 
@@ -327,7 +336,7 @@ function AccountCenterContent() {
                 <AlertCircle className="h-4 w-4 text-blue-600" />
                 <AlertTitle className="text-blue-800 font-bold">Upload Troubleshooting</AlertTitle>
                 <AlertDescription className="text-blue-700 text-xs">
-                  If upload fails, ensure <strong>Firebase Storage</strong> is activated in your project console and rules are deployed.
+                  If upload fails, ensure <strong>Firebase Storage</strong> is activated in your project console and rules are deployed. Use the camera icon or click the avatar to select a file.
                 </AlertDescription>
               </Alert>
 
