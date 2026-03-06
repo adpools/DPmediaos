@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, Suspense } from "react";
@@ -18,7 +19,10 @@ import {
   ArrowRight,
   Target,
   FileCheck,
-  Database
+  Database,
+  Share2,
+  Mail,
+  MessageSquare
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -42,6 +46,14 @@ import { generateProposalContent } from "@/ai/flows/generate-proposal-content";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuLabel, 
+  DropdownMenuSeparator, 
+  DropdownMenuTrigger 
+} from "@/components/ui/dropdown-menu";
 
 function ProposalsContent() {
   const { profile, isLoading: isTenantLoading, companyId } = useTenant();
@@ -52,6 +64,10 @@ function ProposalsContent() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationStep, setGenerationStep] = useState<'input' | 'preview'>('input');
+
+  // View Proposal State
+  const [viewingProposal, setViewingProposal] = useState<any>(null);
+  const [isViewOpen, setIsViewOpen] = useState(false);
 
   // Proposal State
   const [newProposal, setNewProposal] = useState({
@@ -167,6 +183,22 @@ function ProposalsContent() {
     setGenerationStep('input');
     setIsAddOpen(false);
     setIsSubmitting(false);
+  };
+
+  const handleShareWhatsApp = (proposal: any) => {
+    const text = encodeURIComponent(`Hi, here is our production proposal for ${proposal.title}.\n\nPreview:\n${proposal.content.substring(0, 200)}...`);
+    window.open(`https://wa.me/?text=${text}`, '_blank');
+  };
+
+  const handleShareEmail = (proposal: any) => {
+    const subject = encodeURIComponent(`Production Proposal: ${proposal.title}`);
+    const body = encodeURIComponent(`Dear Client,\n\nPlease find our production proposal for ${proposal.title} below:\n\n${proposal.content}\n\nBest regards,\n${profile?.fullName || 'Production Team'}`);
+    window.location.href = `mailto:?subject=${subject}&body=${body}`;
+  };
+
+  const handleViewProposal = (proposal: any) => {
+    setViewingProposal(proposal);
+    setIsViewOpen(true);
   };
 
   if (isTenantLoading || isProposalsLoading) {
@@ -384,12 +416,31 @@ function ProposalsContent() {
                   </div>
 
                   <div className="flex items-center gap-2">
-                    <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl hover:bg-slate-100">
-                      <Download className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl hover:bg-slate-100">
+                    <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl hover:bg-slate-100" onClick={() => handleViewProposal(prop)}>
                       <ExternalLink className="h-4 w-4" />
                     </Button>
+                    
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl hover:bg-slate-100">
+                          <Share2 className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="rounded-xl w-48">
+                        <DropdownMenuLabel className="text-[10px] font-black uppercase text-slate-400 px-3 py-2">Deliver Draft</DropdownMenuLabel>
+                        <DropdownMenuItem className="gap-2 cursor-pointer py-2" onClick={() => handleShareWhatsApp(prop)}>
+                          <MessageSquare className="h-4 w-4 text-emerald-500" /> WhatsApp Draft
+                        </DropdownMenuItem>
+                        <DropdownMenuItem className="gap-2 cursor-pointer py-2" onClick={() => handleShareEmail(prop)}>
+                          <Mail className="h-4 w-4 text-blue-500" /> Send via Email
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem className="gap-2 cursor-pointer py-2">
+                          <Download className="h-4 w-4" /> Download PDF
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+
                     <Button className="rounded-xl text-xs h-9 px-6 font-bold shadow-lg shadow-primary/10">Edit</Button>
                   </div>
                 </div>
@@ -398,6 +449,50 @@ function ProposalsContent() {
           ))
         )}
       </div>
+
+      {/* VIEW PROPOSAL DIALOG */}
+      <Dialog open={isViewOpen} onOpenChange={setIsViewOpen}>
+        <DialogContent className="sm:max-w-[700px] rounded-[3rem] p-0 overflow-hidden border-none shadow-2xl">
+          <div className="bg-white text-slate-900 p-10">
+            <div className="flex items-center justify-between mb-8">
+              <div className="flex items-center gap-4">
+                <div className="h-12 w-12 bg-primary/10 rounded-2xl flex items-center justify-center text-primary">
+                  <FileText className="h-6 w-6" />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-black tracking-tight">{viewingProposal?.title}</h2>
+                  <p className="text-xs text-muted-foreground uppercase font-bold tracking-widest">{viewingProposal?.proposal_number} • {viewingProposal?.client_name}</p>
+                </div>
+              </div>
+              <Badge className="bg-primary/5 text-primary border-none uppercase text-[10px] font-black tracking-widest px-4 h-7">
+                {viewingProposal?.status}
+              </Badge>
+            </div>
+
+            <ScrollArea className="h-[60vh] pr-6">
+              <div className="prose prose-sm max-w-none">
+                <div className="text-sm leading-relaxed text-slate-700 whitespace-pre-line font-medium">
+                  {viewingProposal?.content}
+                </div>
+              </div>
+            </ScrollArea>
+
+            <div className="mt-8 pt-8 border-t flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Button variant="outline" className="rounded-xl h-11 px-6 font-bold gap-2" onClick={() => handleShareWhatsApp(viewingProposal)}>
+                  <MessageSquare className="h-4 w-4 text-emerald-500" /> WhatsApp
+                </Button>
+                <Button variant="outline" className="rounded-xl h-11 px-6 font-bold gap-2" onClick={() => handleShareEmail(viewingProposal)}>
+                  <Mail className="h-4 w-4 text-blue-500" /> Email
+                </Button>
+              </div>
+              <Button className="rounded-xl h-11 px-8 font-bold" onClick={() => setIsViewOpen(false)}>
+                Close Preview
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -128,6 +128,21 @@
         "created_at": { "type": "string", "format": "date-time" }
       },
       "required": ["id", "company_id", "category", "amount", "date"]
+    },
+    "Proposal": {
+      "title": "Proposal",
+      "type": "object",
+      "description": "Represents a sales production proposal generated via AI.",
+      "properties": {
+        "id": { "type": "string" },
+        "company_id": { "type": "string" },
+        "title": { "type": "string" },
+        "client_name": { "type": "string" },
+        "proposal_number": { "type": "string" },
+        "content": { "type": "string" },
+        "status": { "type": "string", "enum": ["draft", "sent", "accepted", "rejected"] },
+        "created_at": { "type": "string", "format": "date-time" }
+      }
     }
   },
   "auth": {
@@ -168,6 +183,10 @@
     "companies/{companyId}/expenses/{expenseId}": {
       "schema": { "$ref": "#/backend/entities/Expense" },
       "description": "Running costs and payroll."
+    },
+    "companies/{companyId}/proposals/{proposalId}": {
+      "schema": { "$ref": "#/backend/entities/Proposal" },
+      "description": "Sales production pitches."
     }
   }
 }

@@ -97,6 +97,10 @@ service cloud.firestore {
         allow update: if isMember(companyId);
         allow delete: if isMember(companyId);
       }
+
+      match /proposals/{proposalId} {
+        allow read, write: if isMember(companyId);
+      }
     }
   }
 }
