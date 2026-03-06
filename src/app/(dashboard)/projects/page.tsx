@@ -22,7 +22,8 @@ import {
   X,
   Briefcase,
   Layers,
-  ArrowRight
+  ArrowRight,
+  Database
 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
@@ -111,6 +112,22 @@ export default function ProjectsPage() {
     });
   }, [projects, searchQuery, statusFilter]);
 
+  const handleLeadImport = (leadId: string) => {
+    const lead = leads?.find(l => l.id === leadId);
+    if (lead) {
+      setNewProject({
+        ...newProject,
+        client_name: lead.company_name || "",
+        budget: lead.deal_value ? lead.deal_value.toString() : "",
+        project_name: `${lead.company_name} - ${new Date().getFullYear()} Production`,
+      });
+      toast({
+        title: "CRM Data Imported",
+        description: `Linked to ${lead.company_name} opportunity.`,
+      });
+    }
+  };
+
   const handleCreateProject = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!companyId || !newProject.project_name || !newProject.client_name) {
@@ -182,7 +199,7 @@ export default function ProjectsPage() {
                 <Plus className="h-4 w-4" /> New Project
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px] rounded-[2rem]">
+            <DialogContent className="sm:max-w-[450px] rounded-[2rem]">
               <DialogHeader>
                 <DialogTitle className="flex items-center gap-2">
                   <Sparkles className="h-5 w-5 text-accent" />
@@ -193,6 +210,29 @@ export default function ProjectsPage() {
                 </DialogDescription>
               </DialogHeader>
               <form onSubmit={handleCreateProject} className="space-y-4 py-4">
+                {/* Lead Import Dropdown */}
+                <div className="space-y-2 p-4 bg-primary/5 rounded-2xl border border-primary/10">
+                  <Label htmlFor="importLead" className="text-[10px] font-bold uppercase tracking-widest text-primary flex items-center gap-2">
+                    <Database className="h-3 w-3" /> Smart Import from CRM
+                  </Label>
+                  <Select onValueChange={handleLeadImport}>
+                    <SelectTrigger className="rounded-xl h-9 bg-white shadow-none text-xs">
+                      <SelectValue placeholder="Select active lead to fetch data..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {leads?.length === 0 ? (
+                        <div className="p-4 text-center text-xs text-muted-foreground">No active leads found.</div>
+                      ) : (
+                        leads?.map((lead) => (
+                          <SelectItem key={lead.id} value={lead.id} className="text-xs">
+                            {lead.company_name} (₹{lead.deal_value?.toLocaleString()})
+                          </SelectItem>
+                        ))
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+
                 <div className="space-y-2">
                   <Label htmlFor="name">Project Name</Label>
                   <Input 
