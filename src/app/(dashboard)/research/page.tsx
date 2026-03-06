@@ -6,7 +6,22 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, Search, TrendingUp, Target, Sparkles, MapPin, Briefcase, History, ChevronRight, FileText } from "lucide-react";
+import { 
+  Loader2, 
+  Search, 
+  TrendingUp, 
+  Target, 
+  Sparkles, 
+  MapPin, 
+  Briefcase, 
+  History, 
+  ChevronRight, 
+  FileText,
+  Package,
+  Zap,
+  Lightbulb,
+  Cpu
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useTenant } from "@/hooks/use-tenant";
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
@@ -14,6 +29,7 @@ import { collection, query, orderBy, limit, serverTimestamp } from "firebase/fir
 import { addDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { Slider } from "@/components/ui/slider";
 import Link from "next/link";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const LOCATION_SUGGESTIONS = [
   "Mumbai, India",
@@ -70,6 +86,9 @@ export default function MarketResearchPage() {
         opportunityScore: data.opportunityScore,
         marketTrends: data.marketTrends,
         suggestedPitchAngles: data.suggestedPitchAngles,
+        contentOpportunities: data.contentOpportunities || [],
+        suggestedServicePackages: data.suggestedServicePackages || [],
+        aiAutomationSuggestions: data.aiAutomationSuggestions || [],
         requestedAt: serverTimestamp(),
       });
 
@@ -85,7 +104,9 @@ export default function MarketResearchPage() {
       opportunityScore: session.opportunityScore,
       marketTrends: session.marketTrends,
       suggestedPitchAngles: session.suggestedPitchAngles,
-      contentOpportunities: []
+      contentOpportunities: session.contentOpportunities || [],
+      suggestedServicePackages: session.suggestedServicePackages || [],
+      aiAutomationSuggestions: session.aiAutomationSuggestions || []
     });
     setIndustry(session.industry);
     setLocation(session.location);
@@ -93,43 +114,48 @@ export default function MarketResearchPage() {
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 max-w-7xl mx-auto pb-12">
       <div className="flex flex-col gap-1">
-        <h1 className="text-3xl font-bold text-primary">Market Intelligence</h1>
-        <p className="text-muted-foreground">AI-powered research for media production opportunities and trends.</p>
+        <h1 className="text-3xl md:text-4xl font-bold text-primary">Market Intelligence</h1>
+        <p className="text-muted-foreground flex items-center gap-2">
+          <Zap className="h-4 w-4 text-accent" /> AI-powered research for media production opportunities and trends.
+        </p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
         <div className="lg:col-span-3 space-y-8">
-          <Card className="border-none shadow-sm overflow-hidden rounded-[2rem]">
-            <div className="bg-primary p-8 text-primary-foreground">
-              <div className="flex items-center gap-3 mb-6">
-                <Sparkles className="h-6 w-6 text-accent" />
-                <h2 className="text-xl font-bold">New Research Campaign</h2>
+          <Card className="border-none shadow-soft overflow-hidden rounded-[2.5rem]">
+            <div className="bg-primary p-8 md:p-10 text-primary-foreground relative">
+              <Sparkles className="absolute top-10 right-10 h-20 w-20 text-white/5" />
+              <div className="flex items-center gap-3 mb-8">
+                <div className="h-10 w-10 bg-white/10 rounded-xl flex items-center justify-center backdrop-blur-md">
+                  <Search className="h-5 w-5 text-accent" />
+                </div>
+                <h2 className="text-2xl font-bold">New Intelligence Campaign</h2>
               </div>
-              <form onSubmit={handleSearch} className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-1.5">
-                    <Label htmlFor="industry" className="text-primary-foreground/80 text-[10px] font-bold uppercase tracking-wider">Target Industry</Label>
+              <form onSubmit={handleSearch} className="space-y-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div className="space-y-2">
+                    <Label htmlFor="industry" className="text-primary-foreground/80 text-[10px] font-black uppercase tracking-[0.2em]">Target Industry</Label>
                     <div className="relative">
-                      <Briefcase className="absolute left-3 top-2.5 h-4 w-4 text-primary/40" />
+                      <Briefcase className="absolute left-4 top-3.5 h-4 w-4 text-primary/40" />
                       <Input 
                         id="industry" 
                         placeholder="e.g. Sustainable Fashion" 
-                        className="bg-white/10 border-white/20 text-white placeholder:text-white/40 pl-9 h-11 rounded-xl"
+                        className="bg-white/10 border-white/20 text-white placeholder:text-white/40 pl-11 h-12 rounded-2xl focus:ring-accent"
                         value={industry}
                         onChange={(e) => setIndustry(e.target.value)}
                       />
                     </div>
                   </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="location" className="text-primary-foreground/80 text-[10px] font-bold uppercase tracking-wider">Geographical Location</Label>
+                  <div className="space-y-2">
+                    <Label htmlFor="location" className="text-primary-foreground/80 text-[10px] font-black uppercase tracking-[0.2em]">Geographical Focus</Label>
                     <div className="relative">
-                      <MapPin className="absolute left-3 top-2.5 h-4 w-4 text-primary/40" />
+                      <MapPin className="absolute left-4 top-3.5 h-4 w-4 text-primary/40" />
                       <Input 
                         id="location" 
                         placeholder="e.g. London, UK" 
-                        className="bg-white/10 border-white/20 text-white placeholder:text-white/40 pl-9 h-11 rounded-xl"
+                        className="bg-white/10 border-white/20 text-white placeholder:text-white/40 pl-11 h-12 rounded-2xl focus:ring-accent"
                         value={location}
                         onChange={(e) => setLocation(e.target.value)}
                       />
@@ -140,7 +166,7 @@ export default function MarketResearchPage() {
                           key={suggestion}
                           type="button"
                           onClick={() => setLocation(suggestion)}
-                          className="text-[9px] font-bold uppercase py-1 px-2 rounded-lg bg-white/5 hover:bg-white/20 transition-colors text-white/60 hover:text-white"
+                          className="text-[9px] font-bold uppercase py-1 px-3 rounded-full bg-white/5 hover:bg-white/20 transition-colors text-white/60 hover:text-white"
                         >
                           {suggestion.split(',')[0]}
                         </button>
@@ -149,11 +175,11 @@ export default function MarketResearchPage() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-end pt-4 border-t border-white/10">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-10 items-end pt-6 border-t border-white/10">
                   <div className="space-y-4">
-                    <div className="flex justify-between">
-                      <Label className="text-primary-foreground/80 text-[10px] font-bold uppercase tracking-wider">Search Radius</Label>
-                      <span className="text-[10px] font-bold text-accent">{radius[0]} km</span>
+                    <div className="flex justify-between items-center">
+                      <Label className="text-primary-foreground/80 text-[10px] font-black uppercase tracking-[0.2em]">Discovery Radius</Label>
+                      <Badge className="bg-accent text-white border-none font-black text-[10px]">{radius[0]} KM</Badge>
                     </div>
                     <Slider 
                       value={radius} 
@@ -164,9 +190,9 @@ export default function MarketResearchPage() {
                       className="cursor-pointer"
                     />
                   </div>
-                  <Button disabled={loading} className="w-full bg-accent hover:bg-accent/90 text-white border-none h-11 rounded-xl font-bold shadow-lg shadow-black/20">
-                    {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Search className="h-4 w-4 mr-2" />}
-                    Analyze Market
+                  <Button disabled={loading} className="w-full bg-accent hover:bg-accent/90 text-white border-none h-14 rounded-2xl font-black uppercase tracking-widest text-xs shadow-xl shadow-black/20">
+                    {loading ? <Loader2 className="h-5 w-5 animate-spin mr-3" /> : <Zap className="h-5 w-5 mr-3" />}
+                    Initiate Market Scan
                   </Button>
                 </div>
               </form>
@@ -174,134 +200,199 @@ export default function MarketResearchPage() {
           </Card>
 
           {result ? (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-              <Card className="md:col-span-1 border-none shadow-sm rounded-[2rem] bg-white">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <Target className="h-5 w-5 text-accent" />
-                    Opportunity Score
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="flex flex-col items-center justify-center p-8 space-y-4">
-                  <div className="relative h-40 w-40 flex items-center justify-center">
-                    <svg className="h-full w-full -rotate-90">
-                      <circle
-                        cx="80"
-                        cy="80"
-                        r="70"
-                        fill="transparent"
-                        stroke="currentColor"
-                        strokeWidth="10"
-                        className="text-slate-100"
-                      />
-                      <circle
-                        cx="80"
-                        cy="80"
-                        r="70"
-                        fill="transparent"
-                        stroke="currentColor"
-                        strokeWidth="10"
-                        strokeDasharray={440}
-                        strokeDashoffset={440 - (440 * result.opportunityScore) / 100}
-                        className="text-primary transition-all duration-1000"
-                        strokeLinecap="round"
-                      />
-                    </svg>
-                    <div className="absolute text-center">
-                      <span className="text-4xl font-bold text-primary">{result.opportunityScore}</span>
-                      <p className="text-[10px] font-bold text-muted-foreground uppercase">Score</p>
-                    </div>
+            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+              {/* Core Analytics Row */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <Card className="border-none shadow-sm rounded-[2rem] bg-white overflow-hidden relative group">
+                  <div className="absolute top-0 right-0 p-6 opacity-5 group-hover:scale-110 transition-transform">
+                    <Target className="h-20 w-20" />
                   </div>
-                  <p className="text-center text-xs text-muted-foreground leading-relaxed">
-                    Market readiness and entry potential based on current media saturation in {industry}.
-                  </p>
-                </CardContent>
-              </Card>
-
-              <div className="md:col-span-2 space-y-6">
-                <Card className="border-none shadow-sm rounded-[2rem] bg-white">
                   <CardHeader className="pb-2">
-                    <CardTitle className="text-lg flex items-center gap-2">
-                      <TrendingUp className="h-5 w-5 text-primary" />
-                      Key Market Trends
+                    <CardTitle className="text-sm font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                      Opportunity Score
                     </CardTitle>
                   </CardHeader>
-                  <CardContent className="flex flex-wrap gap-2 pt-2">
-                    {result.marketTrends.map((trend, idx) => (
-                      <Badge key={idx} variant="secondary" className="px-4 py-1.5 text-[10px] font-bold uppercase tracking-wider bg-slate-50 text-primary border-none">
-                        {trend}
-                      </Badge>
-                    ))}
+                  <CardContent className="flex flex-col items-center justify-center p-8 space-y-4">
+                    <div className="relative h-40 w-40 flex items-center justify-center">
+                      <svg className="h-full w-full -rotate-90">
+                        <circle
+                          cx="80"
+                          cy="80"
+                          r="70"
+                          fill="transparent"
+                          stroke="currentColor"
+                          strokeWidth="8"
+                          className="text-slate-50"
+                        />
+                        <circle
+                          cx="80"
+                          cy="80"
+                          r="70"
+                          fill="transparent"
+                          stroke="currentColor"
+                          strokeWidth="12"
+                          strokeDasharray={440}
+                          strokeDashoffset={440 - (440 * result.opportunityScore) / 100}
+                          className="text-primary transition-all duration-1000 ease-out"
+                          strokeLinecap="round"
+                        />
+                      </svg>
+                      <div className="absolute text-center">
+                        <span className="text-5xl font-black tracking-tighter text-primary">{result.opportunityScore}</span>
+                        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-1">Ready</p>
+                      </div>
+                    </div>
+                    <p className="text-center text-[11px] text-muted-foreground leading-relaxed font-medium italic">
+                      "Market saturation is low. Ideal window for specialized production in {industry}."
+                    </p>
                   </CardContent>
                 </Card>
 
-                <Card className="border-none shadow-sm rounded-[2rem] bg-white">
-                  <CardHeader className="pb-2 flex flex-row items-center justify-between">
-                    <div>
-                      <CardTitle className="text-lg flex items-center gap-2">
-                        <Sparkles className="h-5 w-5 text-accent" />
-                        Suggested Pitch Angles
-                      </CardTitle>
-                      <CardDescription>Winning narratives for your sales proposals</CardDescription>
-                    </div>
-                    <Link href="/proposals">
-                      <Button variant="outline" size="sm" className="rounded-xl h-9 gap-2 text-xs font-bold">
-                        <FileText className="h-3.5 w-3.5" /> Use in Proposal
-                      </Button>
-                    </Link>
+                <Card className="md:col-span-2 border-none shadow-sm rounded-[2rem] bg-white">
+                  <CardHeader className="pb-4">
+                    <CardTitle className="text-sm font-black uppercase tracking-widest text-muted-foreground">Strategic Narrative</CardTitle>
                   </CardHeader>
-                  <CardContent className="space-y-4">
-                    {result.suggestedPitchAngles.map((angle, idx) => (
-                      <div key={idx} className="p-4 rounded-2xl bg-muted/30 border-l-4 border-l-accent">
-                        <span className="text-[9px] font-bold uppercase text-muted-foreground tracking-widest block mb-1">Strategy {idx + 1}</span>
-                        <p className="text-sm font-medium leading-relaxed">
-                          {angle}
-                        </p>
+                  <CardContent className="space-y-6">
+                    <div className="space-y-3">
+                      <p className="text-[10px] font-black uppercase text-primary tracking-widest">Winning Pitch Angles</p>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {result.suggestedPitchAngles.map((angle, idx) => (
+                          <div key={idx} className="p-4 rounded-2xl bg-slate-50 border border-slate-100 text-[11px] font-bold leading-relaxed flex gap-3">
+                            <span className="text-accent">0{idx+1}</span>
+                            {angle}
+                          </div>
+                        ))}
                       </div>
-                    ))}
+                    </div>
+                    <div className="space-y-3">
+                      <p className="text-[10px] font-black uppercase text-primary tracking-widest">Market Trends</p>
+                      <div className="flex flex-wrap gap-2">
+                        {result.marketTrends.map((trend, idx) => (
+                          <Badge key={idx} variant="secondary" className="px-4 py-1.5 text-[9px] font-black uppercase tracking-wider bg-primary/5 text-primary border-none">
+                            {trend}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
                   </CardContent>
                 </Card>
               </div>
+
+              {/* Advanced Insights Row */}
+              <Tabs defaultValue="packages" className="w-full">
+                <TabsList className="bg-white/50 border p-1 rounded-2xl h-12 gap-1 mb-6">
+                  <TabsTrigger value="packages" className="rounded-xl px-6 py-2.5 gap-2 data-[state=active]:bg-primary data-[state=active]:text-white font-black text-[10px] uppercase tracking-widest">
+                    <Package className="h-3.5 w-3.5" /> Service Packages
+                  </TabsTrigger>
+                  <TabsTrigger value="content" className="rounded-xl px-6 py-2.5 gap-2 data-[state=active]:bg-primary data-[state=active]:text-white font-black text-[10px] uppercase tracking-widest">
+                    <Lightbulb className="h-3.5 w-3.5" /> Content Ideas
+                  </TabsTrigger>
+                  <TabsTrigger value="automation" className="rounded-xl px-6 py-2.5 gap-2 data-[state=active]:bg-primary data-[state=active]:text-white font-black text-[10px] uppercase tracking-widest">
+                    <Cpu className="h-3.5 w-3.5" /> AI Automation
+                  </TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="packages" className="animate-in fade-in slide-in-from-bottom-2">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    {result.suggestedServicePackages?.map((pkg, idx) => (
+                      <Card key={idx} className="border-none shadow-sm rounded-[2rem] bg-white group hover:shadow-md transition-all">
+                        <CardContent className="p-8 space-y-4">
+                          <div className="flex justify-between items-start">
+                            <div className="h-10 w-10 bg-accent/10 rounded-xl flex items-center justify-center text-accent">
+                              <Package className="h-5 w-5" />
+                            </div>
+                            <span className="font-mono font-black text-xs text-primary">{pkg.priceEstimate}</span>
+                          </div>
+                          <h4 className="font-bold text-lg leading-tight">{pkg.name}</h4>
+                          <p className="text-xs text-muted-foreground leading-relaxed">{pkg.description}</p>
+                          <Button variant="ghost" size="sm" className="w-full rounded-xl text-[10px] font-black uppercase tracking-widest h-9 border border-slate-100 group-hover:bg-primary group-hover:text-white group-hover:border-primary transition-colors">
+                            Add to Catalog
+                          </Button>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="content" className="animate-in fade-in slide-in-from-bottom-2">
+                  <Card className="border-none shadow-sm rounded-[2rem] bg-white">
+                    <CardContent className="p-8">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        {result.contentOpportunities?.map((item, idx) => (
+                          <div key={idx} className="flex items-start gap-4 p-5 bg-slate-50 rounded-2xl border border-white hover:border-primary/20 transition-colors">
+                            <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                              <Lightbulb className="h-4 w-4" />
+                            </div>
+                            <p className="text-sm font-bold text-slate-700 leading-tight pt-1">{item}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+
+                <TabsContent value="automation" className="animate-in fade-in slide-in-from-bottom-2">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {result.aiAutomationSuggestions?.map((auto, idx) => (
+                      <Card key={idx} className="border-none shadow-soft bg-slate-900 text-white rounded-[2rem]">
+                        <CardContent className="p-8 space-y-4">
+                          <div className="flex items-center gap-3">
+                            <div className="h-10 w-10 bg-white/10 rounded-xl flex items-center justify-center">
+                              <Cpu className="h-5 w-5 text-accent" />
+                            </div>
+                            <h4 className="font-bold text-lg">{auto.workflow}</h4>
+                          </div>
+                          <p className="text-xs text-slate-400 leading-relaxed">{auto.benefit}</p>
+                          <div className="pt-2">
+                            <Badge className="bg-emerald-500/20 text-emerald-400 border-none font-black text-[9px] uppercase">Operational Efficiency Boost</Badge>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </TabsContent>
+              </Tabs>
             </div>
           ) : (
-            <div className="flex flex-col items-center justify-center h-96 border-2 border-dashed rounded-[2rem] bg-white/50 text-muted-foreground border-slate-200">
-              <div className="h-16 w-16 bg-slate-100 rounded-2xl flex items-center justify-center mb-4">
-                <Search className="h-8 w-8 opacity-20" />
+            <div className="flex flex-col items-center justify-center h-[500px] border-2 border-dashed rounded-[3rem] bg-white/50 text-muted-foreground border-slate-200">
+              <div className="h-20 w-20 bg-slate-100 rounded-3xl flex items-center justify-center mb-6">
+                <Search className="h-10 w-10 opacity-20" />
               </div>
-              <p className="font-bold text-slate-400">No active analysis</p>
-              <p className="text-xs">Start by entering an industry and location above.</p>
+              <p className="font-black uppercase text-xs tracking-widest text-slate-400">Analysis Engine Idle</p>
+              <p className="text-[11px] font-medium mt-2 max-w-[250px] text-center">Define an industry and location to unlock specialized production intelligence.</p>
             </div>
           )}
         </div>
 
+        {/* Sidebar History */}
         <div className="space-y-6">
-          <Card className="border-none shadow-sm rounded-[2rem] bg-white">
-            <CardHeader className="pb-4">
-              <CardTitle className="text-lg flex items-center gap-2">
-                <History className="h-5 w-5 text-primary" />
-                Recent Analysis
+          <Card className="border-none shadow-sm rounded-[2.5rem] bg-white overflow-hidden">
+            <CardHeader className="pb-4 bg-slate-50/50 border-b">
+              <CardTitle className="text-sm font-black uppercase tracking-widest flex items-center gap-2">
+                <History className="h-4 w-4 text-primary" />
+                History
               </CardTitle>
             </CardHeader>
-            <CardContent className="px-2">
+            <CardContent className="p-4">
               {isHistoryLoading ? (
                 <div className="flex justify-center p-8"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
               ) : history?.length === 0 ? (
-                <div className="text-center py-8 text-xs text-muted-foreground">No previous research sessions found.</div>
+                <div className="text-center py-12 text-[10px] font-bold text-muted-foreground uppercase tracking-widest italic opacity-40">No records found.</div>
               ) : (
-                <div className="space-y-1">
+                <div className="space-y-2">
                   {history?.map((session) => (
                     <button
                       key={session.id}
                       onClick={() => loadFromHistory(session)}
-                      className="w-full text-left p-4 rounded-2xl hover:bg-slate-50 transition-colors group"
+                      className="w-full text-left p-4 rounded-2xl hover:bg-primary hover:text-white transition-all group flex flex-col gap-1 border border-transparent hover:border-primary"
                     >
-                      <div className="flex justify-between items-start mb-1">
-                        <span className="font-bold text-sm truncate block flex-1">{session.industry}</span>
-                        <Badge variant="outline" className="text-[8px] h-4 font-bold">{session.opportunityScore}</Badge>
+                      <div className="flex justify-between items-start">
+                        <span className="font-black text-[11px] truncate uppercase tracking-tight">{session.industry}</span>
+                        <Badge variant="outline" className="text-[8px] h-4 font-black border-slate-200 group-hover:border-white/20 group-hover:text-white">{session.opportunityScore}</Badge>
                       </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-[10px] text-muted-foreground flex items-center gap-1">
-                          <MapPin className="h-2.5 w-2.5" /> {session.location} {session.radius && `(${session.radius}km)`}
+                      <div className="flex items-center justify-between mt-1">
+                        <span className="text-[10px] text-muted-foreground group-hover:text-white/60 flex items-center gap-1 font-medium">
+                          <MapPin className="h-2.5 w-2.5" /> {session.location}
                         </span>
                         <ChevronRight className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
                       </div>
@@ -312,20 +403,25 @@ export default function MarketResearchPage() {
             </CardContent>
           </Card>
 
-          <Card className="border-none shadow-sm rounded-[2rem] bg-gradient-to-br from-slate-800 to-slate-900 text-white overflow-hidden">
-            <CardContent className="p-8 space-y-4">
+          <Card className="border-none shadow-soft rounded-[2.5rem] bg-gradient-to-br from-slate-800 to-indigo-950 text-white overflow-hidden relative">
+            <div className="absolute top-0 right-0 p-8 opacity-10">
+              <Cpu className="h-20 w-20" />
+            </div>
+            <CardContent className="p-8 space-y-5">
               <div className="h-10 w-10 bg-white/10 rounded-xl flex items-center justify-center">
                 <TrendingUp className="h-5 w-5 text-accent" />
               </div>
               <h4 className="text-lg font-bold leading-tight">Intelligence Credits</h4>
-              <p className="text-xs text-white/60">Your workspace has unlimited analysis runs during the early access phase.</p>
+              <p className="text-[11px] text-white/60 leading-relaxed font-medium">
+                Your workspace currently has <strong>Unlimited</strong> research runs enabled during the Early Access phase.
+              </p>
               <div className="pt-2">
-                <div className="flex justify-between text-[10px] font-bold uppercase mb-2">
-                  <span>Workspace Usage</span>
-                  <span>Unlimited</span>
+                <div className="flex justify-between text-[9px] font-black uppercase tracking-widest mb-2 text-white/40">
+                  <span>Workspace Utilization</span>
+                  <span>100% Active</span>
                 </div>
                 <div className="h-1.5 w-full bg-white/10 rounded-full overflow-hidden">
-                  <div className="h-full w-1/3 bg-accent rounded-full" />
+                  <div className="h-full w-full bg-accent rounded-full animate-pulse" />
                 </div>
               </div>
             </CardContent>

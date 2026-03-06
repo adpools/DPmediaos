@@ -1,7 +1,7 @@
 'use server';
 /**
  * @fileOverview An AI agent for market research that analyzes trends, identifies content opportunities,
- *   calculates an opportunity score, and suggests optimal pitch angles based on industry, location, and radius.
+ *   calculates an opportunity score, suggests optimal pitch angles, and provides service package/automation ideas.
  *
  * - analyzeMarketAndSuggestPitch - A function that handles the market analysis and pitch suggestion process.
  * - AnalyzeMarketAndSuggestPitchInput - The input type for the analyzeMarketAndSuggestPitch function.
@@ -23,6 +23,15 @@ const AnalyzeMarketAndSuggestPitchOutputSchema = z.object({
   contentOpportunities: z.array(z.string()).describe('Potential content opportunities for campaigns.'),
   opportunityScore: z.number().int().min(0).max(100).describe('An overall opportunity score for the market, from 0 to 100.'),
   suggestedPitchAngles: z.array(z.string()).describe('Optimal pitch angles for marketing campaigns.'),
+  suggestedServicePackages: z.array(z.object({
+    name: z.string().describe('Name of the production bundle.'),
+    description: z.string().describe('Brief of what is included.'),
+    priceEstimate: z.string().describe('Estimated market value in INR.'),
+  })).describe('Bundled production services tailored for this specific market gap.'),
+  aiAutomationSuggestions: z.array(z.object({
+    workflow: z.string().describe('Name of the AI automation workflow.'),
+    benefit: z.string().describe('The operational benefit for the producer.'),
+  })).describe('AI-driven automation ideas to streamline production in this industry.'),
 });
 export type AnalyzeMarketAndSuggestPitchOutput = z.infer<typeof AnalyzeMarketAndSuggestPitchOutputSchema>;
 
@@ -34,7 +43,7 @@ const prompt = ai.definePrompt({
   name: 'analyzeMarketAndSuggestPitchPrompt',
   input: { schema: AnalyzeMarketAndSuggestPitchInputSchema },
   output: { schema: AnalyzeMarketAndSuggestPitchOutputSchema },
-  prompt: `You are an expert market research specialist. Your task is to analyze the market for a given industry and location,
+  prompt: `You are an expert media market research specialist. Your task is to analyze the market for a given industry and location,
 identify key trends, pinpoint content opportunities, calculate an opportunity score, and suggest optimal pitch angles.
 
 Industry: {{{industry}}}
@@ -43,9 +52,11 @@ Search Radius: {{#if radius}}{{radius}}km{{else}}City-wide standard{{/if}}
 
 Based on the above, provide:
 1. Key market trends within this geographical scope.
-2. Specific content opportunities for campaigns.
+2. Specific content opportunities for campaigns (e.g., "Short-form vertical video for local artisans").
 3. An overall opportunity score (0-100) reflecting market entry potential.
-4. Optimal pitch angles for campaigns.
+4. Optimal pitch angles for marketing campaigns.
+5. 3 Suggested Production Packages (Bundles) that a production house could sell to this market, including estimated prices in INR.
+6. 2-3 AI Automation suggestions that the producer can use to deliver these services faster (e.g., "AI Script Generation for Real Estate Listings").
 
 Please format your response as a JSON object matching the output schema provided.`,
 });
