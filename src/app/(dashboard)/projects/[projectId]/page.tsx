@@ -25,7 +25,11 @@ import {
   UserPlus,
   Rocket,
   Sparkles,
-  Trash2
+  Trash2,
+  Package,
+  Box,
+  Monitor,
+  Check
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -49,6 +53,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export default function ProjectWorkspacePage({ params }: { params: Promise<{ projectId: string }> }) {
   const { projectId } = use(params);
@@ -58,8 +63,13 @@ export default function ProjectWorkspacePage({ params }: { params: Promise<{ pro
   
   // Add Objective Dialog State
   const [isAddTaskOpen, setIsAddTaskOpen] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [newTask, setNewTask] = useState({ title: "", assignedTo: "" });
+
+  // Add Asset Dialog State
+  const [isAddAssetOpen, setIsAddAssetOpen] = useState(false);
+  const [newAsset, setNewAsset] = useState({ name: "", category: "Equipment", status: "available" });
+
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // 1. Fetch Project Details
   const projectRef = useMemoFirebase(() => {
@@ -80,7 +90,18 @@ export default function ProjectWorkspacePage({ params }: { params: Promise<{ pro
 
   const { data: tasks, isLoading: isTasksLoading } = useCollection(tasksQuery);
 
-  // 3. Fetch Production Days (Call Sheets)
+  // 3. Fetch Items/Assets for this project
+  const assetsQuery = useMemoFirebase(() => {
+    if (!db || !companyId || !projectId) return null;
+    return query(
+      collection(db, 'companies', companyId, 'projects', projectId, 'items'),
+      orderBy('created_at', 'desc')
+    );
+  }, [db, companyId, projectId]);
+
+  const { data: assets, isLoading: isAssetsLoading } = useCollection(assetsQuery);
+
+  // 4. Fetch Production Days (Call Sheets)
   const shootDaysQuery = useMemoFirebase(() => {
     if (!db || !companyId || !projectId) return null;
     return query(
@@ -101,13 +122,19 @@ export default function ProjectWorkspacePage({ params }: { params: Promise<{ pro
       updatedAt: serverTimestamp() 
     });
 
-    // Update Project Progress (Heuristic)
     if (project && tasks && projectRef) {
       const completed = tasks.filter(t => t.id === taskId ? newStatus === 'done' : t.status === 'done').length;
       const total = tasks.length;
       const newProgress = total > 0 ? Math.round((completed / total) * 100) : 0;
       updateDocumentNonBlocking(projectRef, { progress: newProgress });
     }
+  };
+
+  const handleUpdateAssetStatus = (assetId: string, newStatus: string) => {
+    if (!db || !companyId || !projectId) return;
+    const assetRef = doc(db, 'companies', companyId, 'projects', projectId, 'items', assetId);
+    updateDocumentNonBlocking(assetRef, { status: newStatus, updatedAt: serverTimestamp() });
+    toast({ title: "Asset Updated", description: `Item status changed to ${newStatus}.` });
   };
 
   const handleDeleteTask = (taskId: string) => {
@@ -117,19 +144,23 @@ export default function ProjectWorkspacePage({ params }: { params: Promise<{ pro
     toast({ title: "Objective Removed", description: "The task has been deleted from the roadmap." });
   };
 
+  const handleDeleteAsset = (assetId: string) => {
+    if (!db || !companyId || !projectId) return;
+    const assetRef = doc(db, 'companies', companyId, 'projects', projectId, 'items', assetId);
+    deleteDocumentNonBlocking(assetRef);
+    toast({ title: "Asset Removed", description: "Item has been removed from tracking." });
+  };
+
   const handleSeedPhase = (phase: string) => {
     if (!db || !companyId || !projectId) return;
-    
     const defaults: Record<string, string[]> = {
       'pre-prod': ['Script Finalization', 'Location Scouting', 'Casting Call', 'Storyboard Review'],
       'production': ['Main Shoot Day 1', 'Main Shoot Day 2', 'B-Roll Capture', 'Audio Recording'],
       'post-prod': ['Initial Assembly', 'Color Correction', 'Sound Design', 'VFX Review'],
       'release': ['Master Export', 'Client Approval Sign-off', 'Social Media Teasers', 'Public Launch']
     };
-
     const tasksRef = collection(db, 'companies', companyId, 'projects', projectId, 'tasks');
     const objectives = defaults[phase] || [];
-
     objectives.forEach((title, idx) => {
       addDocumentNonBlocking(tasksRef, {
         title,
@@ -140,39 +171,43 @@ export default function ProjectWorkspacePage({ params }: { params: Promise<{ pro
         created_at: serverTimestamp()
       });
     });
-
-    toast({ 
-      title: "Roadmap Initialized", 
-      description: `Added ${objectives.length} objectives for ${phase.replace('-', ' ')}.` 
-    });
+    toast({ title: "Roadmap Initialized", description: `Added ${objectives.length} objectives for ${phase.replace('-', ' ')}.` });
   };
 
   const handleAddTask = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!db || !companyId || !projectId || !newTask.title) return;
-
     setIsSubmitting(true);
     try {
       const tasksRef = collection(db, 'companies', companyId, 'projects', projectId, 'tasks');
-      
       await addDocumentNonBlocking(tasksRef, {
         title: newTask.title,
-        phase: activeTab,
+        phase: activeTab === 'assets' ? 'production' : activeTab,
         assignedTo: newTask.assignedTo || "Producer",
         status: 'todo',
         priority: 'Medium',
         created_at: serverTimestamp()
       });
-      
-      toast({ 
-        title: "Objective Registered", 
-        description: `${newTask.title} added to ${activeTab.replace('-', ' ')} roadmap.` 
-      });
-
-      setNewTask({ title: "", assignedTo: "" });
       setIsAddTaskOpen(false);
-    } catch (err) {
-      console.error(err);
+      setNewTask({ title: "", assignedTo: "" });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleAddAsset = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!db || !companyId || !projectId || !newAsset.name) return;
+    setIsSubmitting(true);
+    try {
+      const assetsRef = collection(db, 'companies', companyId, 'projects', projectId, 'items');
+      await addDocumentNonBlocking(assetsRef, {
+        ...newAsset,
+        created_at: serverTimestamp(),
+      });
+      setIsAddAssetOpen(false);
+      setNewAsset({ name: "", category: "Equipment", status: "available" });
+      toast({ title: "Asset Registered", description: `${newAsset.name} added to inventory.` });
     } finally {
       setIsSubmitting(false);
     }
@@ -208,6 +243,7 @@ export default function ProjectWorkspacePage({ params }: { params: Promise<{ pro
       case 'production': return <Camera className="h-4 w-4" />;
       case 'post-prod': return <Scissors className="h-4 w-4" />;
       case 'release': return <Rocket className="h-4 w-4" />;
+      case 'assets': return <Package className="h-4 w-4" />;
       default: return <Target className="h-4 w-4" />;
     }
   };
@@ -243,8 +279,8 @@ export default function ProjectWorkspacePage({ params }: { params: Promise<{ pro
               <span className="text-sm font-bold text-primary">{project.progress}%</span>
             </div>
           </div>
-          <Button className="rounded-xl gap-2 shadow-lg shadow-primary/20">
-            <Plus className="h-4 w-4" /> New Call Sheet
+          <Button className="rounded-xl gap-2 shadow-lg shadow-primary/20" onClick={() => activeTab === 'assets' ? setIsAddAssetOpen(true) : setIsAddTaskOpen(true)}>
+            <Plus className="h-4 w-4" /> {activeTab === 'assets' ? 'Register Item' : 'Add Objective'}
           </Button>
         </div>
       </div>
@@ -281,10 +317,10 @@ export default function ProjectWorkspacePage({ params }: { params: Promise<{ pro
         <Card className="border-none shadow-sm bg-white rounded-2xl">
           <CardContent className="p-6">
             <div className="flex items-center gap-3 text-muted-foreground mb-2">
-              <Users className="h-4 w-4" />
-              <span className="text-[10px] font-bold uppercase tracking-wider">Active Crew</span>
+              <Package className="h-4 w-4" />
+              <span className="text-[10px] font-bold uppercase tracking-wider">Assets Tracked</span>
             </div>
-            <h4 className="text-2xl font-bold">12</h4>
+            <h4 className="text-2xl font-bold">{assets?.length || 0}</h4>
           </CardContent>
         </Card>
       </div>
@@ -303,6 +339,9 @@ export default function ProjectWorkspacePage({ params }: { params: Promise<{ pro
           </TabsTrigger>
           <TabsTrigger value="release" className="rounded-xl px-6 py-2.5 gap-2 data-[state=active]:bg-primary data-[state=active]:text-white font-bold text-xs uppercase tracking-widest">
             <Rocket className="h-4 w-4" /> Release
+          </TabsTrigger>
+          <TabsTrigger value="assets" className="rounded-xl px-6 py-2.5 gap-2 data-[state=active]:bg-primary data-[state=active]:text-white font-bold text-xs uppercase tracking-widest">
+            <Package className="h-4 w-4" /> Asset Tracking
           </TabsTrigger>
         </TabsList>
 
@@ -420,33 +459,6 @@ export default function ProjectWorkspacePage({ params }: { params: Promise<{ pro
                     </CardContent>
                   </Card>
                 )}
-
-                {phase === 'release' && (
-                  <Card className="border-none shadow-sm rounded-[2rem] overflow-hidden bg-white">
-                    <CardHeader className="px-8 pt-8">
-                      <CardTitle className="text-xl">Delivery & Distribution</CardTitle>
-                      <CardDescription>Final assets and platform publishing status.</CardDescription>
-                    </CardHeader>
-                    <CardContent className="p-8">
-                      <div className="bg-primary/5 rounded-2xl p-6 border border-primary/10 space-y-4">
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs font-bold uppercase text-muted-foreground">Master Delivery Status</span>
-                          <Badge className="bg-accent text-white border-none uppercase text-[9px]">Awaiting Sign-off</Badge>
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div className="p-4 bg-white rounded-xl shadow-sm space-y-1">
-                            <p className="text-[10px] font-bold text-muted-foreground uppercase">Resolution</p>
-                            <p className="text-sm font-bold">4K (3840 x 2160)</p>
-                          </div>
-                          <div className="p-4 bg-white rounded-xl shadow-sm space-y-1">
-                            <p className="text-[10px] font-bold text-muted-foreground uppercase">Aspect Ratio</p>
-                            <p className="text-sm font-bold">16:9 Cinema</p>
-                          </div>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
               </div>
 
               <div className="space-y-6">
@@ -464,51 +476,114 @@ export default function ProjectWorkspacePage({ params }: { params: Promise<{ pro
                         </div>
                         <Progress value={phaseProgress(phase)} className="h-1 bg-white/10" />
                       </div>
-                      <div className="pt-2 flex flex-col gap-2">
-                        <div className="flex justify-between text-[10px] font-medium text-white/40">
-                          <span>Total Items</span>
-                          <span>{phaseTasks(phase).length}</span>
-                        </div>
-                        <div className="flex justify-between text-[10px] font-medium text-white/40">
-                          <span>Completed</span>
-                          <span>{completedPhaseTasks(phase)}</span>
-                        </div>
-                      </div>
                     </div>
-                  </CardContent>
-                </Card>
-
-                <Card className="border-none shadow-sm rounded-[2rem] bg-white">
-                  <CardHeader>
-                    <CardTitle className="text-lg">Phase Collaborators</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    {[1, 2, 3].map(i => (
-                      <div key={i} className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <Avatar className="h-8 w-8 ring-1 ring-slate-100">
-                            <AvatarImage src={`https://picsum.photos/seed/crew-${i}/100/100`} />
-                            <AvatarFallback className="text-[10px] font-bold">
-                              {i === 1 ? 'PM' : i === 2 ? 'DP' : 'AD'}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div>
-                            <p className="text-xs font-bold">{i === 1 ? 'Project Manager' : i === 2 ? 'Cinematographer' : 'Assistant Director'}</p>
-                            <p className="text-[9px] text-muted-foreground">Online & Active</p>
-                          </div>
-                        </div>
-                        <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                      </div>
-                    ))}
-                    <Button variant="ghost" className="w-full text-[10px] font-bold uppercase tracking-widest text-primary hover:bg-primary/5 mt-2">
-                      <UserPlus className="h-3 w-3 mr-2" /> Invite Crew
-                    </Button>
                   </CardContent>
                 </Card>
               </div>
             </div>
           </TabsContent>
         ))}
+
+        {/* ASSETS TAB CONTENT */}
+        <TabsContent value="assets" className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="lg:col-span-2 space-y-6">
+              <Card className="border-none shadow-sm rounded-[2rem] overflow-hidden bg-white">
+                <CardHeader className="bg-slate-50/50 flex flex-row items-center justify-between border-b px-8 py-6">
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <div className="p-1.5 bg-primary/10 rounded-lg text-primary"><Package className="h-4 w-4" /></div>
+                      <CardTitle className="text-xl">Project Items & Inventory</CardTitle>
+                    </div>
+                    <CardDescription>Track equipment, props, and media storage devices.</CardDescription>
+                  </div>
+                  <Button variant="outline" size="sm" className="rounded-xl" onClick={() => setIsAddAssetOpen(true)}>
+                    <Plus className="h-4 w-4 mr-2" /> Register Item
+                  </Button>
+                </CardHeader>
+                <CardContent className="p-0">
+                  {isAssetsLoading ? (
+                    <div className="flex justify-center p-12"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
+                  ) : assets?.length === 0 ? (
+                    <div className="text-center py-24 text-muted-foreground space-y-4">
+                      <Box className="h-12 w-12 mx-auto opacity-10" />
+                      <p className="text-sm font-medium">No items registered for tracking.</p>
+                      <Button variant="link" size="sm" onClick={() => setIsAddAssetOpen(true)}>Start tracking equipment</Button>
+                    </div>
+                  ) : (
+                    <div className="divide-y">
+                      {assets?.map((asset) => (
+                        <div key={asset.id} className="flex items-center gap-4 px-8 py-5 hover:bg-slate-50 transition-colors group">
+                          <div className={`h-10 w-10 rounded-xl flex items-center justify-center ${asset.status === 'available' ? 'bg-emerald-100 text-emerald-600' : 'bg-rose-100 text-rose-600'}`}>
+                            {asset.category === 'Equipment' ? <Camera className="h-5 w-5" /> : asset.category === 'Digital' ? <Monitor className="h-5 w-5" /> : <Package className="h-5 w-5" />}
+                          </div>
+                          <div className="flex-1">
+                            <p className="font-bold text-sm text-slate-800">{asset.name}</p>
+                            <div className="flex items-center gap-3 mt-1">
+                              <Badge variant="outline" className="text-[8px] uppercase font-bold text-muted-foreground border-slate-200">
+                                {asset.category}
+                              </Badge>
+                              <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+                                <Users className="h-3 w-3" /> Holder: <span className="font-bold text-primary/80 ml-0.5">{asset.holder || 'Studio Storage'}</span>
+                              </span>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-4">
+                            <Badge className={`uppercase text-[9px] font-bold ${asset.status === 'available' ? 'bg-emerald-500' : asset.status === 'checked_out' ? 'bg-amber-500' : 'bg-rose-500'}`}>
+                              {asset.status.replace('_', ' ')}
+                            </Badge>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="rounded-xl opacity-0 group-hover:opacity-100 transition-opacity">
+                                  <MoreVertical className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="rounded-xl w-48">
+                                <DropdownMenuLabel className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground px-3 py-2">Set Status</DropdownMenuLabel>
+                                <DropdownMenuItem className="cursor-pointer gap-2 py-2" onClick={() => handleUpdateAssetStatus(asset.id, 'available')}>
+                                  <Check className="h-4 w-4 text-emerald-500" /> Available
+                                </DropdownMenuItem>
+                                <DropdownMenuItem className="cursor-pointer gap-2 py-2" onClick={() => handleUpdateAssetStatus(asset.id, 'checked_out')}>
+                                  <Clock className="h-4 w-4 text-amber-500" /> Checked Out
+                                </DropdownMenuItem>
+                                <DropdownMenuItem className="cursor-pointer gap-2 py-2" onClick={() => handleUpdateAssetStatus(asset.id, 'maintenance')}>
+                                  <Target className="h-4 w-4 text-rose-500" /> Maintenance
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem className="cursor-pointer gap-2 py-2 text-rose-500 focus:text-rose-600 focus:bg-rose-50" onClick={() => handleDeleteAsset(asset.id)}>
+                                  <Trash2 className="h-4 w-4" /> Remove Tracking
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+
+            <div className="space-y-6">
+              <Card className="border-none shadow-sm bg-accent text-white rounded-[2rem]">
+                <CardContent className="p-8 space-y-4">
+                  <div className="h-12 w-12 rounded-2xl bg-white/20 flex items-center justify-center backdrop-blur-md">
+                    <Package className="h-6 w-6" />
+                  </div>
+                  <h4 className="text-xl font-bold">Inventory Health</h4>
+                  <p className="text-xs text-white/70">Ensure all high-value items are returned before production wrap-up.</p>
+                  <div className="pt-2">
+                    <div className="flex justify-between text-[10px] font-bold uppercase text-white/60 mb-2">
+                      <span>Return Status</span>
+                      <span>{assets?.length ? Math.round((assets.filter(a => a.status === 'available').length / assets.length) * 100) : 0}%</span>
+                    </div>
+                    <Progress value={assets?.length ? (assets.filter(a => a.status === 'available').length / assets.length) * 100 : 0} className="h-1 bg-white/10" />
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </TabsContent>
       </Tabs>
 
       {/* Add Task/Objective Dialog */}
@@ -517,10 +592,10 @@ export default function ProjectWorkspacePage({ params }: { params: Promise<{ pro
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Sparkles className="h-5 w-5 text-accent" />
-              New {activeTab.replace('-', ' ')} Objective
+              New Objective
             </DialogTitle>
             <DialogDescription>
-              Define a specific deliverable for this production phase.
+              Define a specific deliverable for the current production phase.
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleAddTask} className="space-y-4 py-4">
@@ -549,6 +624,65 @@ export default function ProjectWorkspacePage({ params }: { params: Promise<{ pro
               <Button type="submit" disabled={isSubmitting} className="w-full rounded-xl h-11 font-bold">
                 {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                 Register Objective
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Asset Dialog */}
+      <Dialog open={isAddAssetOpen} onOpenChange={setIsAddAssetOpen}>
+        <DialogContent className="sm:max-w-[425px] rounded-[2rem]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Package className="h-5 w-5 text-accent" />
+              Register Production Item
+            </DialogTitle>
+            <DialogDescription>
+              Add an equipment or prop item to the project inventory.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleAddAsset} className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="assetName">Item Name</Label>
+              <Input 
+                id="assetName" 
+                placeholder="e.g. Sony FX6 Kit #1" 
+                value={newAsset.name}
+                onChange={(e) => setNewAsset({ ...newAsset, name: e.target.value })}
+                required
+                className="rounded-xl"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="assetCat">Category</Label>
+                <Select onValueChange={(val) => setNewAsset({...newAsset, category: val})} defaultValue="Equipment">
+                  <SelectTrigger className="rounded-xl">
+                    <SelectValue placeholder="Select" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {['Equipment', 'Props', 'Wardrobe', 'Digital'].map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="assetStatus">Initial Status</Label>
+                <Select onValueChange={(val) => setNewAsset({...newAsset, status: val})} defaultValue="available">
+                  <SelectTrigger className="rounded-xl">
+                    <SelectValue placeholder="Select" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="available">Available</SelectItem>
+                    <SelectItem value="checked_out">Checked Out</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <DialogFooter className="pt-4">
+              <Button type="submit" disabled={isSubmitting} className="w-full rounded-xl h-11 font-bold">
+                {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                Add to Project
               </Button>
             </DialogFooter>
           </form>
