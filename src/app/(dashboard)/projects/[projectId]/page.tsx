@@ -87,9 +87,39 @@ export default function ProjectWorkspacePage({ params }: { params: Promise<{ pro
     if (project && tasks && projectRef) {
       const completed = tasks.filter(t => t.id === taskId ? newStatus === 'done' : t.status === 'done').length;
       const total = tasks.length;
-      const newProgress = Math.round((completed / total) * 100);
+      const newProgress = total > 0 ? Math.round((completed / total) * 100) : 0;
       updateDocumentNonBlocking(projectRef, { progress: newProgress });
     }
+  };
+
+  const handleSeedPhase = (phase: string) => {
+    if (!db || !companyId || !projectId) return;
+    
+    const defaults: Record<string, string[]> = {
+      'pre-prod': ['Script Finalization', 'Location Scouting', 'Casting Call', 'Storyboard Review'],
+      'production': ['Main Shoot Day 1', 'Main Shoot Day 2', 'B-Roll Capture', 'Audio Recording'],
+      'post-prod': ['Initial Assembly', 'Color Correction', 'Sound Design', 'VFX Review'],
+      'release': ['Master Export', 'Client Approval Sign-off', 'Social Media Teasers', 'Public Launch']
+    };
+
+    const tasksRef = collection(db, 'companies', companyId, 'projects', projectId, 'tasks');
+    const objectives = defaults[phase] || [];
+
+    objectives.forEach((title, idx) => {
+      addDocumentNonBlocking(tasksRef, {
+        title,
+        phase,
+        assignedTo: 'Producer',
+        status: 'todo',
+        priority: idx === 0 ? 'High' : 'Medium',
+        created_at: serverTimestamp()
+      });
+    });
+
+    toast({ 
+      title: "Roadmap Initialized", 
+      description: `Added ${objectives.length} objectives for ${phase.replace('-', ' ')}.` 
+    });
   };
 
   const handleAddTask = (phase: string) => {
@@ -273,7 +303,7 @@ export default function ProjectWorkspacePage({ params }: { params: Promise<{ pro
                       <div className="text-center py-24 text-muted-foreground space-y-4">
                         <Target className="h-12 w-12 mx-auto opacity-10" />
                         <p className="text-sm font-medium">No objectives registered for this production phase.</p>
-                        <Button variant="link" size="sm" onClick={() => handleAddTask(phase)}>Setup {phase.replace('-', ' ')} roadmap</Button>
+                        <Button variant="link" size="sm" onClick={() => handleSeedPhase(phase)}>Setup {phase.replace('-', ' ')} roadmap</Button>
                       </div>
                     ) : (
                       <div className="divide-y">
