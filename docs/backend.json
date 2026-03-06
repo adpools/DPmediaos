@@ -114,6 +114,23 @@
         "deal_value": { "type": "number" },
         "created_at": { "type": "string", "format": "date-time" }
       }
+    },
+    "Expense": {
+      "title": "Expense",
+      "type": "object",
+      "description": "Represents a company expense (running costs, salary, etc.).",
+      "properties": {
+        "id": { "type": "string" },
+        "company_id": { "type": "string" },
+        "category": { "type": "string", "enum": ["Salary", "Rent", "Utilities", "Production", "Marketing", "Other"] },
+        "description": { "type": "string" },
+        "amount": { "type": "number" },
+        "date": { "type": "string", "format": "date" },
+        "account_id": { "type": "string" },
+        "status": { "type": "string", "enum": ["Paid", "Pending"] },
+        "created_at": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "company_id", "category", "amount", "date"]
     }
   },
   "auth": {
@@ -146,6 +163,10 @@
     "companies/{companyId}/invoices/{invoiceId}": {
       "schema": { "$ref": "#/backend/entities/Invoice" },
       "description": "Billing records."
+    },
+    "companies/{companyId}/expenses/{expenseId}": {
+      "schema": { "$ref": "#/backend/entities/Expense" },
+      "description": "Running costs and payroll."
     },
     "companies/{companyId}/leads/{leadId}": {
       "schema": { "$ref": "#/backend/entities/Lead" },

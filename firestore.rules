@@ -128,6 +128,13 @@ service cloud.firestore {
         allow update: if isMember(companyId);
       }
 
+      match /expenses/{expenseId} {
+        allow get, list: if isMember(companyId);
+        allow create: if isMember(companyId) && hasValidCompanyContext(companyId);
+        allow update: if isMember(companyId);
+        allow delete: if isMember(companyId);
+      }
+
       match /market_research_sessions/{id} {
         allow get, list: if isMember(companyId);
         allow create: if isMember(companyId) && hasValidCompanyContext(companyId);
