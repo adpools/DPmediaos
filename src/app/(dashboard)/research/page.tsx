@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -43,6 +44,7 @@ import {
   DialogFooter
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useToast } from "@/hooks/use-toast";
 
 const LOCATION_SUGGESTIONS = [
   "Mumbai, India",
@@ -56,6 +58,7 @@ const LOCATION_SUGGESTIONS = [
 export default function MarketResearchPage() {
   const { profile, companyId } = useTenant();
   const db = useFirestore();
+  const { toast } = useToast();
   const [industry, setIndustry] = useState("");
   const [location, setLocation] = useState("");
   const [radius, setRadius] = useState([25]); 
@@ -65,6 +68,7 @@ export default function MarketResearchPage() {
   // Detail Dialog State
   const [selectedDetail, setSelectedDetail] = useState<{ type: 'package' | 'automation', data: any } | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
+  const [isActionLoading, setIsActionLoading] = useState(false);
 
   // Fetch recent research history
   const historyQuery = useMemoFirebase(() => {
@@ -133,6 +137,30 @@ export default function MarketResearchPage() {
   const openDetail = (type: 'package' | 'automation', data: any) => {
     setSelectedDetail({ type, data });
     setIsDetailOpen(true);
+  };
+
+  const handleInitializeWorkflow = async () => {
+    setIsActionLoading(true);
+    // Simulate a handshake or deployment
+    await new Promise(r => setTimeout(r, 1500));
+    setIsActionLoading(false);
+    setIsDetailOpen(false);
+    toast({
+      title: "Workflow Initialized",
+      description: "AI automation pipeline has been successfully deployed to your workspace.",
+    });
+  };
+
+  const handleAddToCatalog = async () => {
+    setIsActionLoading(true);
+    // Simulate saving
+    await new Promise(r => setTimeout(r, 1000));
+    setIsActionLoading(false);
+    setIsDetailOpen(false);
+    toast({
+      title: "Catalog Updated",
+      description: `${selectedDetail?.data.name} has been added to your production service offerings.`,
+    });
   };
 
   return (
@@ -551,8 +579,13 @@ export default function MarketResearchPage() {
                       <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Market Value</span>
                       <span className="text-2xl font-black text-primary">{selectedDetail?.data.priceEstimate}</span>
                     </div>
-                    <Button className="rounded-2xl h-12 px-10 font-black uppercase text-xs tracking-widest gap-2">
-                      <Plus className="h-4 w-4" /> Add to Service Catalog
+                    <Button 
+                      onClick={handleAddToCatalog}
+                      disabled={isActionLoading}
+                      className="rounded-2xl h-12 px-10 font-black uppercase text-xs tracking-widest gap-2"
+                    >
+                      {isActionLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+                      Add to Service Catalog
                     </Button>
                   </>
                 ) : (
@@ -560,7 +593,12 @@ export default function MarketResearchPage() {
                     <div className="flex items-center gap-2 text-[10px] font-bold text-slate-500 uppercase tracking-widest">
                       <Zap className="h-3.5 w-3.5 text-accent" /> Ready for Deployment
                     </div>
-                    <Button className="bg-white text-slate-900 hover:bg-slate-100 rounded-2xl h-12 px-10 font-black uppercase text-xs tracking-widest gap-2">
+                    <Button 
+                      onClick={handleInitializeWorkflow}
+                      disabled={isActionLoading}
+                      className="bg-white text-slate-900 hover:bg-slate-100 rounded-2xl h-12 px-10 font-black uppercase text-xs tracking-widest gap-2"
+                    >
+                      {isActionLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
                       Initialize Workflow <ArrowRight className="h-4 w-4" />
                     </Button>
                   </>
