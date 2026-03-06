@@ -1,7 +1,7 @@
 
 "use client";
 
-import { use, useState } from "react";
+import { use, useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { 
@@ -19,13 +19,15 @@ import {
   Clock,
   ChevronRight,
   MapPin,
-  Zap
+  Zap,
+  Edit3
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useTenant } from "@/hooks/use-tenant";
 import { useDoc, useMemoFirebase, useFirestore } from "@/firebase";
 import { doc, updateDoc, serverTimestamp } from "firebase/firestore";
-import Link from "next/link";
+import Link from "next/navigation";
+import { useRouter } from "next/navigation";
 import { PIPELINE_STAGES } from "@/lib/mock-data";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
@@ -33,12 +35,22 @@ import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 export default function LeadDetailPage({ params }: { params: Promise<{ leadId: string }> }) {
   const { leadId } = use(params);
   const { companyId, isLoading: isTenantLoading } = useTenant();
   const db = useFirestore();
+  const router = useRouter();
+  
   const [isUpdating, setIsUpdating] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [editForm, setEditForm] = useState({
+    company_name: "",
+    service_vertical: "",
+    industry: "",
+    deal_value: ""
+  });
 
   // 1. Fetch Lead Details
   const leadRef = useMemoFirebase(() => {
@@ -47,6 +59,18 @@ export default function LeadDetailPage({ params }: { params: Promise<{ leadId: s
   }, [db, companyId, leadId]);
 
   const { data: lead, isLoading: isLeadLoading } = useDoc(leadRef);
+
+  // Sync edit form with lead data when opened
+  useEffect(() => {
+    if (lead && isEditOpen) {
+      setEditForm({
+        company_name: lead.company_name || "",
+        service_vertical: lead.service_vertical || "Brand Film",
+        industry: lead.industry || "",
+        deal_value: lead.deal_value?.toString() || ""
+      });
+    }
+  }, [lead, isEditOpen]);
 
   const handleUpdateStage = async (newStage: string) => {
     if (!leadRef || !lead) return;
@@ -86,6 +110,29 @@ export default function LeadDetailPage({ params }: { params: Promise<{ leadId: s
     }
   };
 
+  const handleSaveDetails = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!leadRef || !lead) return;
+
+    setIsUpdating(true);
+    try {
+      await updateDoc(leadRef, {
+        company_name: editForm.company_name,
+        service_vertical: editForm.service_vertical,
+        industry: editForm.industry,
+        deal_value: parseFloat(editForm.deal_value) || 0,
+        updatedAt: serverTimestamp()
+      });
+      toast({ title: "Details Updated", description: "Opportunity record has been synced." });
+      setIsEditOpen(false);
+    } catch (e) {
+      console.error(e);
+      toast({ variant: "destructive", title: "Update Failed", description: "Could not save changes." });
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
   if (isTenantLoading || isLeadLoading) {
     return (
       <div className="flex items-center justify-center h-[80vh]">
@@ -98,9 +145,7 @@ export default function LeadDetailPage({ params }: { params: Promise<{ leadId: s
     return (
       <div className="text-center py-20">
         <h2 className="text-2xl font-bold">Opportunity not found</h2>
-        <Link href="/crm">
-          <Button variant="link">Back to Pipeline</Button>
-        </Link>
+        <Button variant="link" onClick={() => router.push("/crm")}>Back to Pipeline</Button>
       </div>
     );
   }
@@ -111,11 +156,9 @@ export default function LeadDetailPage({ params }: { params: Promise<{ leadId: s
   return (
     <div className="space-y-8 max-w-6xl mx-auto">
       <div className="flex items-center gap-4">
-        <Link href="/crm">
-          <Button variant="ghost" size="icon" className="rounded-xl">
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-        </Link>
+        <Button variant="ghost" size="icon" className="rounded-xl" onClick={() => router.push("/crm")}>
+          <ArrowLeft className="h-4 w-4" />
+        </Button>
         <div>
           <h1 className="text-3xl font-bold text-primary">{lead.company_name}</h1>
           <p className="text-muted-foreground flex items-center gap-2">
@@ -123,12 +166,17 @@ export default function LeadDetailPage({ params }: { params: Promise<{ leadId: s
           </p>
         </div>
         <div className="ml-auto flex items-center gap-3">
-          <Link href={`/clients/${leadId}`}>
+          <Link href={`/clients/${leadId}`} className="hidden sm:block">
             <Button variant="outline" className="rounded-xl text-xs h-9 gap-2">
               <Building2 className="h-3.5 w-3.5" /> Full Portfolio
             </Button>
           </Link>
-          <Button className="rounded-xl text-xs h-9 shadow-lg shadow-primary/20">Edit Details</Button>
+          <Button 
+            className="rounded-xl text-xs h-9 shadow-lg shadow-primary/20 gap-2"
+            onClick={() => setIsEditOpen(true)}
+          >
+            <Edit3 className="h-3.5 w-3.5" /> Edit Details
+          </Button>
         </div>
       </div>
 
@@ -305,13 +353,89 @@ export default function LeadDetailPage({ params }: { params: Promise<{ leadId: s
                   <span className="font-medium">Created: {lead.created_at?.toDate ? lead.created_at.toDate().toLocaleDateString() : 'Just now'}</span>
                 </div>
               </div>
-              <Button variant="secondary" className="w-full rounded-xl h-10 text-xs font-bold uppercase tracking-wider">
+              <Button 
+                variant="secondary" 
+                className="w-full rounded-xl h-10 text-xs font-bold uppercase tracking-wider"
+                onClick={() => setIsEditOpen(true)}
+              >
                 Update Vertical
               </Button>
             </CardContent>
           </Card>
         </div>
       </div>
+
+      {/* EDIT MODAL */}
+      <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+        <DialogContent className="sm:max-w-[450px] rounded-[2.5rem]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-accent" />
+              Edit Opportunity
+            </DialogTitle>
+            <DialogDescription>
+              Modify the core parameters of this sales lead.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleSaveDetails} className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Company Name</Label>
+              <Input 
+                value={editForm.company_name}
+                onChange={(e) => setEditForm({...editForm, company_name: e.target.value})}
+                required
+                className="rounded-xl"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Service Vertical</Label>
+              <Select 
+                value={editForm.service_vertical} 
+                onValueChange={(val) => setEditForm({...editForm, service_vertical: val})}
+              >
+                <SelectTrigger className="rounded-xl">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Brand Film">Brand Film</SelectItem>
+                  <SelectItem value="Corporate Video">Corporate Video</SelectItem>
+                  <SelectItem value="TV Commercial">TV Commercial</SelectItem>
+                  <SelectItem value="Social Content">Social Content</SelectItem>
+                  <SelectItem value="Documentary">Documentary</SelectItem>
+                  <SelectItem value="Music Video">Music Video</SelectItem>
+                  <SelectItem value="Virtual Production">Virtual Production</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Industry</Label>
+                <Input 
+                  value={editForm.industry}
+                  onChange={(e) => setEditForm({...editForm, industry: e.target.value})}
+                  className="rounded-xl"
+                  placeholder="e.g. Real Estate"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Deal Value (₹)</Label>
+                <Input 
+                  type="number"
+                  value={editForm.deal_value}
+                  onChange={(e) => setEditForm({...editForm, deal_value: e.target.value})}
+                  className="rounded-xl"
+                />
+              </div>
+            </div>
+            <DialogFooter className="pt-4">
+              <Button type="submit" disabled={isUpdating} className="w-full rounded-xl h-11 font-bold">
+                {isUpdating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                Save Lead Context
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
