@@ -19,7 +19,10 @@ import {
   Search,
   Clock,
   CheckCircle2,
-  X
+  X,
+  Briefcase,
+  Layers,
+  ArrowRight
 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
@@ -451,67 +454,102 @@ function ProjectCard({ project, view, index }: { project: any, view: ViewMode, i
     );
   }
 
-  // Default List View
+  // Refined List View
   return (
-    <Card className="border-none shadow-sm hover:shadow-md transition-shadow group overflow-hidden rounded-2xl bg-white">
+    <Card className="border-none shadow-sm hover:shadow-md transition-all group overflow-hidden rounded-2xl bg-white border border-slate-50">
       <CardContent className="p-0">
         <div className="flex flex-col md:flex-row md:items-center">
-          <Link href={`/projects/${project.id}`} className="p-6 md:w-1/3 flex flex-col gap-1.5 border-l-4 border-l-primary group-hover:bg-slate-50/50 transition-colors" style={{ borderLeftColor: project.color === 'card-pink' ? '#FF4B82' : '#B199FF' }}>
-            <div className="flex items-center gap-2">
-              <h3 className="font-bold text-lg leading-none group-hover:text-primary transition-colors">{project.project_name}</h3>
-              <ExternalLink className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+          {/* Main Title Area */}
+          <Link 
+            href={`/projects/${project.id}`} 
+            className="p-6 md:w-[35%] flex flex-col gap-2 relative group-hover:bg-slate-50/50 transition-colors"
+          >
+            <div className="absolute left-0 top-0 bottom-0 w-1.5" style={{ backgroundColor: project.color === 'card-pink' ? '#FF4B82' : '#B199FF' }} />
+            <div className="flex items-center gap-3">
+              <h3 className="font-bold text-lg leading-none text-slate-800 group-hover:text-primary transition-colors truncate">
+                {project.project_name}
+              </h3>
+              <ExternalLink className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-all transform group-hover:translate-x-1" />
             </div>
-            <div className="flex items-center gap-2">
-              <Badge variant="secondary" className="text-[10px] uppercase font-bold tracking-wider py-0 px-2">
+            <div className="flex items-center gap-3">
+              <Badge variant="outline" className="text-[9px] uppercase font-bold tracking-widest py-0.5 px-2 bg-slate-50 border-slate-200 text-slate-500">
                 {project.status?.replace('_', ' ')}
               </Badge>
-              <span className="text-xs text-muted-foreground">Client: {project.client_name}</span>
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium">
+                <Briefcase className="h-3 w-3" />
+                {project.client_name}
+              </div>
             </div>
           </Link>
 
-          <div className="flex-1 p-6 flex flex-col justify-center gap-2">
-            <div className="flex justify-between text-xs font-bold text-muted-foreground uppercase tracking-widest">
-              <span>Production Progress</span>
-              <span>{project.progress || 0}%</span>
+          {/* Progress Area */}
+          <div className="flex-1 px-6 py-4 md:py-0 border-y md:border-y-0 md:border-x border-slate-100">
+            <div className="space-y-3">
+              <div className="flex justify-between items-end">
+                <div className="flex items-center gap-2">
+                  <Layers className="h-3.5 w-3.5 text-primary/60" />
+                  <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Production Health</span>
+                </div>
+                <span className="text-sm font-black text-primary">{project.progress || 0}%</span>
+              </div>
+              <Progress value={project.progress || 0} className="h-2 rounded-full bg-slate-100" />
             </div>
-            <Progress value={project.progress || 0} className="h-1.5" />
           </div>
 
-          <div className="p-6 md:w-1/4 flex items-center justify-end gap-6 bg-slate-50/50">
-            <div className="flex flex-col items-end">
-              <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">Deadline</span>
-              <span className="text-sm font-bold text-primary">{project.deadline || 'TBD'}</span>
-            </div>
-            
-            <div className="flex -space-x-2">
-              {[1,2,3].map(i => (
-                <div key={i} className="h-8 w-8 rounded-full border-2 border-white bg-muted flex items-center justify-center text-[10px] font-bold overflow-hidden shadow-sm">
-                  <Image src={`https://picsum.photos/seed/${project.id+i}/50/50`} width={32} height={32} alt="member" />
+          {/* Metadata & Actions Area */}
+          <div className="p-6 md:w-[30%] flex items-center justify-between gap-6 bg-slate-50/30">
+            <div className="flex items-center gap-8">
+              <div className="flex flex-col">
+                <span className="text-[9px] uppercase font-black text-slate-400 tracking-[0.15em] mb-1">Deadline</span>
+                <div className="flex items-center gap-1.5">
+                  <Calendar className="h-3.5 w-3.5 text-rose-400" />
+                  <span className="text-sm font-bold text-slate-700">{project.deadline || 'TBD'}</span>
                 </div>
-              ))}
+              </div>
+              
+              <div className="hidden lg:flex flex-col">
+                <span className="text-[9px] uppercase font-black text-slate-400 tracking-[0.15em] mb-1">Active Crew</span>
+                <div className="flex -space-x-2">
+                  {[1,2,3].map(i => (
+                    <div key={i} className="h-7 w-7 rounded-full border-2 border-white bg-white flex items-center justify-center text-[10px] font-bold overflow-hidden shadow-sm ring-1 ring-slate-100">
+                      <Image src={`https://picsum.photos/seed/${project.id+i}/50/50`} width={28} height={28} alt="member" />
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
 
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="rounded-xl">
-                  <MoreVertical className="h-4 w-4" />
+            <div className="flex items-center gap-2">
+              <Link href={`/projects/${project.id}`}>
+                <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl text-slate-400 hover:text-primary hover:bg-white shadow-sm border border-transparent hover:border-slate-100 transition-all">
+                  <ArrowRight className="h-4 w-4" />
                 </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="rounded-xl">
-                <DropdownMenuItem asChild>
-                  <Link href={`/projects/${project.id}`}>Open Workspace</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href={`/projects/budgets`}>Budget Tracking</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href={`/projects/schedule`}>Daily Call Sheets</Link>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem>Edit Project</DropdownMenuItem>
-                <DropdownMenuItem className="text-destructive">Archive</DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+              </Link>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl text-slate-400 hover:text-slate-600">
+                    <MoreVertical className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="rounded-xl w-52 shadow-2xl border-slate-100">
+                  <DropdownMenuLabel className="text-[10px] font-black uppercase text-slate-400 px-3 py-2 tracking-widest">Management</DropdownMenuLabel>
+                  <DropdownMenuItem asChild className="rounded-lg m-1 py-2 cursor-pointer">
+                    <Link href={`/projects/${project.id}`} className="flex items-center gap-2">
+                      <ExternalLink className="h-3.5 w-3.5" /> Workspace Overview
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild className="rounded-lg m-1 py-2 cursor-pointer">
+                    <Link href={`/projects/budgets`} className="flex items-center gap-2">
+                      <Plus className="h-3.5 w-3.5" /> Budget Tracking
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator className="bg-slate-50" />
+                  <DropdownMenuItem className="rounded-lg m-1 py-2 cursor-pointer text-rose-500 focus:text-rose-600 focus:bg-rose-50">
+                    Archive Project
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           </div>
         </div>
       </CardContent>
