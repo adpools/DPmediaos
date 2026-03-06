@@ -16,7 +16,8 @@ import {
   ShieldCheck,
   LogOut,
   Loader2,
-  Building2
+  Building2,
+  Wallet
 } from "lucide-react";
 import {
   Sidebar,
@@ -47,6 +48,7 @@ const workspaceItems = [
   { title: "Sales CRM", url: "/crm", icon: Briefcase, module: "crm" },
   { title: "Proposals", url: "/proposals", icon: FileText, module: "proposals" },
   { title: "Finance Hub", url: "/invoices", icon: Receipt, module: "invoices" },
+  { title: "Accounts", url: "/accounts", icon: Wallet, module: "accounts" },
   { title: "Market Research", url: "/research", icon: Search, module: "research" },
   { title: "Analytics", url: "/reports", icon: PieChart, module: "reports" },
 ];

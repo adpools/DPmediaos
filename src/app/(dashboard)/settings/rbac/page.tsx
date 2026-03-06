@@ -61,6 +61,7 @@ const MODULES = [
   { id: 'crm', name: 'Sales CRM' },
   { id: 'proposals', name: 'Proposal Wizard' },
   { id: 'invoices', name: 'Finance Hub' },
+  { id: 'accounts', name: 'Accounts' },
   { id: 'research', name: 'Market Intelligence' },
   { id: 'reports', name: 'Analytics' },
 ];

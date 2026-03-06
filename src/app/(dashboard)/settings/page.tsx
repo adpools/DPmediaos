@@ -24,7 +24,8 @@ import {
   CreditCard,
   MapPin,
   Camera,
-  AlertCircle
+  AlertCircle,
+  Wallet
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -115,6 +116,7 @@ function AccountCenterContent() {
     { id: "crm", name: "Sales CRM", desc: "Client relationship and pipeline tracking", icon: Briefcase },
     { id: "proposals", name: "Proposal Wizard", desc: "AI-assisted production proposal generation", icon: FileText },
     { id: "invoices", name: "Finance Hub", desc: "Automated invoicing and cloud sync", icon: Receipt },
+    { id: "accounts", name: "Accounts", desc: "Manage bank accounts and company liquidity", icon: Wallet },
     { id: "research", name: "Market Intelligence", icon: Search },
     { id: "reports", name: "Analytics", desc: "Revenue trends and performance reports", icon: PieChart },
   ];
