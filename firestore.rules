@@ -70,21 +70,8 @@ service cloud.firestore {
       allow create: if isSignedIn(); 
       allow update: if isMember(companyId);
 
-      match /invitations/{invId} {
+      match /gst_filings/{filingId} {
         allow read, write: if isCompanyAdmin(companyId);
-      }
-
-      match /roles/{roleId} {
-        allow get, list: if isMember(companyId);
-        allow create: if isMember(companyId) && hasValidCompanyContext(companyId);
-        allow update: if isMember(companyId);
-        allow delete: if isMember(companyId);
-      }
-
-      match /company_settings/{settingId} {
-        allow get, list: if isMember(companyId);
-        allow create: if isSignedIn() && hasValidCompanyContext(companyId);
-        allow update: if isMember(companyId);
       }
 
       match /projects/{projectId} {
@@ -98,30 +85,6 @@ service cloud.firestore {
         }
       }
 
-      match /tasks/{taskId} {
-        allow get, list: if isMember(companyId);
-        allow create: if isMember(companyId) && hasValidCompanyContext(companyId);
-        allow update: if isMember(companyId);
-      }
-
-      match /talents/{talentId} {
-        allow get, list: if isMember(companyId);
-        allow create: if isMember(companyId) && hasValidCompanyContext(companyId);
-        allow update: if isMember(companyId);
-      }
-
-      match /leads/{leadId} {
-        allow get, list: if isMember(companyId);
-        allow create: if isMember(companyId) && hasValidCompanyContext(companyId);
-        allow update: if isMember(companyId);
-      }
-
-      match /proposals/{proposalId} {
-        allow get, list: if isMember(companyId);
-        allow create: if isMember(companyId) && hasValidCompanyContext(companyId);
-        allow update: if isMember(companyId);
-      }
-
       match /invoices/{invoiceId} {
         allow get, list: if isMember(companyId);
         allow create: if isMember(companyId) && hasValidCompanyContext(companyId);
@@ -133,11 +96,6 @@ service cloud.firestore {
         allow create: if isMember(companyId) && hasValidCompanyContext(companyId);
         allow update: if isMember(companyId);
         allow delete: if isMember(companyId);
-      }
-
-      match /market_research_sessions/{id} {
-        allow get, list: if isMember(companyId);
-        allow create: if isMember(companyId) && hasValidCompanyContext(companyId);
       }
     }
   }

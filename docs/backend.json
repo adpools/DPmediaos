@@ -82,6 +82,7 @@
         "payment_status": { "type": "string" },
         "issue_date": { "type": "string" },
         "due_date": { "type": "string" },
+        "gst_filed": { "type": "boolean" },
         "line_items": {
           "type": "array",
           "items": {
@@ -97,22 +98,18 @@
         "created_at": { "type": "string", "format": "date-time" }
       }
     },
-    "Lead": {
-      "title": "Lead",
+    "GSTFiling": {
+      "title": "GSTFiling",
       "type": "object",
-      "description": "Represents a sales opportunity or client company.",
+      "description": "Represents an automated GST submission record.",
       "properties": {
         "id": { "type": "string" },
         "company_id": { "type": "string" },
-        "company_name": { "type": "string" },
-        "contact_person": { "type": "string" },
-        "email": { "type": "string" },
-        "billing_address": { "type": "string" },
-        "gstin": { "type": "string" },
-        "industry": { "type": "string" },
-        "stage": { "type": "string" },
-        "deal_value": { "type": "number" },
-        "created_at": { "type": "string", "format": "date-time" }
+        "period": { "type": "string" },
+        "gst_output": { "type": "number" },
+        "arn_number": { "type": "string" },
+        "status": { "type": "string" },
+        "submitted_at": { "type": "string", "format": "date-time" }
       }
     },
     "Expense": {
@@ -164,25 +161,13 @@
       "schema": { "$ref": "#/backend/entities/Invoice" },
       "description": "Billing records."
     },
+    "companies/{companyId}/gst_filings/{filingId}": {
+      "schema": { "$ref": "#/backend/entities/GSTFiling" },
+      "description": "Statutory submission history."
+    },
     "companies/{companyId}/expenses/{expenseId}": {
       "schema": { "$ref": "#/backend/entities/Expense" },
       "description": "Running costs and payroll."
-    },
-    "companies/{companyId}/leads/{leadId}": {
-      "schema": { "$ref": "#/backend/entities/Lead" },
-      "description": "CRM opportunities and clients."
-    },
-    "companies/{companyId}/invitations/{invId}": {
-      "schema": {
-        "type": "object",
-        "properties": {
-          "email": { "type": "string" },
-          "role_id": { "type": "string" },
-          "status": { "type": "string" },
-          "created_at": { "type": "string", "format": "date-time" }
-        }
-      },
-      "description": "Team invitations."
     }
   }
 }
