@@ -45,6 +45,24 @@
       },
       "required": ["id", "company_id", "role_id", "email", "fullName", "status", "createdAt"]
     },
+    "Lead": {
+      "title": "Lead",
+      "type": "object",
+      "description": "Represents a potential client or sales opportunity.",
+      "properties": {
+        "id": { "type": "string" },
+        "company_id": { "type": "string" },
+        "company_name": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "industry": { "type": "string" },
+        "service_vertical": { "type": "string" },
+        "deal_value": { "type": "number" },
+        "stage": { "type": "string" },
+        "billing_address": { "type": "string" },
+        "gstin": { "type": "string" },
+        "created_at": { "type": "string", "format": "date-time" }
+      }
+    },
     "Project": {
       "title": "Project",
       "type": "object",
@@ -167,6 +185,10 @@
     "companies/{companyId}": {
       "schema": { "$ref": "#/backend/entities/Company" },
       "description": "Multi-tenant company roots."
+    },
+    "companies/{companyId}/leads/{leadId}": {
+      "schema": { "$ref": "#/backend/entities/Lead" },
+      "description": "Sales opportunities and client relations."
     },
     "companies/{companyId}/projects/{projectId}": {
       "schema": { "$ref": "#/backend/entities/Project" },

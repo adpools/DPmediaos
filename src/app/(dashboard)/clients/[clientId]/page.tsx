@@ -12,7 +12,10 @@ import {
   ExternalLink,
   Clock,
   TrendingUp,
-  Sparkles
+  Sparkles,
+  Zap,
+  Mail,
+  Building2
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -220,22 +223,30 @@ export default function ClientPortfolioPage({ params }: { params: Promise<{ clie
         <div className="space-y-6">
           <Card className="border-none shadow-sm bg-white rounded-[2rem]">
             <CardHeader>
-              <CardTitle className="text-lg">Primary Contact</CardTitle>
+              <CardTitle className="text-lg">Classification</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center gap-4">
-                <div className="h-12 w-12 rounded-2xl bg-primary/5 flex items-center justify-center text-primary font-bold">
-                  {client.contact_person?.[0]}
+                <div className="h-12 w-12 rounded-2xl bg-accent/5 flex items-center justify-center text-accent">
+                  <Zap className="h-6 w-6" />
                 </div>
                 <div>
-                  <p className="font-bold">{client.contact_person}</p>
-                  <p className="text-xs text-muted-foreground">{client.email || 'No email provided'}</p>
+                  <p className="font-bold">{client.service_vertical || 'General Production'}</p>
+                  <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest mt-1">Service Vertical</p>
                 </div>
               </div>
-              <div className="pt-4 border-t space-y-2">
+              <div className="pt-4 border-t space-y-3">
+                <div className="flex items-center gap-3 text-xs text-muted-foreground font-medium">
+                  <Building2 className="h-4 w-4" />
+                  <span>Industry: {client.industry || 'Media'}</span>
+                </div>
+                <div className="flex items-center gap-3 text-xs text-muted-foreground font-medium">
+                  <Mail className="h-4 w-4" />
+                  <span>{client.email || 'No contact email'}</span>
+                </div>
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
                   <TrendingUp className="h-3.5 w-3.5" />
-                  <span>Potential Deal Value: <span className="font-bold text-primary">₹{(client.deal_value || 0).toLocaleString()}</span></span>
+                  <span>Total CRM Value: <span className="font-bold text-primary">₹{(client.deal_value || 0).toLocaleString()}</span></span>
                 </div>
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
                   <Clock className="h-3.5 w-3.5" />

@@ -18,7 +18,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { addDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { toast } from "@/hooks/use-toast";
 import Link from "next/link";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuSeparator,
+  DropdownMenuTrigger 
+} from "@/components/ui/dropdown-menu";
 import { 
   AlertDialog, 
   AlertDialogAction, 
@@ -158,7 +164,6 @@ export default function CRMPage() {
                 </DialogDescription>
               </DialogHeader>
               <form onSubmit={handleAddLead} className="space-y-4 py-4">
-                {/* Existing Client Link */}
                 <div className="space-y-2 p-4 bg-indigo-50 rounded-2xl border border-indigo-100">
                   <Label className="text-[10px] font-black uppercase text-indigo-600 tracking-widest flex items-center gap-2">
                     <Database className="h-3 w-3" /> Link to Existing Client

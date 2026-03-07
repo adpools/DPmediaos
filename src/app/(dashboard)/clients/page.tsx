@@ -3,7 +3,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Building2, Search, Filter, MoreHorizontal, Plus, Briefcase, Mail, Phone, Loader2, ExternalLink } from "lucide-react";
+import { Building2, Search, Filter, MoreHorizontal, Plus, Briefcase, Mail, Phone, Loader2, ExternalLink, Zap } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { useTenant } from "@/hooks/use-tenant";
@@ -81,8 +81,8 @@ export default function ClientsPage() {
                 <CardTitle className="text-lg font-bold mt-4 group-hover:text-primary transition-colors">
                   {client.company_name}
                 </CardTitle>
-                <CardDescription className="text-xs font-medium">
-                  {client.contact_person}
+                <CardDescription className="text-[10px] font-black uppercase tracking-widest text-primary flex items-center gap-1.5 mt-1">
+                  <Zap className="h-3 w-3" /> {client.service_vertical || 'Media Production'}
                 </CardDescription>
               </CardHeader>
               <CardContent className="p-6 space-y-4 bg-white">
@@ -93,7 +93,7 @@ export default function ClientsPage() {
                   </div>
                   <div className="flex items-center gap-3 text-xs text-muted-foreground">
                     <Briefcase className="h-3.5 w-3.5" />
-                    <span>Lead Status: <span className="font-bold text-primary uppercase text-[10px]">{client.stage}</span></span>
+                    <span>Pipeline Stage: <span className="font-bold text-primary uppercase text-[10px]">{client.stage}</span></span>
                   </div>
                 </div>
 
