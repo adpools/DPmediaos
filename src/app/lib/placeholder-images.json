@@ -1,3 +1,4 @@
+
 {
   "placeholderImages": [
     {
@@ -23,6 +24,18 @@
       "description": "Media Production Set",
       "imageUrl": "https://picsum.photos/seed/prod1/1200/800",
       "imageHint": "film set"
+    },
+    {
+      "id": "proposal-cover",
+      "description": "Premium Agency Proposal Cover",
+      "imageUrl": "https://picsum.photos/seed/prop-cover/1200/800",
+      "imageHint": "architecture business"
+    },
+    {
+      "id": "market-analysis",
+      "description": "Data and Market Analysis Illustration",
+      "imageUrl": "https://picsum.photos/seed/market/800/600",
+      "imageHint": "data analysis"
     }
   ]
 }

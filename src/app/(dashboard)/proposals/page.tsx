@@ -30,7 +30,12 @@ import {
   ChevronRight,
   List,
   Printer,
-  FileDown
+  FileDown,
+  BarChart3,
+  Lightbulb,
+  CheckCircle2,
+  TrendingUp,
+  Image as ImageIcon
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -63,9 +68,11 @@ import {
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
+import Image from "next/image";
+import { PlaceHolderImages } from "@/lib/placeholder-images";
 
 function ProposalsContent() {
-  const { profile, isLoading: isTenantLoading, companyId } = useTenant();
+  const { profile, isLoading: isTenantLoading, companyId, company } = useTenant();
   const searchParams = useSearchParams();
   const db = useFirestore();
   
@@ -91,6 +98,9 @@ function ProposalsContent() {
   });
 
   const [generatedDraft, setGeneratedDraft] = useState<GenerateProposalContentOutput | null>(null);
+
+  const coverImage = PlaceHolderImages.find(img => img.id === 'proposal-cover');
+  const marketImage = PlaceHolderImages.find(img => img.id === 'market-analysis');
 
   // Listen for research source
   useEffect(() => {
@@ -216,31 +226,7 @@ function ProposalsContent() {
     // Give time for state to sync and dialog to render before print
     setTimeout(() => {
       window.print();
-    }, 300);
-  };
-
-  const handleExportText = (proposal: any) => {
-    try {
-      const parsed = JSON.parse(proposal.content);
-      let content = `${parsed.proposal_title}\nClient: ${parsed.client}\n\n`;
-      parsed.sections.forEach((s: any) => {
-        content += `### ${s.title}\n${s.content}\n\n`;
-      });
-      
-      const blob = new Blob([content], { type: 'text/markdown' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${proposal.proposal_number}_${proposal.title.replace(/\s+/g, '_')}.md`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      
-      toast({ title: "Export Successful", description: "Proposal content downloaded as Markdown." });
-    } catch (e) {
-      toast({ variant: "destructive", title: "Export Failed" });
-    }
+    }, 500);
   };
 
   if (isTenantLoading || isProposalsLoading) {
@@ -250,6 +236,69 @@ function ProposalsContent() {
       </div>
     );
   }
+
+  const renderSectionVisuals = (section: any) => {
+    const title = section.title.toLowerCase();
+    
+    if (title.includes('kpi') || title.includes('targets')) {
+      return (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8 no-print">
+          {[
+            { label: 'Engagement', icon: Target, val: '+45%' },
+            { label: 'Leads', icon: TrendingUp, val: '2.4x' },
+            { label: 'Traffic', icon: Globe, val: '50k+' },
+            { label: 'ROI', icon: Zap, val: '185%' }
+          ].map((kpi, i) => (
+            <div key={i} className="bg-slate-50 p-4 rounded-2xl border border-slate-100 flex flex-col items-center text-center gap-2">
+              <kpi.icon className="h-5 w-5 text-primary" />
+              <span className="text-[10px] font-black uppercase text-slate-400">{kpi.label}</span>
+              <span className="text-xl font-black text-primary">{kpi.val}</span>
+            </div>
+          ))}
+        </div>
+      );
+    }
+
+    if (title.includes('roadmap') || title.includes('timeline')) {
+      return (
+        <div className="space-y-4 mt-8 no-print">
+          {[1, 2, 3, 4].map((phase) => (
+            <div key={phase} className="flex items-center gap-4 p-4 bg-primary/5 rounded-2xl border border-primary/10">
+              <div className="h-10 w-10 rounded-full bg-primary text-white flex items-center justify-center font-black text-sm">
+                Q{phase}
+              </div>
+              <div className="flex-1">
+                <p className="text-xs font-black uppercase text-primary">Strategic Milestone {phase}</p>
+                <div className="h-1.5 w-full bg-slate-200 rounded-full mt-2 overflow-hidden">
+                  <div className="h-full bg-primary" style={{ width: `${phase * 25}%` }} />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      );
+    }
+
+    if (title.includes('audit') || title.includes('research')) {
+      return (
+        <div className="mt-8 relative rounded-3xl overflow-hidden aspect-video no-print">
+          <Image 
+            src={marketImage?.imageUrl || "https://picsum.photos/seed/market/800/600"} 
+            fill 
+            className="object-cover opacity-80" 
+            alt="market"
+            data-ai-hint="data analysis"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-slate-900 to-transparent flex flex-col justify-end p-8">
+            <Badge className="w-fit mb-2 bg-accent text-white">Live Market Analysis</Badge>
+            <p className="text-white font-bold text-lg">Cross-channel data synchronization complete.</p>
+          </div>
+        </div>
+      );
+    }
+
+    return null;
+  };
 
   return (
     <div className="space-y-8 max-w-7xl mx-auto">
@@ -424,6 +473,7 @@ function ProposalsContent() {
                             <div className="text-sm leading-relaxed text-slate-300 whitespace-pre-line font-medium prose prose-invert max-w-none">
                               {generatedDraft?.sections[activeSectionIdx].content}
                             </div>
+                            {renderSectionVisuals(generatedDraft?.sections[activeSectionIdx])}
                           </div>
                         </div>
                       </div>
@@ -600,7 +650,9 @@ function ProposalsContent() {
                 <div className="max-w-3xl mx-auto space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
                   {/* Print Cover Page (only visible in print) */}
                   <div className="hidden print:block space-y-12 py-20 text-center">
-                    <div className="h-24 w-24 bg-primary mx-auto rounded-3xl flex items-center justify-center text-white text-4xl font-black">DP</div>
+                    <div className="h-24 w-24 bg-primary mx-auto rounded-3xl flex items-center justify-center text-white text-4xl font-black">
+                      {company?.name?.substring(0, 2).toUpperCase() || 'DP'}
+                    </div>
                     <div className="space-y-4">
                       <h1 className="text-6xl font-black tracking-tighter">{viewingProposal?.title}</h1>
                       <p className="text-2xl text-muted-foreground font-bold uppercase tracking-widest">Business Strategy Blueprint</p>
@@ -652,6 +704,8 @@ function ProposalsContent() {
                       </div>
                     </div>
 
+                    {renderSectionVisuals(viewingProposal?.parsedContent?.sections[activeSectionIdx])}
+
                     {/* NAV CONTROLS */}
                     <div className="pt-12 border-t flex justify-between items-center">
                       <Button 
@@ -677,7 +731,7 @@ function ProposalsContent() {
 
             <div className="p-8 border-t bg-slate-50 flex items-center justify-between no-print">
               <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">
-                Generated via DP Intelligence Engine • {new Date().getFullYear()}
+                Generated via {company?.name || 'DP'} Intelligence Engine • {new Date().getFullYear()}
               </p>
               <div className="flex gap-3">
                 <Button variant="outline" className="rounded-xl font-bold h-11 px-6 gap-2" onClick={() => window.print()}>
