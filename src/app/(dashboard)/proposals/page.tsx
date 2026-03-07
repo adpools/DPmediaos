@@ -339,7 +339,7 @@ function ProposalsContent() {
                 <Plus className="h-4 w-4" /> New Intelligence Proposal
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[800px] rounded-[3rem] p-0 overflow-hidden border-none shadow-2xl">
+            <DialogContent className="sm:max-w-[800px] rounded-[3rem] p-0 overflow-hidden border-none shadow-2xl h-[90vh]">
               <div className="bg-slate-900 text-white flex flex-col h-[90vh] md:h-[80vh]">
                 <div className="p-8 pb-4">
                   <div className="flex items-center gap-4 mb-6">
