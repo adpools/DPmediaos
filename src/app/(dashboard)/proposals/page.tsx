@@ -99,7 +99,6 @@ function ProposalsContent() {
 
   const [generatedDraft, setGeneratedDraft] = useState<GenerateProposalContentOutput | null>(null);
 
-  const coverImage = PlaceHolderImages.find(img => img.id === 'proposal-cover');
   const marketImage = PlaceHolderImages.find(img => img.id === 'market-analysis');
 
   // Listen for research source
@@ -229,15 +228,9 @@ function ProposalsContent() {
     }, 800);
   };
 
-  if (isTenantLoading || isProposalsLoading) {
-    return (
-      <div className="flex items-center justify-center h-[80vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
-
   const renderSectionVisuals = (section: any) => {
+    if (!section || !section.title) return null;
+    
     const title = section.title.toLowerCase();
     
     if (title.includes('kpi') || title.includes('targets')) {
@@ -299,6 +292,14 @@ function ProposalsContent() {
 
     return null;
   };
+
+  if (isTenantLoading || isProposalsLoading) {
+    return (
+      <div className="flex items-center justify-center h-[80vh]">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8 max-w-7xl mx-auto">
@@ -468,10 +469,10 @@ function ProposalsContent() {
                           <div className="bg-white/5 rounded-[2.5rem] border border-white/10 p-8 md:p-10 relative overflow-hidden min-h-[400px]">
                             <BrainCircuit className="absolute -top-4 -right-4 h-24 w-24 opacity-5 text-indigo-400" />
                             <h2 className="text-2xl font-black text-white mb-6">
-                              {generatedDraft?.sections[activeSectionIdx].title}
+                              {generatedDraft?.sections[activeSectionIdx]?.title}
                             </h2>
                             <div className="text-sm leading-relaxed text-slate-300 whitespace-pre-line font-medium prose prose-invert max-w-none">
-                              {generatedDraft?.sections[activeSectionIdx].content}
+                              {generatedDraft?.sections[activeSectionIdx]?.content}
                             </div>
                             {renderSectionVisuals(generatedDraft?.sections[activeSectionIdx])}
                           </div>
@@ -694,13 +695,13 @@ function ProposalsContent() {
                         Phase {activeSectionIdx + 1}
                       </Badge>
                       <h1 className="text-4xl font-black text-slate-900 tracking-tighter">
-                        {viewingProposal?.parsedContent?.sections[activeSectionIdx].title}
+                        {viewingProposal?.parsedContent?.sections[activeSectionIdx]?.title}
                       </h1>
                     </div>
                     
                     <div className="prose prose-slate prose-lg max-w-none">
                       <div className="text-lg leading-relaxed text-slate-600 font-medium whitespace-pre-line border-l-4 border-primary/10 pl-8 py-2">
-                        {viewingProposal?.parsedContent?.sections[activeSectionIdx].content}
+                        {viewingProposal?.parsedContent?.sections[activeSectionIdx]?.content}
                       </div>
                     </div>
 
