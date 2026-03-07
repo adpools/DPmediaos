@@ -35,13 +35,14 @@ import {
   Lightbulb,
   CheckCircle2,
   TrendingUp,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Trash2
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { useTenant } from "@/hooks/use-tenant";
 import { useCollection, useMemoFirebase } from "@/firebase";
-import { collection, query, orderBy, serverTimestamp } from "firebase/firestore";
+import { collection, query, orderBy, serverTimestamp, doc } from "firebase/firestore";
 import { useFirestore } from "@/firebase";
 import { 
   Dialog, 
@@ -53,7 +54,7 @@ import {
   DialogTrigger 
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { addDocumentNonBlocking } from "@/firebase/non-blocking-updates";
+import { addDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { toast } from "@/hooks/use-toast";
 import { generateProposalContent, type GenerateProposalContentOutput } from "@/ai/flows/generate-proposal-content";
 import { Textarea } from "@/components/ui/textarea";
@@ -70,6 +71,17 @@ import {
 import { cn } from "@/lib/utils";
 import Image from "next/image";
 import { PlaceHolderImages } from "@/lib/placeholder-images";
+import { 
+  AlertDialog, 
+  AlertDialogAction, 
+  AlertDialogCancel, 
+  AlertDialogContent, 
+  AlertDialogDescription, 
+  AlertDialogFooter, 
+  AlertDialogHeader, 
+  AlertDialogTitle, 
+  AlertDialogTrigger 
+} from "@/components/ui/alert-dialog";
 
 function ProposalsContent() {
   const { profile, isLoading: isTenantLoading, companyId, company } = useTenant();
@@ -199,6 +211,13 @@ function ProposalsContent() {
     setGenerationStep('input');
     setIsAddOpen(false);
     setIsSubmitting(false);
+  };
+
+  const handleDeleteProposal = (proposalId: string) => {
+    if (!db || !companyId || !proposalId) return;
+    const proposalRef = doc(db, 'companies', companyId, 'proposals', proposalId);
+    deleteDocumentNonBlocking(proposalRef);
+    toast({ title: "Proposal Removed", description: "Strategy has been deleted from your workspace." });
   };
 
   const handleViewProposal = (proposal: any) => {
@@ -580,6 +599,29 @@ function ProposalsContent() {
                             <div className="h-8 w-8 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center"><Mail className="h-4 w-4" /></div>
                             <div className="flex flex-col"><span className="text-xs font-bold">Direct Email</span><span className="text-[10px] text-muted-foreground">Professional Handshake</span></div>
                           </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <DropdownMenuItem className="gap-3 cursor-pointer py-3 text-rose-500 focus:text-rose-600 focus:bg-rose-50" onSelect={(e) => e.preventDefault()}>
+                                <div className="h-8 w-8 bg-rose-50 text-rose-600 rounded-lg flex items-center justify-center"><Trash2 className="h-4 w-4" /></div>
+                                <div className="flex flex-col"><span className="text-xs font-bold">Delete</span><span className="text-[10px] text-muted-foreground">Remove permanently</span></div>
+                              </DropdownMenuItem>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent className="rounded-[2rem]">
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  This will permanently remove this production blueprint from your workspace. This action cannot be undone.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel className="rounded-xl">Cancel</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => handleDeleteProposal(prop.id)} className="bg-rose-500 hover:bg-rose-600 rounded-xl">
+                                  Confirm Delete
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
                         </DropdownMenuContent>
                       </DropdownMenu>
                       <Button variant="outline" size="icon" className="h-11 w-11 rounded-xl" onClick={() => handleDownloadPDF(prop)}>

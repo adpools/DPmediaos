@@ -23,7 +23,8 @@ import {
   Briefcase,
   Layers,
   ArrowRight,
-  Database
+  Database,
+  Trash2
 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
@@ -50,11 +51,22 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useTenant } from "@/hooks/use-tenant";
 import { useCollection, useMemoFirebase } from "@/firebase";
-import { collection, query, orderBy, serverTimestamp } from "firebase/firestore";
+import { collection, query, orderBy, serverTimestamp, doc } from "firebase/firestore";
 import { useFirestore } from "@/firebase";
-import { addDocumentNonBlocking } from "@/firebase/non-blocking-updates";
+import { addDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { 
+  AlertDialog, 
+  AlertDialogAction, 
+  AlertDialogCancel, 
+  AlertDialogContent, 
+  AlertDialogDescription, 
+  AlertDialogFooter, 
+  AlertDialogHeader, 
+  AlertDialogTitle, 
+  AlertDialogTrigger 
+} from "@/components/ui/alert-dialog";
 
 type ViewMode = 'grid' | 'list' | 'timeline';
 
@@ -165,6 +177,13 @@ export default function ProjectsPage() {
     setNewProject({ project_name: "", client_name: "", budget: "", deadline: "" });
     setIsCreateOpen(false);
     setIsSubmitting(false);
+  };
+
+  const handleDeleteProject = (projectId: string) => {
+    if (!db || !companyId || !projectId) return;
+    const projectRef = doc(db, 'companies', companyId, 'projects', projectId);
+    deleteDocumentNonBlocking(projectRef);
+    toast({ title: "Project Deleted", description: "The workspace has been removed permanently." });
   };
 
   if (isTenantLoading || isProjectsLoading) {
@@ -404,6 +423,7 @@ export default function ProjectsPage() {
                 project={proj} 
                 view={viewMode} 
                 index={idx}
+                onDelete={handleDeleteProject}
               />
             ))}
           </div>
@@ -413,7 +433,7 @@ export default function ProjectsPage() {
   );
 }
 
-function ProjectCard({ project, view, index }: { project: any, view: ViewMode, index: number }) {
+function ProjectCard({ project, view, index, onDelete }: { project: any, view: ViewMode, index: number, onDelete: (id: string) => void }) {
   const isEven = index % 2 === 0;
 
   if (view === 'grid') {
@@ -584,9 +604,27 @@ function ProjectCard({ project, view, index }: { project: any, view: ViewMode, i
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator className="bg-slate-50" />
-                  <DropdownMenuItem className="rounded-lg m-1 py-2 cursor-pointer text-rose-500 focus:text-rose-600 focus:bg-rose-50">
-                    Archive Project
-                  </DropdownMenuItem>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <DropdownMenuItem className="rounded-lg m-1 py-2 cursor-pointer text-rose-500 focus:text-rose-600 focus:bg-rose-50" onSelect={(e) => e.preventDefault()}>
+                        <Trash2 className="h-3.5 w-3.5 mr-2" /> Delete Project
+                      </DropdownMenuItem>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent className="rounded-[2rem]">
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Delete Workspace Permanently?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          This will permanently remove the project "{project.project_name}" and all associated tasks, assets, and schedule data.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel className="rounded-xl">Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => onDelete(project.id)} className="bg-rose-500 hover:bg-rose-600 rounded-xl">
+                          Confirm Delete
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>

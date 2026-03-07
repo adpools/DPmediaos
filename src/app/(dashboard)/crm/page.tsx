@@ -4,21 +4,32 @@
 import { useState, useMemo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, MoreHorizontal, Building2, Calendar, Search, Loader2, IndianRupee, Sparkles, ExternalLink, ArrowRight, Database, Zap } from "lucide-react";
+import { Plus, MoreHorizontal, Building2, Calendar, Search, Loader2, IndianRupee, Sparkles, ExternalLink, ArrowRight, Database, Zap, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { useTenant } from "@/hooks/use-tenant";
 import { useCollection, useMemoFirebase } from "@/firebase";
-import { collection, query, orderBy, serverTimestamp } from "firebase/firestore";
+import { collection, query, orderBy, serverTimestamp, doc } from "firebase/firestore";
 import { useFirestore } from "@/firebase";
 import { PIPELINE_STAGES } from "@/lib/mock-data";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { addDocumentNonBlocking } from "@/firebase/non-blocking-updates";
+import { addDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { toast } from "@/hooks/use-toast";
 import Link from "next/link";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { 
+  AlertDialog, 
+  AlertDialogAction, 
+  AlertDialogCancel, 
+  AlertDialogContent, 
+  AlertDialogDescription, 
+  AlertDialogFooter, 
+  AlertDialogHeader, 
+  AlertDialogTitle, 
+  AlertDialogTrigger 
+} from "@/components/ui/alert-dialog";
 
 export default function CRMPage() {
   const { profile, isLoading: isTenantLoading, companyId } = useTenant();
@@ -100,6 +111,13 @@ export default function CRMPage() {
     setNewLead({ company_name: "", service_vertical: "Brand Film", industry: "", deal_value: "", stage: "lead" });
     setIsAddOpen(false);
     setIsSubmitting(false);
+  };
+
+  const handleDeleteLead = (leadId: string) => {
+    if (!db || !companyId || !leadId) return;
+    const leadRef = doc(db, 'companies', companyId, 'leads', leadId);
+    deleteDocumentNonBlocking(leadRef);
+    toast({ title: "Opportunity Removed", description: "The lead has been deleted from your pipeline." });
   };
 
   if (isTenantLoading || isLeadsLoading) {
@@ -274,6 +292,28 @@ export default function CRMPage() {
                                 <Building2 className="h-3.5 w-3.5" /> View Production History
                               </Link>
                             </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <DropdownMenuItem className="flex items-center gap-2 text-rose-500 focus:text-rose-600 focus:bg-rose-50" onSelect={(e) => e.preventDefault()}>
+                                  <Trash2 className="h-3.5 w-3.5" /> Delete Opportunity
+                                </DropdownMenuItem>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent className="rounded-[2rem]">
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Remove from Pipeline?</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    This will delete the lead "{lead.company_name}" permanently.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel className="rounded-xl">Cancel</AlertDialogCancel>
+                                  <AlertDialogAction onClick={() => handleDeleteLead(lead.id)} className="bg-rose-500 hover:bg-rose-600 rounded-xl">
+                                    Confirm Delete
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </div>

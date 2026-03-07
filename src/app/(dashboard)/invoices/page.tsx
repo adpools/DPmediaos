@@ -4,19 +4,30 @@
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, Cloud, Search, CheckCircle2, Download, Filter, TrendingUp, Loader2, IndianRupee, FileText, Sparkles, ExternalLink } from "lucide-react";
+import { Plus, Cloud, Search, CheckCircle2, Download, Filter, TrendingUp, Loader2, IndianRupee, FileText, Sparkles, ExternalLink, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { useTenant } from "@/hooks/use-tenant";
 import { useCollection, useMemoFirebase } from "@/firebase";
-import { collection, query, orderBy, serverTimestamp } from "firebase/firestore";
+import { collection, query, orderBy, serverTimestamp, doc } from "firebase/firestore";
 import { useFirestore } from "@/firebase";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { addDocumentNonBlocking } from "@/firebase/non-blocking-updates";
+import { addDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { toast } from "@/hooks/use-toast";
 import Link from "next/link";
+import { 
+  AlertDialog, 
+  AlertDialogAction, 
+  AlertDialogCancel, 
+  AlertDialogContent, 
+  AlertDialogDescription, 
+  AlertDialogFooter, 
+  AlertDialogHeader, 
+  AlertDialogTitle, 
+  AlertDialogTrigger 
+} from "@/components/ui/alert-dialog";
 
 export default function InvoicesPage() {
   const { profile, isLoading: isTenantLoading, companyId } = useTenant();
@@ -125,6 +136,13 @@ export default function InvoicesPage() {
     });
     setIsAddOpen(false);
     setIsSubmitting(false);
+  };
+
+  const handleDeleteInvoice = (invoiceId: string) => {
+    if (!db || !companyId || !invoiceId) return;
+    const invoiceRef = doc(db, 'companies', companyId, 'invoices', invoiceId);
+    deleteDocumentNonBlocking(invoiceRef);
+    toast({ title: "Invoice Removed", description: "The billing record has been deleted." });
   };
 
   if (isTenantLoading || isInvoicesLoading) {
@@ -367,6 +385,27 @@ export default function InvoicesPage() {
                       </td>
                       <td className="p-4 text-right">
                         <div className="flex justify-end gap-2">
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity text-rose-500 hover:text-rose-600 hover:bg-rose-50">
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent className="rounded-[2rem]">
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Delete Invoice Record?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  This will permanently remove invoice {inv.invoice_number}. This action cannot be reversed.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel className="rounded-xl">Cancel</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => handleDeleteInvoice(inv.id)} className="bg-rose-500 hover:bg-rose-600 rounded-xl">
+                                  Confirm Delete
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
                           <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"><Download className="h-4 w-4" /></Button>
                           <Link href={`/invoices/${inv.id}`}>
                             <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity text-primary">
