@@ -248,11 +248,11 @@ function ProposalsContent() {
   };
 
   const renderSectionVisuals = (section: any) => {
-    if (!section || !section.title) return null;
+    // Robust safety guard against undefined or incomplete section objects
+    const sectionTitle = section?.title?.toLowerCase();
+    if (!sectionTitle) return null;
     
-    const title = section.title.toLowerCase();
-    
-    if (title.includes('kpi') || title.includes('targets')) {
+    if (sectionTitle.includes('kpi') || sectionTitle.includes('targets')) {
       return (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8 no-print">
           {[
@@ -271,7 +271,7 @@ function ProposalsContent() {
       );
     }
 
-    if (title.includes('roadmap') || title.includes('timeline')) {
+    if (sectionTitle.includes('roadmap') || sectionTitle.includes('timeline')) {
       return (
         <div className="space-y-4 mt-8 no-print">
           {[1, 2, 3, 4].map((phase) => (
@@ -291,7 +291,7 @@ function ProposalsContent() {
       );
     }
 
-    if (title.includes('audit') || title.includes('research')) {
+    if (sectionTitle.includes('audit') || sectionTitle.includes('research')) {
       return (
         <div className="mt-8 relative rounded-3xl overflow-hidden aspect-video no-print">
           <Image 
