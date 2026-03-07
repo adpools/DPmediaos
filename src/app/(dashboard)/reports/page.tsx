@@ -29,35 +29,35 @@ export default function ReportsPage() {
   // 1. Fetch Invoices for Revenue Stats
   const invoicesQuery = useMemoFirebase(() => {
     if (!db || !companyId) return null;
-    return collection(db, 'companies', companyId, 'invoices');
+    return query(collection(db, 'companies', companyId, 'invoices'));
   }, [db, companyId]);
   const { data: invoices, isLoading: isInvoicesLoading } = useCollection(invoicesQuery);
 
   // 2. Fetch Projects for Active Count
   const projectsQuery = useMemoFirebase(() => {
     if (!db || !companyId) return null;
-    return collection(db, 'companies', companyId, 'projects');
+    return query(collection(db, 'companies', companyId, 'projects'));
   }, [db, companyId]);
   const { data: projects, isLoading: isProjectsLoading } = useCollection(projectsQuery);
 
   // 3. Fetch Talent for Network Stats
   const talentsQuery = useMemoFirebase(() => {
     if (!db || !companyId) return null;
-    return collection(db, 'companies', companyId, 'talents');
+    return query(collection(db, 'companies', companyId, 'talents'));
   }, [db, companyId]);
   const { data: talents, isLoading: isTalentsLoading } = useCollection(talentsQuery);
 
   // 4. Fetch CRM Leads for Pipeline Value
   const leadsQuery = useMemoFirebase(() => {
     if (!db || !companyId) return null;
-    return collection(db, 'companies', companyId, 'leads');
+    return query(collection(db, 'companies', companyId, 'leads'));
   }, [db, companyId]);
   const { data: leads, isLoading: isLeadsLoading } = useCollection(leadsQuery);
 
-  // 5. Fetch Budgets for Allocation Chart
+  // 5. Fetch Budgets for Allocation Chart (Standardized to company_id)
   const budgetsQuery = useMemoFirebase(() => {
     if (!db || !companyId) return null;
-    return query(collectionGroup(db, 'budgets'), where('companyId', '==', companyId));
+    return query(collectionGroup(db, 'budgets'), where('company_id', '==', companyId));
   }, [db, companyId]);
   const { data: budgets, isLoading: isBudgetsLoading } = useCollection(budgetsQuery);
 
@@ -192,7 +192,7 @@ export default function ReportsPage() {
                  No project budget items found.
                </div>
              ) : (
-               <>
+               <div className="flex flex-col md:flex-row items-center justify-center w-full h-full gap-4">
                 <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                       <Pie
@@ -209,18 +209,18 @@ export default function ReportsPage() {
                       <Tooltip formatter={(value: any) => `₹${value.toLocaleString()}`} />
                     </PieChart>
                 </ResponsiveContainer>
-                <div className="w-1/3 space-y-4">
+                <div className="w-full md:w-1/3 space-y-2">
                   {budgetChartData.map((item) => (
                     <div key={item.name} className="flex items-center gap-2">
-                      <div className="h-3 w-3 rounded-full" style={{ backgroundColor: item.color }} />
-                      <div className="flex-1">
-                        <p className="text-[10px] font-bold truncate max-w-[80px]">{item.name}</p>
+                      <div className="h-3 w-3 rounded-full shrink-0" style={{ backgroundColor: item.color }} />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[10px] font-bold truncate">{item.name}</p>
                         <p className="text-xs text-muted-foreground font-mono">₹{item.value.toLocaleString()}</p>
                       </div>
                     </div>
                   ))}
                 </div>
-               </>
+               </div>
              )}
           </CardContent>
         </Card>

@@ -226,7 +226,7 @@ function ProposalsContent() {
     // Give time for state to sync and dialog to render before print
     setTimeout(() => {
       window.print();
-    }, 500);
+    }, 800);
   };
 
   if (isTenantLoading || isProposalsLoading) {

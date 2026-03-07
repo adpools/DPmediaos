@@ -70,6 +70,11 @@ service cloud.firestore {
       allow create: if isSignedIn(); 
       allow update: if isMember(companyId);
 
+      // Recursive catch-all for workspace subcollections (Leads, Talents, Accounts, etc.)
+      match /{allSubcollections=**} {
+        allow read, write: if isMember(companyId);
+      }
+
       match /gst_filings/{filingId} {
         allow read, write: if isCompanyAdmin(companyId);
       }
@@ -80,26 +85,9 @@ service cloud.firestore {
         allow update: if isMember(companyId);
         allow delete: if isMember(companyId);
 
-        match /{allSubcollections=**} {
+        match /{allSubSub=**} {
           allow read, write: if isMember(companyId);
         }
-      }
-
-      match /invoices/{invoiceId} {
-        allow get, list: if isMember(companyId);
-        allow create: if isMember(companyId) && hasValidCompanyContext(companyId);
-        allow update: if isMember(companyId);
-      }
-
-      match /expenses/{expenseId} {
-        allow get, list: if isMember(companyId);
-        allow create: if isMember(companyId) && hasValidCompanyContext(companyId);
-        allow update: if isMember(companyId);
-        allow delete: if isMember(companyId);
-      }
-
-      match /proposals/{proposalId} {
-        allow read, write: if isMember(companyId);
       }
     }
   }

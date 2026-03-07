@@ -22,7 +22,7 @@
       "queryScope": "COLLECTION_GROUP",
       "fields": [
         { "fieldPath": "company_id", "order": "ASCENDING" },
-        { "fieldPath": "amount", "order": "DESCENDING" }
+        { "fieldPath": "__name__", "order": "ASCENDING" }
       ]
     },
     {
@@ -30,7 +30,8 @@
       "queryScope": "COLLECTION_GROUP",
       "fields": [
         { "fieldPath": "company_id", "order": "ASCENDING" },
-        { "fieldPath": "date", "order": "ASCENDING" }
+        { "fieldPath": "date", "order": "ASCENDING" },
+        { "fieldPath": "__name__", "order": "ASCENDING" }
       ]
     }
   ],
