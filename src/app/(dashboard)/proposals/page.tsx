@@ -244,7 +244,7 @@ function ProposalsContent() {
     // Give time for state to sync and dialog to render before print
     setTimeout(() => {
       window.print();
-    }, 800);
+    }, 1000);
   };
 
   const renderSectionVisuals = (section: any) => {
@@ -760,7 +760,7 @@ function ProposalsContent() {
                         Previous Section
                       </Button>
                       <Button 
-                        disabled={activeSectionIdx === viewingProposal?.parsedContent?.sections.length - 1}
+                        disabled={activeSectionIdx === (viewingProposal?.parsedContent?.sections?.length || 0) - 1}
                         onClick={() => setActiveSectionIdx(prev => prev + 1)}
                         className="rounded-xl font-black uppercase text-[10px] tracking-widest px-10 h-11 shadow-lg shadow-primary/20"
                       >

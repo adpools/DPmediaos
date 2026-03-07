@@ -14,7 +14,7 @@ export default function ProductionSchedulePage() {
   const { profile, companyId, isLoading: isTenantLoading } = useTenant();
   const db = useFirestore();
 
-  // Fetch all production days across projects
+  // Fetch all production days across projects (Standardized to company_id)
   const scheduleQuery = useMemoFirebase(() => {
     if (!db || !companyId) return null;
     return query(

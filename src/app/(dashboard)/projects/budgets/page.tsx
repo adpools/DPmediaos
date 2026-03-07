@@ -16,7 +16,7 @@ export default function BudgetsPage() {
   const { profile, isLoading: isTenantLoading, companyId } = useTenant();
   const db = useFirestore();
 
-  // Fetch all budgets across projects for this company
+  // Fetch all budgets across projects for this company (using standardized company_id)
   const budgetsQuery = useMemoFirebase(() => {
     if (!db || !companyId) return null;
     return query(
