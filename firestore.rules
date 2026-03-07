@@ -20,11 +20,6 @@ service cloud.firestore {
       );
     }
 
-    // GLOBAL BYPASS: Platform Admins have absolute authority
-    match /{allPaths=**} {
-      allow read, write: if isPlatformAdmin();
-    }
-
     function getUserData() {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
     }
@@ -41,8 +36,19 @@ service cloud.firestore {
       return isPlatformAdmin() || (isSignedIn() && userProfileExists() && getUserData().company_id == companyId && (getUserData().role_id == 'admin' || getUserData().roleId == 'admin'));
     }
 
-    function hasValidCompanyContext(companyId) {
-      return request.resource.data.company_id == companyId || request.resource.data.companyId == companyId;
+    // --- COLLECTION GROUP RULES (Master Aggregation) ---
+    
+    match /{path=**}/production_days/{dayId} {
+      allow read: if isMember(resource.data.company_id) || isMember(resource.data.companyId);
+    }
+
+    match /{path=**}/budgets/{budgetId} {
+      allow read: if isMember(resource.data.company_id) || isMember(resource.data.companyId);
+    }
+
+    // --- GLOBAL BYPASS: Platform Admins ---
+    match /{allPaths=**} {
+      allow read, write: if isPlatformAdmin();
     }
 
     // --- COLLECTION RULES ---
@@ -70,24 +76,9 @@ service cloud.firestore {
       allow create: if isSignedIn(); 
       allow update: if isMember(companyId);
 
-      // Recursive catch-all for workspace subcollections (Leads, Talents, Accounts, etc.)
+      // Subcollections (Leads, Projects, Invoices, etc.)
       match /{allSubcollections=**} {
         allow read, write: if isMember(companyId);
-      }
-
-      match /gst_filings/{filingId} {
-        allow read, write: if isCompanyAdmin(companyId);
-      }
-
-      match /projects/{projectId} {
-        allow get, list: if isMember(companyId);
-        allow create: if isMember(companyId) && hasValidCompanyContext(companyId);
-        allow update: if isMember(companyId);
-        allow delete: if isMember(companyId);
-
-        match /{allSubSub=**} {
-          allow read, write: if isMember(companyId);
-        }
       }
     }
   }
