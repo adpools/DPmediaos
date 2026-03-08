@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from "react";
@@ -61,7 +60,7 @@ const MODULES = [
   { id: 'clients', name: 'Clients' },
   { id: 'crm', name: 'Sales CRM' },
   { id: 'proposals', name: 'Proposal Wizard' },
-  { id: 'invoices', name: 'Finance Hub' },
+  { id: 'invoices', name: 'Invoice and Quote' },
   { id: 'accounts', name: 'Accounts' },
   { id: 'research', name: 'Market Intelligence' },
   { id: 'reports', name: 'Analytics' },

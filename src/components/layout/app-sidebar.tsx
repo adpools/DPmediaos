@@ -1,4 +1,3 @@
-
 "use client";
 
 import * as React from "react";
@@ -50,7 +49,7 @@ const workspaceItems = [
   { title: "Talent Network", url: "/talents", icon: Users, module: "talents" },
   { title: "Sales CRM", url: "/crm", icon: Briefcase, module: "crm" },
   { title: "Proposals", url: "/proposals", icon: FileText, module: "proposals" },
-  { title: "Finance Hub", url: "/invoices", icon: Receipt, module: "invoices" },
+  { title: "Invoice and Quote", url: "/invoices", icon: Receipt, module: "invoices" },
   { title: "Accounts", url: "/accounts", icon: Wallet, module: "accounts" },
   { title: "Market Research", url: "/research", icon: Search, module: "research" },
   { title: "Analytics", url: "/reports", icon: PieChart, module: "reports" },

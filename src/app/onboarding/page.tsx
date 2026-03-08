@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from "react";
@@ -10,7 +9,7 @@ import {
   Building2, 
   ChevronRight, 
   ChevronLeft, 
-  CheckCircle2,
+  CheckCircle2, 
   Sparkles,
   Loader2,
   Film,
@@ -67,7 +66,7 @@ export default function OnboardingPage() {
     { id: 'projects', name: 'Project Management', icon: Film, desc: 'Workflows, schedules & budgets' },
     { id: 'talents', name: 'Talent Marketplace', icon: Users, desc: 'Find & book actors or models' },
     { id: 'crm', name: 'Sales CRM', icon: Briefcase, desc: 'Manage leads & proposals' },
-    { id: 'invoices', name: 'Finance Hub', icon: Receipt, desc: 'Automated invoices & sync' },
+    { id: 'invoices', name: 'Invoice and Quote', icon: Receipt, desc: 'Automated billing & quotations' },
     { id: 'research', name: 'Market Intelligence', icon: Search, desc: 'AI research & trends' },
   ];
 

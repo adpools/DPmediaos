@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from "react";
@@ -209,7 +208,7 @@ export default function InvoicesPage() {
     <div className="space-y-8">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-primary">Finance Hub</h1>
+          <h1 className="text-3xl font-bold text-primary">Invoice and Quote</h1>
           <p className="text-muted-foreground">Automated invoicing and real-time financial synchronization.</p>
         </div>
         <div className="flex items-center gap-2">

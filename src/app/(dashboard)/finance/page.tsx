@@ -1,4 +1,3 @@
-
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -78,7 +77,7 @@ export default function FinancePage() {
     <div className="space-y-8">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold font-headline text-primary">Finance & Invoices</h1>
+          <h1 className="text-3xl font-bold font-headline text-primary">Invoice and Quote</h1>
           <p className="text-muted-foreground">Automated invoicing and real-time financial synchronization.</p>
         </div>
         <div className="flex items-center gap-2">
