@@ -144,7 +144,7 @@ export default function CRMPage() {
   }
 
   return (
-    <div className="space-y-8 h-full flex flex-col">
+    <div className="space-y-8 h-full flex flex-col overflow-hidden">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 shrink-0">
         <div>
           <h1 className="text-3xl font-bold text-primary">Sales Pipeline</h1>
@@ -264,8 +264,8 @@ export default function CRMPage() {
         </div>
       </div>
 
-      <div className="flex-1 w-full">
-        <div className="flex gap-6 overflow-x-auto pb-12 h-full w-full custom-scrollbar px-1">
+      <div className="flex-1 min-h-0 w-full overflow-hidden flex flex-col">
+        <div className="flex gap-6 overflow-x-auto pb-6 h-full w-full custom-scrollbar px-1">
           {PIPELINE_STAGES.map((stage) => {
             const leadsInStage = leads?.filter(l => l.stage === stage.id) || [];
             const totalValue = leadsInStage.reduce((sum, l) => sum + (l.deal_value || 0), 0);
@@ -378,20 +378,19 @@ export default function CRMPage() {
 
       <style jsx global>{`
         .custom-scrollbar::-webkit-scrollbar {
-          height: 10px;
+          height: 12px;
         }
         .custom-scrollbar::-webkit-scrollbar-track {
-          background: rgba(0, 0, 0, 0.05);
+          background: #f1f5f9;
           border-radius: 10px;
         }
         .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: #cbd5e1;
+          background: #64748b;
           border-radius: 10px;
-          border: 2px solid transparent;
-          background-clip: content-box;
+          border: 3px solid #f1f5f9;
         }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: #94a3b8;
+          background: #475569;
         }
       `}</style>
     </div>
