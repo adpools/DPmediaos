@@ -76,7 +76,6 @@ import {
   AlertDialogAction, 
   AlertDialogCancel, 
   AlertDialogContent, 
-  AlertDialogDescription, 
   AlertDialogFooter, 
   AlertDialogHeader, 
   AlertDialogTitle, 
@@ -248,11 +247,11 @@ function ProposalsContent() {
   };
 
   const renderSectionVisuals = (section: any) => {
-    // Robust safety guard against undefined or incomplete section objects
-    const sectionTitle = section?.title?.toLowerCase();
-    if (!sectionTitle) return null;
+    // Robust safety guard
+    if (!section || !section.title) return null;
+    const title = section.title.toLowerCase();
     
-    if (sectionTitle.includes('kpi') || sectionTitle.includes('targets')) {
+    if (title.includes('kpi') || title.includes('targets')) {
       return (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8 no-print">
           {[
@@ -271,7 +270,7 @@ function ProposalsContent() {
       );
     }
 
-    if (sectionTitle.includes('roadmap') || sectionTitle.includes('timeline')) {
+    if (title.includes('roadmap') || title.includes('timeline')) {
       return (
         <div className="space-y-4 mt-8 no-print">
           {[1, 2, 3, 4].map((phase) => (
@@ -291,7 +290,7 @@ function ProposalsContent() {
       );
     }
 
-    if (sectionTitle.includes('audit') || sectionTitle.includes('research')) {
+    if (title.includes('audit') || title.includes('research')) {
       return (
         <div className="mt-8 relative rounded-3xl overflow-hidden aspect-video no-print">
           <Image 
@@ -355,7 +354,7 @@ function ProposalsContent() {
 
                 <ScrollArea className="flex-1 px-8 md:px-10 pb-8">
                   {generationStep === 'input' ? (
-                    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2">
+                    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
                       <div className="space-y-2 p-5 bg-indigo-500/10 rounded-3xl border border-indigo-500/20">
                         <Label className="text-[10px] font-black uppercase text-indigo-400 tracking-widest flex items-center gap-2 mb-2">
                           <Database className="h-3 w-3" /> Smart Import from CRM
@@ -656,7 +655,7 @@ function ProposalsContent() {
                   Blueprint: Live
                 </Badge>
                 <Button variant="ghost" size="icon" className="rounded-full h-10 w-10 hover:bg-slate-100" onClick={() => setIsViewOpen(false)}>
-                  <Plus className="h-6 w-6 rotate-45" />
+                  <X className="h-6 w-6" />
                 </Button>
               </div>
             </div>

@@ -17,7 +17,6 @@ import {
   Loader2, 
   X, 
   Video, 
-  PanelRight,
   ChevronLeft,
   ChevronRight
 } from "lucide-react";
@@ -25,7 +24,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useTenant } from "@/hooks/use-tenant";
 import { doc, serverTimestamp, collection, query, where, orderBy, limit, collectionGroup } from "firebase/firestore";
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
-import { updateDocumentNonBlocking, setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { useRouter, usePathname } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
@@ -121,7 +119,7 @@ export default function DashboardLayout({
                 className="ml-auto" 
                 onClick={() => setIsRightSidebarOpen(!isRightSidebarOpen)}
               >
-                <ChevronLeft className={cn("h-5 w-5 transition-transform duration-300", isRightSidebarOpen && "rotate-180")} />
+                {isRightSidebarOpen ? <ChevronRight className="h-5 w-5" /> : <ChevronLeft className="h-5 w-5" />}
               </Button>
             )}
           </header>
@@ -136,13 +134,13 @@ export default function DashboardLayout({
                   onClick={() => setIsRightSidebarOpen(!isRightSidebarOpen)}
                   className={cn(
                     "rounded-xl bg-white shadow-soft transition-all duration-300 border-none hover:bg-slate-50",
-                    isRightSidebarOpen ? "mr-0" : ""
+                    !isRightSidebarOpen && "bg-primary text-white hover:bg-primary/90"
                   )}
                 >
                   {isRightSidebarOpen ? (
-                    <ChevronRight className="h-5 w-5 text-primary" />
+                    <ChevronRight className="h-5 w-5" />
                   ) : (
-                    <ChevronLeft className="h-5 w-5 text-primary" />
+                    <ChevronLeft className="h-5 w-5" />
                   )}
                 </Button>
               </div>
@@ -170,7 +168,6 @@ export default function DashboardLayout({
                     </div>
                   </div>
 
-                  {/* Dynamic Schedule Card */}
                   <Card className="border-none shadow-soft rounded-[2.5rem] overflow-hidden">
                     <CardContent className="p-0">
                       <div className="p-8 bg-white space-y-4">
@@ -229,47 +226,6 @@ export default function DashboardLayout({
                     <div className="space-y-1">
                       <span className="text-[10px] font-bold text-slate-400 uppercase">Talent</span>
                       <p className="text-2xl font-bold font-headline text-[#1A1D2C]">{talentCount}</p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Quick Task Section */}
-                <div className="mt-auto space-y-6">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-2xl font-bold font-headline text-[#1A1D2C]">New Task</h3>
-                    <MoreHorizontal className="h-5 w-5 text-slate-400" />
-                  </div>
-                  <div className="bg-white rounded-[2.5rem] p-8 shadow-soft border border-white/50 space-y-8">
-                    <div className="space-y-2">
-                       <span className="text-[10px] font-black text-slate-300 uppercase tracking-[0.2em]">Task Title</span>
-                       <p className="text-sm font-semibold text-slate-300">Quick production note...</p>
-                    </div>
-                    
-                    {/* Emoji Quick Picker */}
-                    <div className="flex items-center gap-4 overflow-x-auto pb-2 scrollbar-hide">
-                       {['🤠', '🎉', '👩', '🤔', '🔥', '😅'].map(e => (
-                         <span key={e} className="text-xl cursor-pointer hover:scale-125 transition-transform grayscale hover:grayscale-0 opacity-60 hover:opacity-100">{e}</span>
-                       ))}
-                    </div>
-
-                    <div className="h-px bg-slate-100 w-full" />
-
-                    <div className="space-y-4">
-                      <span className="text-[10px] font-black text-slate-300 uppercase tracking-[0.2em]">Collaborators</span>
-                      <div className="flex flex-wrap items-center gap-3">
-                        <Badge className="bg-purple-100 text-purple-700 border-none px-3 py-1.5 rounded-full flex items-center gap-2">
-                          <Avatar className="h-5 w-5"><AvatarImage src="https://picsum.photos/seed/crew1/40/40" /></Avatar>
-                          <span className="text-[11px] font-bold">Crew</span>
-                          <X className="h-3 w-3 cursor-pointer opacity-60" />
-                        </Badge>
-                        
-                        <div className="flex items-center gap-3 ml-auto">
-                          <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full bg-slate-50 text-slate-400 hover:bg-slate-100"><Plus className="h-5 w-5" /></Button>
-                          <Link href="/dashboard">
-                            <Button size="icon" className="h-12 w-12 rounded-[1.25rem] bg-accent hover:bg-accent/90 shadow-lg shadow-accent/30"><ArrowRight className="h-6 w-6 text-white" /></Button>
-                          </Link>
-                        </div>
-                      </div>
                     </div>
                   </div>
                 </div>
