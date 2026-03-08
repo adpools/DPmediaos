@@ -44,20 +44,45 @@ import Image from "next/image";
 import { PlaceHolderImages } from "@/lib/placeholder-images";
 import { cn } from "@/lib/utils";
 
-// Module registry for dynamic navigation
-const workspaceItems = [
-  { title: "Dashboard", url: "/dashboard", icon: LayoutGrid, module: "dashboard", isCore: true },
-  { title: "Projects", url: "/projects", icon: Film, module: "projects", isCore: true },
-  { title: "Service Builder", url: "/service-builder", icon: Settings2, module: "services" },
-  { title: "Clients", url: "/clients", icon: Building2, module: "clients" },
-  { title: "Talent Network", url: "/talents", icon: Users, module: "talents" },
-  { title: "Sales CRM", url: "/crm", icon: Briefcase, module: "crm" },
-  { title: "Proposals", url: "/proposals", icon: FileText, module: "proposals" },
-  { title: "Invoice and Quote", url: "/invoices", icon: Receipt, module: "invoices" },
-  { title: "Accounts", url: "/accounts", icon: Wallet, module: "accounts" },
-  { title: "Market Research", url: "/research", icon: Search, module: "research" },
-  { title: "Analytics", url: "/reports", icon: PieChart, module: "reports" },
-  { title: "Archives", url: "/archives", icon: Archive, module: "archives", isCore: true },
+// Module registry grouped by business type
+const navGroups = [
+  {
+    label: "Workspace",
+    items: [
+      { title: "Dashboard", url: "/dashboard", icon: LayoutGrid, module: "dashboard", isCore: true },
+      { title: "Projects", url: "/projects", icon: Film, module: "projects", isCore: true },
+      { title: "Analytics", url: "/reports", icon: PieChart, module: "reports" },
+    ]
+  },
+  {
+    label: "Growth & CRM",
+    items: [
+      { title: "Clients", url: "/clients", icon: Building2, module: "clients" },
+      { title: "Sales CRM", url: "/crm", icon: Briefcase, module: "crm" },
+      { title: "Proposals", url: "/proposals", icon: FileText, module: "proposals" },
+      { title: "Market Research", url: "/research", icon: Search, module: "research" },
+    ]
+  },
+  {
+    label: "Production",
+    items: [
+      { title: "Service Builder", url: "/service-builder", icon: Settings2, module: "services" },
+      { title: "Talent Network", url: "/talents", icon: Users, module: "talents" },
+    ]
+  },
+  {
+    label: "Finance",
+    items: [
+      { title: "Invoice and Quote", url: "/invoices", icon: Receipt, module: "invoices" },
+      { title: "Accounts", url: "/accounts", icon: Wallet, module: "accounts" },
+    ]
+  },
+  {
+    label: "Vault",
+    items: [
+      { title: "Archives", url: "/archives", icon: Archive, module: "archives", isCore: true },
+    ]
+  }
 ];
 
 export function AppSidebar() {
@@ -111,40 +136,43 @@ export function AppSidebar() {
       </SidebarHeader>
 
       <SidebarContent className="px-4">
-        <SidebarGroup>
-          <div className="mb-4 px-2">
-            <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">Workspace</span>
-          </div>
-          <SidebarMenu>
-            {workspaceItems.map((item) => {
-              // Check if module is enabled in workspace and user has permission
-              const isEnabled = item.isCore || isModuleEnabled(item.module);
-              const isAllowed = item.isCore || hasPermission(item.module, 'view');
-              
-              if (!isEnabled || !isAllowed) return null;
+        {navGroups.map((group) => {
+          // Filter items based on core status, module enablement, and user permissions
+          const visibleItems = group.items.filter(item => 
+            item.isCore || (isModuleEnabled(item.module) && hasPermission(item.module, 'view'))
+          );
 
-              return (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton
-                    asChild
-                    isActive={pathname === item.url}
-                    tooltip={item.title}
-                    className="rounded-xl h-10 px-3 hover:bg-accent/5 data-[active=true]:bg-primary/5 data-[active=true]:text-primary"
-                  >
-                    <Link href={item.url} className="flex items-center gap-3">
-                      <item.icon className="h-4 w-4" />
-                      <span className="font-semibold text-xs flex-1">{item.title}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              );
-            })}
-          </SidebarMenu>
-        </SidebarGroup>
+          if (visibleItems.length === 0) return null;
 
-        <SidebarGroup className="mt-6">
-          <div className="mb-4 px-2">
-            <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">Settings</span>
+          return (
+            <SidebarGroup key={group.label} className="py-2">
+              <div className="mb-2 px-2">
+                <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground/50">{group.label}</span>
+              </div>
+              <SidebarMenu>
+                {visibleItems.map((item) => (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={pathname === item.url}
+                      tooltip={item.title}
+                      className="rounded-xl h-10 px-3 hover:bg-accent/5 data-[active=true]:bg-primary/5 data-[active=true]:text-primary"
+                    >
+                      <Link href={item.url} className="flex items-center gap-3">
+                        <item.icon className={cn("h-4 w-4", pathname === item.url ? "text-primary" : "text-slate-500")} />
+                        <span className="font-semibold text-xs flex-1">{item.title}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroup>
+          );
+        })}
+
+        <SidebarGroup className="mt-4 pt-4 border-t border-slate-50">
+          <div className="mb-2 px-2">
+            <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground/50">System</span>
           </div>
           <SidebarMenu>
             <SidebarMenuItem>
@@ -155,7 +183,7 @@ export function AppSidebar() {
                 className="rounded-xl h-10 px-3 hover:bg-accent/5 data-[active=true]:bg-primary/5 data-[active=true]:text-primary"
               >
                 <Link href="/settings" className="flex items-center gap-3">
-                  <UserCircle className="h-4 w-4" />
+                  <UserCircle className="h-4 w-4 text-slate-500" />
                   <span className="font-semibold text-xs flex-1">Account Center</span>
                 </Link>
               </SidebarMenuButton>
@@ -170,7 +198,7 @@ export function AppSidebar() {
                   className="rounded-xl h-10 px-3 hover:bg-accent/5 data-[active=true]:bg-primary/5 data-[active=true]:text-primary"
                 >
                   <Link href="/settings/rbac" className="flex items-center gap-3">
-                    <ShieldCheck className="h-4 w-4" />
+                    <ShieldCheck className="h-4 w-4 text-slate-500" />
                     <span className="font-semibold text-xs flex-1">Access Control</span>
                   </Link>
                 </SidebarMenuButton>
@@ -193,21 +221,21 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="p-4 mt-auto border-t space-y-4">
+      <SidebarFooter className="p-4 mt-auto border-t bg-slate-50/50 space-y-4">
         <div className={cn(
-          "flex items-center gap-3 p-2 rounded-xl hover:bg-slate-50 transition-colors cursor-pointer",
+          "flex items-center gap-3 p-2 rounded-xl hover:bg-white hover:shadow-sm transition-all cursor-pointer",
           state === "collapsed" ? "justify-center" : ""
         )}>
-          <Avatar className="h-9 w-9 ring-2 ring-accent/10 shrink-0">
+          <Avatar className="h-9 w-9 ring-2 ring-white shrink-0 shadow-sm">
             <AvatarImage src={profile?.avatar} />
             <AvatarFallback className="bg-primary/5 text-primary text-[10px] font-bold">
-              {profile?.full_name?.substring(0, 2).toUpperCase() || 'U'}
+              {profile?.fullName?.substring(0, 2).toUpperCase() || 'U'}
             </AvatarFallback>
           </Avatar>
           {state !== "collapsed" && (
             <div className="flex flex-col min-w-0">
-              <span className="text-xs font-bold font-headline truncate">{profile?.full_name}</span>
-              <span className="text-[9px] text-muted-foreground font-medium truncate">{company?.name || 'Workspace'}</span>
+              <span className="text-xs font-bold font-headline truncate text-slate-800">{profile?.fullName}</span>
+              <span className="text-[9px] text-muted-foreground font-black uppercase tracking-widest truncate">{company?.name || 'Workspace'}</span>
             </div>
           )}
         </div>
