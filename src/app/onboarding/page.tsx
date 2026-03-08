@@ -26,6 +26,18 @@ import { setupNewCompany } from "./actions";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 
+const INDUSTRIES = [
+  { id: 'luxury', label: 'Luxury & Lifestyle' },
+  { id: 'ecommerce', label: 'E-commerce & D2C' },
+  { id: 'tech', label: 'Tech & SaaS' },
+  { id: 'fintech', label: 'Fintech & Banking' },
+  { id: 'realestate', label: 'Real Estate & Architecture' },
+  { id: 'healthcare', label: 'Healthcare & Wellness' },
+  { id: 'gaming', label: 'Gaming & Esports' },
+  { id: 'fashion', label: 'Fashion & Apparel' },
+  { id: 'hospitality', label: 'Hospitality & Tourism' },
+];
+
 export default function OnboardingPage() {
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
@@ -139,10 +151,9 @@ export default function OnboardingPage() {
                         <SelectValue placeholder="Select industry" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="film">Film &amp; TV</SelectItem>
-                        <SelectItem value="ad">Advertising</SelectItem>
-                        <SelectItem value="fashion">Fashion</SelectItem>
-                        <SelectItem value="influencer">Influencer Marketing</SelectItem>
+                        {INDUSTRIES.map(i => (
+                          <SelectItem key={i.id} value={i.id}>{i.label}</SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>

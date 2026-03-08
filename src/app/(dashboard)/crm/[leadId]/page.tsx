@@ -39,6 +39,18 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 
+const VERTICALS = [
+  'High-Premium Brand Film',
+  'Social-First Ads (UGC)',
+  'Product Cinematography',
+  '3D Animation & VFX',
+  'Virtual Production (XR)',
+  'Explainer & Educational',
+  'Corporate Identity',
+  'Event Aftermovie',
+  'Documentary Style'
+];
+
 export default function LeadDetailPage({ params }: { params: Promise<{ leadId: string }> }) {
   const { leadId } = use(params);
   const { companyId, isLoading: isTenantLoading } = useTenant();
@@ -66,7 +78,7 @@ export default function LeadDetailPage({ params }: { params: Promise<{ leadId: s
     if (lead && isEditOpen) {
       setEditForm({
         company_name: lead.company_name || "",
-        service_vertical: lead.service_vertical || "Brand Film",
+        service_vertical: lead.service_vertical || "High-Premium Brand Film",
         industry: lead.industry || "",
         deal_value: lead.deal_value?.toString() || ""
       });
@@ -331,7 +343,7 @@ export default function LeadDetailPage({ params }: { params: Promise<{ leadId: s
               <div className="pt-4 border-t space-y-3">
                 <div className="flex justify-between text-xs">
                   <span className="text-muted-foreground">Probability</span>
-                  <span className="font-bold">{lead.stage === 'negotiation' ? '85%' : '45%'}</span>
+                  <span className="font-bold">{lead.stage === 'won' ? '100%' : lead.stage === 'negotiation' ? '85%' : '45%'}</span>
                 </div>
                 <div className="flex justify-between text-xs">
                   <span className="text-muted-foreground">Expected Close</span>
@@ -414,13 +426,9 @@ export default function LeadDetailPage({ params }: { params: Promise<{ leadId: s
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Brand Film">Brand Film</SelectItem>
-                  <SelectItem value="Corporate Video">Corporate Video</SelectItem>
-                  <SelectItem value="TV Commercial">TV Commercial</SelectItem>
-                  <SelectItem value="Social Content">Social Content</SelectItem>
-                  <SelectItem value="Documentary">Documentary</SelectItem>
-                  <SelectItem value="Music Video">Music Video</SelectItem>
-                  <SelectItem value="Virtual Production">Virtual Production</SelectItem>
+                  {VERTICALS.map(v => (
+                    <SelectItem key={v} value={v}>{v}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>

@@ -36,6 +36,18 @@ import {
   AlertDialogTitle, 
 } from "@/components/ui/alert-dialog";
 
+const VERTICALS = [
+  'High-Premium Brand Film',
+  'Social-First Ads (UGC)',
+  'Product Cinematography',
+  '3D Animation & VFX',
+  'Virtual Production (XR)',
+  'Explainer & Educational',
+  'Corporate Identity',
+  'Event Aftermovie',
+  'Documentary Style'
+];
+
 export default function CRMPage() {
   const { profile, isLoading: isTenantLoading, companyId } = useTenant();
   const db = useFirestore();
@@ -46,7 +58,7 @@ export default function CRMPage() {
   // Quick Add State
   const [newLead, setNewLead] = useState({
     company_name: "",
-    service_vertical: "Brand Film",
+    service_vertical: "High-Premium Brand Film",
     industry: "",
     deal_value: "",
     stage: "lead"
@@ -114,7 +126,7 @@ export default function CRMPage() {
       description: `${newLead.company_name} has been added to your pipeline.`,
     });
 
-    setNewLead({ company_name: "", service_vertical: "Brand Film", industry: "", deal_value: "", stage: "lead" });
+    setNewLead({ company_name: "", service_vertical: "High-Premium Brand Film", industry: "", deal_value: "", stage: "lead" });
     setIsAddOpen(false);
     setIsSubmitting(false);
   };
@@ -217,13 +229,9 @@ export default function CRMPage() {
                       <SelectValue placeholder="Select vertical" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Brand Film">Brand Film</SelectItem>
-                      <SelectItem value="Corporate Video">Corporate Video</SelectItem>
-                      <SelectItem value="TV Commercial">TV Commercial</SelectItem>
-                      <SelectItem value="Social Content">Social Content</SelectItem>
-                      <SelectItem value="Documentary">Documentary</SelectItem>
-                      <SelectItem value="Music Video">Music Video</SelectItem>
-                      <SelectItem value="Virtual Production">Virtual Production</SelectItem>
+                      {VERTICALS.map(v => (
+                        <SelectItem key={v} value={v}>{v}</SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>

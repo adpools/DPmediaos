@@ -44,6 +44,32 @@ import {
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
+const INDUSTRIES = [
+  'Luxury & Lifestyle',
+  'E-commerce & D2C',
+  'Tech & SaaS',
+  'Fintech & Banking',
+  'Real Estate & Architecture',
+  'Healthcare & Wellness',
+  'Gaming & Esports',
+  'Automotive',
+  'Fashion & Apparel',
+  'Hospitality & Tourism',
+  'Other'
+];
+
+const VERTICALS = [
+  'High-Premium Brand Film',
+  'Social-First Ads (UGC)',
+  'Product Cinematography',
+  '3D Animation & VFX',
+  'Virtual Production (XR)',
+  'Explainer & Educational',
+  'Corporate Identity',
+  'Event Aftermovie',
+  'Documentary Style'
+];
+
 export default function ClientsPage() {
   const { profile, isLoading: isTenantLoading, companyId } = useTenant();
   const db = useFirestore();
@@ -55,8 +81,8 @@ export default function ClientsPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [newClient, setNewClient] = useState({
     company_name: "",
-    industry: "Advertising",
-    service_vertical: "Brand Film",
+    industry: "Luxury & Lifestyle",
+    service_vertical: "High-Premium Brand Film",
     email: "",
     deal_value: ""
   });
@@ -101,7 +127,7 @@ export default function ClientsPage() {
       description: `${newClient.company_name} has been added to your directory and pipeline.` 
     });
 
-    setNewClient({ company_name: "", industry: "Advertising", service_vertical: "Brand Film", email: "", deal_value: "" });
+    setNewClient({ company_name: "", industry: "Luxury & Lifestyle", service_vertical: "High-Premium Brand Film", email: "", deal_value: "" });
     setIsOnboardOpen(false);
     setIsSubmitting(false);
   };
@@ -297,12 +323,12 @@ export default function ClientsPage() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="industry">Industry</Label>
-                <Select onValueChange={(val) => setNewClient({...newClient, industry: val})} defaultValue="Advertising">
+                <Select onValueChange={(val) => setNewClient({...newClient, industry: val})} defaultValue="Luxury & Lifestyle">
                   <SelectTrigger className="rounded-xl h-11">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {['Advertising', 'Fashion', 'Real Estate', 'Tech', 'Entertainment', 'Luxury', 'Other'].map(i => (
+                    {INDUSTRIES.map(i => (
                       <SelectItem key={i} value={i}>{i}</SelectItem>
                     ))}
                   </SelectContent>
@@ -310,12 +336,12 @@ export default function ClientsPage() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="vertical">Vertical</Label>
-                <Select onValueChange={(val) => setNewClient({...newClient, service_vertical: val})} defaultValue="Brand Film">
+                <Select onValueChange={(val) => setNewClient({...newClient, service_vertical: val})} defaultValue="High-Premium Brand Film">
                   <SelectTrigger className="rounded-xl h-11">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {['Brand Film', 'Corporate Video', 'TV Commercial', 'Social Content', 'Documentary', 'Music Video', 'Virtual Production'].map(v => (
+                    {VERTICALS.map(v => (
                       <SelectItem key={v} value={v}>{v}</SelectItem>
                     ))}
                   </SelectContent>
