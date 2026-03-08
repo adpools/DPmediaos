@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, Suspense, useRef } from "react";
@@ -24,7 +25,11 @@ import {
   MapPin,
   Camera,
   AlertCircle,
-  Wallet
+  Wallet,
+  Palette,
+  Check,
+  RefreshCcw,
+  Sparkles
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -43,6 +48,15 @@ import { signOut } from "firebase/auth";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+
+const THEME_PRESETS = [
+  { name: "DP Original", primary: "#1e3a8a", accent: "#ff4b82" },
+  { name: "Midnight Pro", primary: "#0f172a", accent: "#38bdf8" },
+  { name: "Emerald Studio", primary: "#064e3b", accent: "#10b981" },
+  { name: "Royal Purple", primary: "#4c1d95", accent: "#a78bfa" },
+  { name: "Sunset Media", primary: "#7c2d12", accent: "#f97316" },
+  { name: "Monochrome", primary: "#18181b", accent: "#71717a" },
+];
 
 function AccountCenterContent() {
   const searchParams = useSearchParams();
@@ -81,6 +95,12 @@ function AccountCenterContent() {
     pan: ""
   });
 
+  // Theme State
+  const [themeColors, setThemeColors] = useState({
+    primary: "#1e3a8a",
+    accent: "#ff4b82"
+  });
+
   useEffect(() => {
     if (tenantProfile) {
       setProfileData({
@@ -106,7 +126,13 @@ function AccountCenterContent() {
         pan: company.bank_details?.pan || ""
       });
     }
-  }, [tenantProfile, company]);
+    if (settings?.theme) {
+      setThemeColors({
+        primary: settings.theme.primary || "#1e3a8a",
+        accent: settings.theme.accent || "#ff4b82"
+      });
+    }
+  }, [tenantProfile, company, settings]);
 
   const modulesList = [
     { id: "dashboard", name: "Dashboard", desc: "Workspace overview and task summary", icon: LayoutGrid, isCore: true },
@@ -163,6 +189,19 @@ function AccountCenterContent() {
     toast({ title: "Company Profile Saved", description: "Workspace details updated successfully." });
   };
 
+  const handleSaveTheme = () => {
+    if (!companyId || !db) return;
+    const settingsRef = doc(db, 'companies', companyId, 'company_settings', companyId);
+    setDocumentNonBlocking(settingsRef, {
+      theme: {
+        primary: themeColors.primary,
+        accent: themeColors.accent,
+      },
+      updatedAt: serverTimestamp(),
+    }, { merge: true });
+    toast({ title: "Branding Updated", description: "Workspace theme variables have been synced." });
+  };
+
   const handleToggleModule = (moduleId: string, enabled: boolean) => {
     if (!companyId || !db) return;
     const currentModules = settings?.enabledModules || ['dashboard', 'projects'];
@@ -191,63 +230,35 @@ function AccountCenterContent() {
     const file = e.target.files?.[0];
     const uid = user?.uid || tenantProfile?.id;
 
-    if (!file || !uid || !storage || !db) {
-      console.warn("Upload aborted: missing required context", { file: !!file, uid, storage: !!storage, db: !!db });
-      return;
-    }
+    if (!file || !uid || !storage || !db) return;
 
-    // 1. Client-side Validation
     if (!file.type.startsWith('image/')) {
       toast({ variant: "destructive", title: "Invalid File", description: "Please upload an image file." });
       return;
     }
 
-    if (file.size > 2 * 1024 * 1024) { // 2MB Limit
+    if (file.size > 2 * 1024 * 1024) { 
       toast({ variant: "destructive", title: "File Too Large", description: "Image must be less than 2MB." });
       return;
     }
 
     setIsUploading(true);
     try {
-      // 2. Upload to Firebase Storage
-      // Using user.uid for path reliability
       const storageRef = ref(storage, `users/${uid}/avatar`);
-      console.log("Initiating upload to:", storageRef.fullPath);
-      
       await uploadBytes(storageRef, file);
       const downloadURL = await getDownloadURL(storageRef);
       
-      // 3. Update local state
       setProfileData(prev => ({ ...prev, avatar: downloadURL }));
-      
-      // 4. Persist to Firestore
       const userRef = doc(db, 'users', uid);
       updateDocumentNonBlocking(userRef, {
         avatar: downloadURL,
         updatedAt: serverTimestamp()
       });
-      
-      toast({ title: "Profile Image Updated", description: "Your avatar has been synced successfully." });
+      toast({ title: "Profile Image Updated" });
     } catch (error: any) {
-      console.error("Storage upload error details:", error);
-      
-      let errorMsg = "Could not upload image. Please try again.";
-      if (error.code === 'storage/unauthorized') {
-        errorMsg = "Unauthorized. Please ensure Firebase Storage is enabled in the console.";
-      } else if (error.code === 'storage/retry-limit-exceeded') {
-        errorMsg = "Network timeout. Please check your connection.";
-      } else if (error.code === 'storage/no-default-bucket') {
-        errorMsg = "Configuration error: No default storage bucket found.";
-      }
-
-      toast({ 
-        variant: "destructive", 
-        title: "Upload Failed", 
-        description: errorMsg 
-      });
+      toast({ variant: "destructive", title: "Upload Failed" });
     } finally {
       setIsUploading(false);
-      // Reset input value so same file can be re-uploaded if fixed
       if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };
@@ -279,6 +290,9 @@ function AccountCenterContent() {
           </TabsTrigger>
           <TabsTrigger value="company" className="rounded-xl px-4 py-2 gap-2 data-[state=active]:bg-primary data-[state=active]:text-white">
             <Building2 className="h-4 w-4" /> Company
+          </TabsTrigger>
+          <TabsTrigger value="theme" className="rounded-xl px-4 py-2 gap-2 data-[state=active]:bg-primary data-[state=active]:text-white">
+            <Palette className="h-4 w-4" /> Theme
           </TabsTrigger>
           <TabsTrigger value="modules" className="rounded-xl px-4 py-2 gap-2 data-[state=active]:bg-primary data-[state=active]:text-white">
             <Puzzle className="h-4 w-4" /> Modules
@@ -333,14 +347,6 @@ function AccountCenterContent() {
               </div>
             </CardHeader>
             <CardContent className="p-8 space-y-6">
-              <Alert className="bg-blue-50 border-blue-100 rounded-2xl">
-                <AlertCircle className="h-4 w-4 text-blue-600" />
-                <AlertTitle className="text-blue-800 font-bold">Upload Troubleshooting</AlertTitle>
-                <AlertDescription className="text-blue-700 text-xs">
-                  If upload fails, ensure <strong>Firebase Storage</strong> is activated in your project console and rules are deployed. Use the camera icon or click the avatar to select a file.
-                </AlertDescription>
-              </Alert>
-
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <Label>Full Name</Label>
@@ -371,6 +377,145 @@ function AccountCenterContent() {
                 </div>
               </div>
               <Button onClick={handleSaveProfile} className="rounded-xl px-8 font-bold">Save Profile</Button>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* THEME TAB */}
+        <TabsContent value="theme" className="space-y-6 animate-in fade-in duration-500">
+          <Card className="border-none shadow-soft rounded-[2rem] overflow-hidden">
+            <CardHeader className="bg-primary/5 pb-8">
+              <div className="flex items-center gap-4">
+                <div className="h-16 w-16 bg-white rounded-2xl flex items-center justify-center text-primary shadow-sm">
+                  <Palette className="h-8 w-8" />
+                </div>
+                <div>
+                  <CardTitle className="text-2xl">Workspace Branding</CardTitle>
+                  <CardDescription>Personalize the visual identity of your production OS.</CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="p-8 space-y-10">
+              {/* Presets */}
+              <div className="space-y-4">
+                <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Branding Presets</Label>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
+                  {THEME_PRESETS.map((preset) => (
+                    <button
+                      key={preset.name}
+                      onClick={() => setThemeColors({ primary: preset.primary, accent: preset.accent })}
+                      className={cn(
+                        "p-4 rounded-2xl border-2 transition-all text-left flex flex-col gap-3 group relative",
+                        themeColors.primary === preset.primary && themeColors.accent === preset.accent
+                          ? "border-primary bg-primary/5 shadow-md"
+                          : "border-slate-100 hover:border-slate-200 bg-white"
+                      )}
+                    >
+                      <div className="flex gap-1.5">
+                        <div className="h-6 w-6 rounded-full shadow-inner" style={{ backgroundColor: preset.primary }} />
+                        <div className="h-6 w-6 rounded-full shadow-inner" style={{ backgroundColor: preset.accent }} />
+                      </div>
+                      <span className="text-[10px] font-bold truncate">{preset.name}</span>
+                      {themeColors.primary === preset.primary && themeColors.accent === preset.accent && (
+                        <div className="absolute top-2 right-2">
+                          <Check className="h-3 w-3 text-primary" />
+                        </div>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Custom Colors */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+                <div className="space-y-6">
+                  <h3 className="text-sm font-bold uppercase tracking-widest text-primary flex items-center gap-2">
+                    <Sparkles className="h-4 w-4" /> Custom Palette
+                  </h3>
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between gap-4">
+                      <div className="space-y-1">
+                        <Label>Primary Color</Label>
+                        <p className="text-[10px] text-muted-foreground uppercase font-bold">Headers & Navigation</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="h-10 w-10 rounded-xl shadow-sm border border-slate-200" style={{ backgroundColor: themeColors.primary }} />
+                        <Input 
+                          type="color" 
+                          value={themeColors.primary}
+                          onChange={(e) => setThemeColors({ ...themeColors, primary: e.target.value })}
+                          className="w-12 h-10 p-1 rounded-lg border-none bg-transparent cursor-pointer"
+                        />
+                        <Input 
+                          value={themeColors.primary}
+                          onChange={(e) => setThemeColors({ ...themeColors, primary: e.target.value })}
+                          className="w-24 font-mono text-xs h-10 rounded-xl"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between gap-4">
+                      <div className="space-y-1">
+                        <Label>Accent Color</Label>
+                        <p className="text-[10px] text-muted-foreground uppercase font-bold">Buttons & Highlighting</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="h-10 w-10 rounded-xl shadow-sm border border-slate-200" style={{ backgroundColor: themeColors.accent }} />
+                        <Input 
+                          type="color" 
+                          value={themeColors.accent}
+                          onChange={(e) => setThemeColors({ ...themeColors, accent: e.target.value })}
+                          className="w-12 h-10 p-1 rounded-lg border-none bg-transparent cursor-pointer"
+                        />
+                        <Input 
+                          value={themeColors.accent}
+                          onChange={(e) => setThemeColors({ ...themeColors, accent: e.target.value })}
+                          className="w-24 font-mono text-xs h-10 rounded-xl"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-slate-50/50 rounded-3xl p-8 border border-slate-100 flex flex-col justify-center">
+                  <h4 className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-6">Live Theme Preview</h4>
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 rounded-xl flex items-center justify-center text-white shadow-lg" style={{ backgroundColor: themeColors.primary }}>
+                        <Building2 className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <p className="font-bold text-sm" style={{ color: themeColors.primary }}>Workspace Sidebar</p>
+                        <p className="text-[10px] text-muted-foreground uppercase font-bold">Navigation State</p>
+                      </div>
+                    </div>
+                    <div className="h-1.5 w-full bg-slate-200 rounded-full overflow-hidden">
+                      <div className="h-full w-2/3 rounded-full" style={{ backgroundColor: themeColors.primary }} />
+                    </div>
+                    <Button 
+                      className="w-full rounded-xl h-11 font-black uppercase text-[10px] tracking-widest gap-2 shadow-xl" 
+                      style={{ backgroundColor: themeColors.accent, color: 'white' }}
+                    >
+                      Sample Action Button
+                    </Button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-4 flex items-center gap-4">
+                <Button onClick={handleSaveTheme} className="rounded-xl px-12 h-12 font-bold shadow-lg shadow-primary/20">
+                  Apply Theme Changes
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  onClick={() => setThemeColors({ primary: "#1e3a8a", accent: "#ff4b82" })}
+                  className="rounded-xl font-bold text-muted-foreground gap-2"
+                >
+                  <RefreshCcw className="h-4 w-4" /> Reset Default
+                </Button>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>

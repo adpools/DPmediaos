@@ -8,6 +8,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Loader2 } from "lucide-react";
 import { useTenant } from "@/hooks/use-tenant";
 import { useRouter } from "next/navigation";
+import { ThemeSync } from "@/components/layout/theme-sync";
 
 export default function DashboardLayout({
   children,
@@ -43,7 +44,8 @@ export default function DashboardLayout({
 
   return (
     <SidebarProvider>
-      <div className="flex min-h-screen w-full bg-[#F0F1F4] overflow-hidden">
+      <div className="flex min-h-screen w-full bg-[#F0F1F4] overflow-hidden text-foreground">
+        <ThemeSync />
         <AppSidebar />
         <SidebarInset className="flex flex-col bg-transparent relative">
           {/* Mobile Header */}
