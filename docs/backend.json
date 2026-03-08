@@ -137,6 +137,7 @@
       "properties": {
         "id": { "type": "string" },
         "company_id": { "type": "string" },
+        "project_id": { "type": "string", "description": "Optional project link for P&L tracking." },
         "category": { "type": "string", "enum": ["Salary", "Rent", "Utilities", "Production", "Marketing", "Other"] },
         "description": { "type": "string" },
         "amount": { "type": "number" },

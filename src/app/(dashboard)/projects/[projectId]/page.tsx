@@ -1,7 +1,7 @@
 
 "use client";
 
-import { use, useState } from "react";
+import { use, useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { 
@@ -32,7 +32,11 @@ import {
   Check,
   Receipt,
   ExternalLink,
-  Download
+  Download,
+  PieChart as PieChartIcon,
+  ArrowUpRight,
+  TrendingDown,
+  Info
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -67,6 +71,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { cn } from "@/lib/utils";
 
 export default function ProjectWorkspacePage({ params }: { params: Promise<{ projectId: string }> }) {
   const { projectId } = use(params);
@@ -138,6 +143,41 @@ export default function ProjectWorkspacePage({ params }: { params: Promise<{ pro
   }, [db, companyId, projectId]);
 
   const { data: invoices, isLoading: isInvoicesLoading } = useCollection(invoicesQuery);
+
+  // 6. Fetch Expenses related to this project
+  const projectExpensesQuery = useMemoFirebase(() => {
+    if (!db || !companyId || !projectId) return null;
+    return query(
+      collection(db, 'companies', companyId, 'expenses'),
+      where('project_id', '==', projectId),
+      orderBy('date', 'desc')
+    );
+  }, [db, companyId, projectId]);
+
+  const { data: projectExpenses, isLoading: isProjectExpensesLoading } = useCollection(projectExpensesQuery);
+
+  // --- DERIVED CALCULATIONS ---
+
+  const totalBilled = useMemo(() => {
+    return invoices?.reduce((sum, inv) => sum + (inv.total || 0), 0) || 0;
+  }, [invoices]);
+
+  const totalRevenueBase = useMemo(() => {
+    return invoices?.reduce((sum, inv) => sum + (inv.subtotal || 0), 0) || 0;
+  }, [invoices]);
+
+  const totalOutstanding = useMemo(() => {
+    return invoices?.reduce((sum, inv) => inv.payment_status !== 'paid' ? sum + (inv.total || 0) : sum, 0) || 0;
+  }, [invoices]);
+
+  const totalExpenses = useMemo(() => {
+    return projectExpenses?.reduce((sum, ex) => sum + (ex.amount || 0), 0) || 0;
+  }, [projectExpenses]);
+
+  const netProfit = totalRevenueBase - totalExpenses;
+  const profitMargin = totalRevenueBase > 0 ? (netProfit / totalRevenueBase) * 100 : 0;
+
+  // --- ACTIONS ---
 
   const handleToggleTask = (taskId: string, currentStatus: string) => {
     if (!db || !companyId || !projectId) return;
@@ -242,7 +282,7 @@ export default function ProjectWorkspacePage({ params }: { params: Promise<{ pro
     }
   };
 
-  if (isTenantLoading || isProjectLoading || isTasksLoading || isAssetsLoading || isShootDaysLoading || isInvoicesLoading) {
+  if (isTenantLoading || isProjectLoading || isTasksLoading || isAssetsLoading || isShootDaysLoading || isInvoicesLoading || isProjectExpensesLoading) {
     return (
       <div className="flex items-center justify-center h-[80vh]">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -277,9 +317,6 @@ export default function ProjectWorkspacePage({ params }: { params: Promise<{ pro
       default: return <Target className="h-4 w-4" />;
     }
   };
-
-  const totalBilled = invoices?.reduce((sum, inv) => sum + (inv.total || 0), 0) || 0;
-  const totalOutstanding = invoices?.reduce((sum, inv) => inv.payment_status !== 'paid' ? sum + (inv.total || 0) : sum, 0) || 0;
 
   return (
     <div className="space-y-8 max-w-7xl mx-auto">
@@ -613,6 +650,54 @@ export default function ProjectWorkspacePage({ params }: { params: Promise<{ pro
         </TabsContent>
 
         <TabsContent value="finances" className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+          {/* P&L Analysis Section */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <Card className="border-none shadow-soft bg-white rounded-[2rem] overflow-hidden relative border-l-4 border-l-primary">
+              <CardContent className="p-8">
+                <div className="flex justify-between items-start mb-4">
+                  <div className="p-2.5 bg-primary/10 rounded-xl text-primary">
+                    <ArrowUpRight className="h-5 w-5" />
+                  </div>
+                  <Badge variant="secondary" className="bg-primary/5 text-primary text-[9px] font-bold uppercase border-none">Total Invoiced</Badge>
+                </div>
+                <p className="text-[10px] font-bold uppercase text-muted-foreground tracking-widest mb-1">Gross Revenue (Excl. GST)</p>
+                <h3 className="text-3xl font-black">₹{totalRevenueBase.toLocaleString()}</h3>
+              </CardContent>
+            </Card>
+
+            <Card className="border-none shadow-soft bg-white rounded-[2rem] overflow-hidden relative border-l-4 border-l-rose-500">
+              <CardContent className="p-8">
+                <div className="flex justify-between items-start mb-4">
+                  <div className="p-2.5 bg-rose-50 rounded-xl text-rose-500">
+                    <TrendingDown className="h-5 w-5" />
+                  </div>
+                  <Badge variant="secondary" className="bg-rose-50 text-rose-500 text-[9px] font-bold uppercase border-none">Production Burn</Badge>
+                </div>
+                <p className="text-[10px] font-bold uppercase text-muted-foreground tracking-widest mb-1">Total Project Expenses</p>
+                <h3 className="text-3xl font-black">₹{totalExpenses.toLocaleString()}</h3>
+              </CardContent>
+            </Card>
+
+            <Card className={cn(
+              "border-none shadow-soft rounded-[2rem] overflow-hidden relative border-l-4 text-white",
+              netProfit >= 0 ? "bg-emerald-600 border-l-emerald-400" : "bg-rose-600 border-l-rose-400"
+            )}>
+              <CardContent className="p-8">
+                <div className="flex justify-between items-start mb-4">
+                  <div className="p-2.5 bg-white/20 rounded-xl">
+                    <Sparkles className="h-5 w-5" />
+                  </div>
+                  <div className="flex flex-col items-end">
+                    <Badge variant="secondary" className="bg-white/20 text-white text-[9px] font-bold uppercase border-none mb-1">Net Performance</Badge>
+                    <span className="text-[10px] font-black">{profitMargin.toFixed(1)}% Margin</span>
+                  </div>
+                </div>
+                <p className="text-[10px] font-bold uppercase text-white/60 tracking-widest mb-1">Profit / Loss</p>
+                <h3 className="text-3xl font-black">₹{netProfit.toLocaleString()}</h3>
+              </CardContent>
+            </Card>
+          </div>
+
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="lg:col-span-2 space-y-6">
               <Card className="border-none shadow-sm rounded-[2rem] overflow-hidden bg-white">
@@ -680,6 +765,59 @@ export default function ProjectWorkspacePage({ params }: { params: Promise<{ pro
                   )}
                 </CardContent>
               </Card>
+
+              {/* Project Specific Expense Log */}
+              <Card className="border-none shadow-sm rounded-[2rem] overflow-hidden bg-white">
+                <CardHeader className="bg-slate-50/50 flex flex-row items-center justify-between border-b px-8 py-6">
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <div className="p-1.5 bg-rose-50 rounded-lg text-rose-500"><TrendingDown className="h-4 w-4" /></div>
+                      <CardTitle className="text-xl">Production Expense Log</CardTitle>
+                    </div>
+                    <CardDescription>All direct costs attributed to this project.</CardDescription>
+                  </div>
+                  <Link href="/accounts">
+                    <Button variant="outline" size="sm" className="rounded-xl">
+                      <Plus className="h-4 w-4 mr-2" /> Log Project Cost
+                    </Button>
+                  </Link>
+                </CardHeader>
+                <CardContent className="p-0">
+                  {isProjectExpensesLoading ? (
+                    <div className="flex justify-center p-12"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
+                  ) : projectExpenses?.length === 0 ? (
+                    <div className="text-center py-24 text-muted-foreground space-y-4">
+                      <Info className="h-12 w-12 mx-auto opacity-10" />
+                      <p className="text-sm font-medium">No expenses tagged to this project yet.</p>
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead className="bg-slate-50/30 border-b">
+                          <tr>
+                            <th className="px-8 py-4 text-left font-bold text-[10px] uppercase text-muted-foreground">Date</th>
+                            <th className="px-8 py-4 text-left font-bold text-[10px] uppercase text-muted-foreground">Description</th>
+                            <th className="px-8 py-4 text-left font-bold text-[10px] uppercase text-muted-foreground">Category</th>
+                            <th className="px-8 py-4 text-right font-bold text-[10px] uppercase text-muted-foreground">Amount</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y">
+                          {projectExpenses?.map((ex) => (
+                            <tr key={ex.id} className="hover:bg-slate-50 transition-colors">
+                              <td className="px-8 py-5 text-xs text-muted-foreground">{ex.date}</td>
+                              <td className="px-8 py-5 font-bold text-slate-700">{ex.description}</td>
+                              <td className="px-8 py-5">
+                                <Badge variant="secondary" className="text-[8px] font-bold uppercase">{ex.category}</Badge>
+                              </td>
+                              <td className="px-8 py-5 text-right font-black text-rose-600">₹{ex.amount?.toLocaleString()}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
             </div>
 
             <div className="space-y-6">
@@ -704,6 +842,16 @@ export default function ProjectWorkspacePage({ params }: { params: Promise<{ pro
                     <Progress value={totalBilled > 0 ? ((totalBilled - totalOutstanding) / totalBilled) * 100 : 0} className="h-1 bg-white/10" />
                   </div>
                 </CardContent>
+              </Card>
+
+              <Card className="border-none shadow-sm bg-white rounded-[2rem] p-8 text-center">
+                <PieChartIcon className="h-12 w-12 text-primary/20 mx-auto mb-4" />
+                <h4 className="font-bold text-lg mb-2">P&L Breakdown</h4>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Your project is currently operating at a <span className={cn("font-bold", netProfit >= 0 ? "text-emerald-600" : "text-rose-600")}>
+                    {netProfit >= 0 ? "PROFIT" : "LOSS"}
+                  </span> of ₹{Math.abs(netProfit).toLocaleString()} with a {profitMargin.toFixed(1)}% margin.
+                </p>
               </Card>
             </div>
           </div>

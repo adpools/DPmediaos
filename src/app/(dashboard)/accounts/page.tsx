@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo } from "react";
@@ -126,6 +127,7 @@ export default function AccountsPage() {
     amount: "",
     date: new Date().toISOString().split('T')[0],
     account_id: "",
+    project_id: "none",
     status: "Paid"
   });
 
@@ -172,6 +174,17 @@ export default function AccountsPage() {
   }, [db, companyId]);
 
   const { data: filings } = useCollection(filingsQuery);
+
+  // 5. Fetch Projects for Expense Attribution
+  const projectsQuery = useMemoFirebase(() => {
+    if (!db || !companyId) return null;
+    return query(
+      collection(db, 'companies', companyId, 'projects'),
+      orderBy('project_name', 'asc')
+    );
+  }, [db, companyId]);
+
+  const { data: projects } = useCollection(projectsQuery);
 
   // --- DERIVED CALCULATIONS ---
 
@@ -272,11 +285,12 @@ export default function AccountsPage() {
       amount: parseFloat(newExpense.amount) || 0,
       date: newExpense.date,
       status: newExpense.status,
+      project_id: newExpense.project_id === 'none' ? null : newExpense.project_id,
       created_at: serverTimestamp(),
     });
 
     toast({ title: "Expense Recorded", description: `${newExpense.category} cost has been added to ledger.` });
-    setNewExpense({ category: "Salary", description: "", amount: "", date: new Date().toISOString().split('T')[0], account_id: "", status: "Paid" });
+    setNewExpense({ category: "Salary", description: "", amount: "", date: new Date().toISOString().split('T')[0], account_id: "", project_id: "none", status: "Paid" });
     setIsLogExpenseOpen(false);
     setIsSubmitting(false);
   };
@@ -611,6 +625,7 @@ export default function AccountsPage() {
                           <th className="px-6 md:px-8 py-4 text-left font-bold text-[10px] uppercase tracking-widest text-muted-foreground">Date</th>
                           <th className="px-6 md:px-8 py-4 text-left font-bold text-[10px] uppercase tracking-widest text-muted-foreground">Category</th>
                           <th className="px-6 md:px-8 py-4 text-left font-bold text-[10px] uppercase tracking-widest text-muted-foreground">Description</th>
+                          <th className="px-6 md:px-8 py-4 text-left font-bold text-[10px] uppercase tracking-widest text-muted-foreground">Project</th>
                           <th className="px-6 md:px-8 py-4 text-left font-bold text-[10px] uppercase tracking-widest text-muted-foreground">Amount</th>
                           <th className="px-6 md:px-8 py-4 text-left font-bold text-[10px] uppercase tracking-widest text-muted-foreground">Status</th>
                           <th className="px-6 md:px-8 py-4 text-right"></th>
@@ -619,34 +634,46 @@ export default function AccountsPage() {
                       <tbody className="divide-y">
                         {expenses?.length === 0 ? (
                           <tr>
-                            <td colSpan={6} className="px-8 py-16 text-center text-muted-foreground italic text-xs">No running costs registered.</td>
+                            <td colSpan={7} className="px-8 py-16 text-center text-muted-foreground italic text-xs">No running costs registered.</td>
                           </tr>
                         ) : (
-                          expenses?.map((ex) => (
-                            <tr key={ex.id} className="hover:bg-slate-50/50 transition-colors group">
-                              <td className="px-6 md:px-8 py-5 text-slate-500 font-medium text-xs whitespace-nowrap">{format(new Date(ex.date), 'MMM dd, yyyy')}</td>
-                              <td className="px-6 md:px-8 py-5">
-                                <Badge variant="secondary" className="text-[8px] md:text-[9px] uppercase font-bold py-0">{ex.category}</Badge>
-                              </td>
-                              <td className="px-6 md:px-8 py-5 font-bold text-slate-700 text-xs">{ex.description}</td>
-                              <td className="px-6 md:px-8 py-5 font-black text-rose-600 text-xs whitespace-nowrap">₹{ex.amount?.toLocaleString()}</td>
-                              <td className="px-6 md:px-8 py-5">
-                                <Badge variant={ex.status === 'Paid' ? 'default' : 'outline'} className="text-[8px] md:text-[9px] uppercase font-bold py-0">
-                                  {ex.status}
-                                </Badge>
-                              </td>
-                              <td className="px-6 md:px-8 py-5 text-right">
-                                <Button 
-                                  variant="ghost" 
-                                  size="icon" 
-                                  className="h-8 w-8 text-rose-500 hover:bg-rose-50 opacity-0 group-hover:opacity-100 transition-opacity"
-                                  onClick={() => setExpenseToDelete(ex)}
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </td>
-                            </tr>
-                          ))
+                          expenses?.map((ex) => {
+                            const linkedProject = projects?.find(p => p.id === ex.project_id);
+                            return (
+                              <tr key={ex.id} className="hover:bg-slate-50/50 transition-colors group">
+                                <td className="px-6 md:px-8 py-5 text-slate-500 font-medium text-xs whitespace-nowrap">{format(new Date(ex.date), 'MMM dd, yyyy')}</td>
+                                <td className="px-6 md:px-8 py-5">
+                                  <Badge variant="secondary" className="text-[8px] md:text-[9px] uppercase font-bold py-0">{ex.category}</Badge>
+                                </td>
+                                <td className="px-6 md:px-8 py-5 font-bold text-slate-700 text-xs">{ex.description}</td>
+                                <td className="px-6 md:px-8 py-5">
+                                  {linkedProject ? (
+                                    <Badge variant="outline" className="text-[8px] font-bold border-primary/20 text-primary truncate max-w-[120px]">
+                                      {linkedProject.project_name}
+                                    </Badge>
+                                  ) : (
+                                    <span className="text-[10px] text-muted-foreground">-</span>
+                                  )}
+                                </td>
+                                <td className="px-6 md:px-8 py-5 font-black text-rose-600 text-xs whitespace-nowrap">₹{ex.amount?.toLocaleString()}</td>
+                                <td className="px-6 md:px-8 py-5">
+                                  <Badge variant={ex.status === 'Paid' ? 'default' : 'outline'} className="text-[8px] md:text-[9px] uppercase font-bold py-0">
+                                    {ex.status}
+                                  </Badge>
+                                </td>
+                                <td className="px-6 md:px-8 py-5 text-right">
+                                  <Button 
+                                    variant="ghost" 
+                                    size="icon" 
+                                    className="h-8 w-8 text-rose-500 hover:bg-rose-50 opacity-0 group-hover:opacity-100 transition-opacity"
+                                    onClick={() => setExpenseToDelete(ex)}
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </td>
+                              </tr>
+                            );
+                          })
                         )}
                       </tbody>
                     </table>
@@ -940,6 +967,20 @@ export default function AccountsPage() {
                   className="rounded-xl h-11"
                 />
               </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Project Attribution (Optional)</Label>
+              <Select value={newExpense.project_id} onValueChange={(val) => setNewExpense({...newExpense, project_id: val})}>
+                <SelectTrigger className="rounded-xl h-11">
+                  <SelectValue placeholder="Select Project" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">None (Overhead)</SelectItem>
+                  {projects?.map(p => (
+                    <SelectItem key={p.id} value={p.id}>{p.project_name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-2">
               <Label>Description</Label>
