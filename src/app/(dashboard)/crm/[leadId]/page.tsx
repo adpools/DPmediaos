@@ -25,7 +25,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { useTenant } from "@/hooks/use-tenant";
 import { useDoc, useMemoFirebase, useFirestore } from "@/firebase";
-import { doc, updateDoc, serverTimestamp } from "firebase/firestore";
+import { doc, serverTimestamp } from "firebase/firestore";
+import { updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { PIPELINE_STAGES } from "@/lib/mock-data";
@@ -43,7 +44,6 @@ export default function LeadDetailPage({ params }: { params: Promise<{ leadId: s
   const db = useFirestore();
   const router = useRouter();
   
-  const [isUpdating, setIsUpdating] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [editForm, setEditForm] = useState({
     company_name: "",
@@ -72,65 +72,47 @@ export default function LeadDetailPage({ params }: { params: Promise<{ leadId: s
     }
   }, [lead, isEditOpen]);
 
-  const handleUpdateStage = async (newStage: string) => {
+  const handleUpdateStage = (newStage: string) => {
     if (!leadRef || !lead) return;
-    setIsUpdating(true);
-    try {
-      await updateDoc(leadRef, { 
-        stage: newStage,
-        updatedAt: serverTimestamp() 
-      });
-      toast({ title: "Deal Progressed", description: `Lead moved to ${newStage.toUpperCase()}` });
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setIsUpdating(false);
-    }
+    
+    updateDocumentNonBlocking(leadRef, { 
+      stage: newStage,
+      updatedAt: serverTimestamp() 
+    });
+    
+    toast({ title: "Deal Progressed", description: `Lead moved to ${newStage.toUpperCase()}` });
   };
 
-  const handleUpdateAddress = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleUpdateAddress = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!leadRef || !lead) return;
     const formData = new FormData(e.currentTarget);
     const address = formData.get('billing_address') as string;
     const gstin = formData.get('gstin') as string;
 
-    setIsUpdating(true);
-    try {
-      await updateDoc(leadRef, { 
-        billing_address: address,
-        gstin: gstin,
-        updatedAt: serverTimestamp() 
-      });
-      toast({ title: "Client Data Saved", description: "Billing address and GST updated." });
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setIsUpdating(false);
-    }
+    updateDocumentNonBlocking(leadRef, { 
+      billing_address: address,
+      gstin: gstin,
+      updatedAt: serverTimestamp() 
+    });
+    
+    toast({ title: "Client Data Saved", description: "Billing address and GST updated." });
   };
 
-  const handleSaveDetails = async (e: React.FormEvent) => {
+  const handleSaveDetails = (e: React.FormEvent) => {
     e.preventDefault();
     if (!leadRef || !lead) return;
 
-    setIsUpdating(true);
-    try {
-      await updateDoc(leadRef, {
-        company_name: editForm.company_name,
-        service_vertical: editForm.service_vertical,
-        industry: editForm.industry,
-        deal_value: parseFloat(editForm.deal_value) || 0,
-        updatedAt: serverTimestamp()
-      });
-      toast({ title: "Details Updated", description: "Opportunity record has been synced." });
-      setIsEditOpen(false);
-    } catch (e) {
-      console.error(e);
-      toast({ variant: "destructive", title: "Update Failed", description: "Could not save changes." });
-    } finally {
-      setIsUpdating(false);
-    }
+    updateDocumentNonBlocking(leadRef, {
+      company_name: editForm.company_name,
+      service_vertical: editForm.service_vertical,
+      industry: editForm.industry,
+      deal_value: parseFloat(editForm.deal_value) || 0,
+      updatedAt: serverTimestamp()
+    });
+    
+    toast({ title: "Details Updated", description: "Opportunity record has been synced." });
+    setIsEditOpen(false);
   };
 
   if (isTenantLoading || isLeadLoading) {
@@ -258,8 +240,7 @@ export default function LeadDetailPage({ params }: { params: Promise<{ leadId: s
                     className="rounded-xl min-h-[120px] text-sm leading-relaxed"
                   />
                 </div>
-                <Button type="submit" disabled={isUpdating} className="rounded-xl font-bold px-8">
-                  {isUpdating && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+                <Button type="submit" className="rounded-xl font-bold px-8">
                   Save Billing Context
                 </Button>
               </form>
@@ -428,8 +409,7 @@ export default function LeadDetailPage({ params }: { params: Promise<{ leadId: s
               </div>
             </div>
             <DialogFooter className="pt-4">
-              <Button type="submit" disabled={isUpdating} className="w-full rounded-xl h-11 font-bold">
-                {isUpdating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              <Button type="submit" className="w-full rounded-xl h-11 font-bold">
                 Save Lead Context
               </Button>
             </DialogFooter>
