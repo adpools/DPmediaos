@@ -1,3 +1,4 @@
+
 "use client";
 
 import { use, useState, useEffect } from "react";
@@ -12,21 +13,21 @@ import {
   Briefcase, 
   TrendingUp, 
   Mail, 
-  Sparkles,
-  ExternalLink,
-  CheckCircle2,
-  Clock,
-  ChevronRight,
-  MapPin,
-  Zap,
-  Edit3,
+  Sparkles, 
+  ExternalLink, 
+  CheckCircle2, 
+  Clock, 
+  ChevronRight, 
+  MapPin, 
+  Zap, 
+  Edit3, 
   FileText
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useTenant } from "@/hooks/use-tenant";
 import { useDoc, useCollection, useMemoFirebase, useFirestore } from "@/firebase";
 import { doc, serverTimestamp, query, collection, where, orderBy } from "firebase/firestore";
-import { updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
+import { updateDocumentNonBlocking, addDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { PIPELINE_STAGES } from "@/lib/mock-data";
@@ -93,11 +94,39 @@ export default function LeadDetailPage({ params }: { params: Promise<{ leadId: s
       stage: newStage,
       updatedAt: serverTimestamp() 
     });
-    
-    toast({ title: "Deal Progressed", description: `Lead moved to ${newStage.toUpperCase()}` });
+
+    // Conversion Logic: If Won, create a Project
+    if (newStage === 'won') {
+      const projectsRef = collection(db, 'companies', companyId!, 'projects');
+      const projectRefCode = `PROJ-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+      
+      addDocumentNonBlocking(projectsRef, {
+        company_id: companyId,
+        project_name: lead.company_name,
+        client_name: lead.company_name,
+        project_ref: projectRefCode,
+        budget: lead.deal_value || 0,
+        status: 'in_progress',
+        progress: 0,
+        color: 'card-pink',
+        created_at: serverTimestamp(),
+      });
+
+      toast({ 
+        title: "Deal Closed & Project Initialized", 
+        description: `"${lead.company_name}" has been converted into an active production workspace.` 
+      });
+    } else {
+      toast({ title: "Deal Progressed", description: `Lead moved to ${newStage.toUpperCase()}` });
+    }
   };
 
-  const handleUpdateAddress = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleUpdateAddress = (e: React.FormEvent<HTMLDivElement>) => {
+    // Note: React.FormEvent<HTMLFormElement> is correct, but the type in the component was used on a form
+    // Fixing to proper submission handler
+  };
+
+  const handleUpdateAddressSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!leadRef || !lead) return;
     const formData = new FormData(e.currentTarget);
@@ -320,7 +349,7 @@ export default function LeadDetailPage({ params }: { params: Promise<{ leadId: s
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <form onSubmit={handleUpdateAddress} className="space-y-4">
+              <form onSubmit={handleUpdateAddressSubmit} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="gstin" className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">GSTIN (Optional)</Label>
                   <Input id="gstin" name="gstin" placeholder="e.g. 32AAQCM8450P1ZQ" defaultValue={lead.gstin} className="rounded-xl font-mono text-sm" />

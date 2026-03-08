@@ -18,7 +18,8 @@ import {
   Zap, 
   Archive, 
   List,
-  Target
+  Target,
+  CheckCircle2
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -44,7 +45,7 @@ import {
   SelectTrigger, 
   SelectValue 
 } from "@/components/ui/select";
-import { addDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase/non-blocking-updates";
+import { addDocumentNonBlocking, deleteDocumentNonBlocking, updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { toast } from "@/hooks/use-toast";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
@@ -160,6 +161,35 @@ export default function CRMPage() {
     setIsSubmitting(false);
   };
 
+  const handleMarkAsWon = (lead: any) => {
+    if (!db || !companyId || !lead) return;
+
+    // 1. Update Lead Status
+    const leadRef = doc(db, 'companies', companyId, 'leads', lead.id);
+    updateDocumentNonBlocking(leadRef, { stage: 'won', updatedAt: serverTimestamp() });
+
+    // 2. Provision Project
+    const projectsRef = collection(db, 'companies', companyId, 'projects');
+    const projectRefCode = `PROJ-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+    
+    addDocumentNonBlocking(projectsRef, {
+      company_id: companyId,
+      project_name: lead.company_name,
+      client_name: lead.company_name,
+      project_ref: projectRefCode,
+      budget: lead.deal_value || 0,
+      status: 'in_progress',
+      progress: 0,
+      color: 'card-purple',
+      created_at: serverTimestamp(),
+    });
+
+    toast({ 
+      title: "Success! Deal Converted", 
+      description: `"${lead.company_name}" project has been initialized in your production queue.` 
+    });
+  };
+
   const handleConfirmArchive = () => {
     if (!db || !companyId || !leadToArchive) return;
     
@@ -187,7 +217,7 @@ export default function CRMPage() {
   return (
     <div className="flex flex-col h-full space-y-6">
       {/* Header Section - Sticky & Fixed */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 shrink-0 bg-background pb-4 border-b z-20">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 shrink-0 bg-background pb-4 border-b z-20 sticky top-0">
         <div>
           <h1 className="text-3xl font-bold text-primary">Sales Pipeline</h1>
           <p className="text-muted-foreground text-sm">Track opportunities and manage client relations.</p>
@@ -354,6 +384,14 @@ export default function CRMPage() {
                                     <Target className="h-3.5 w-3.5" /> Open Pipeline
                                   </Link>
                                 </DropdownMenuItem>
+                                {lead.stage !== 'won' && (
+                                  <DropdownMenuItem 
+                                    className="rounded-lg m-1 py-2 cursor-pointer text-emerald-600 font-bold"
+                                    onClick={() => handleMarkAsWon(lead)}
+                                  >
+                                    <CheckCircle2 className="h-3.5 w-3.5 mr-2" /> Mark as Won & Launch
+                                  </DropdownMenuItem>
+                                )}
                                 <DropdownMenuItem asChild className="rounded-lg m-1 py-2 cursor-pointer">
                                   <Link href={`/clients/${lead.id}`} className="flex items-center gap-2 text-slate-500">
                                     <Building2 className="h-3.5 w-3.5" /> View Portfolio
