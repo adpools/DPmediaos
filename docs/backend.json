@@ -57,6 +57,7 @@
         "contact_person": { "type": "string", "description": "Primary liaison for the client." },
         "industry": { "type": "string" },
         "service_vertical": { "type": "string" },
+        "sub_vertical": { "type": "string" },
         "deal_value": { "type": "number" },
         "stage": { "type": "string" },
         "billing_address": { "type": "string" },

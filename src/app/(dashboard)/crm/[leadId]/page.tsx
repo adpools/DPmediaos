@@ -1,7 +1,7 @@
 
 "use client";
 
-import { use, useState, useEffect } from "react";
+import { use, useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { 
@@ -21,7 +21,8 @@ import {
   MapPin, 
   Zap, 
   Edit3, 
-  FileText
+  FileText,
+  ListTree
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useTenant } from "@/hooks/use-tenant";
@@ -51,6 +52,7 @@ export default function LeadDetailPage({ params }: { params: Promise<{ leadId: s
   const [editForm, setEditForm] = useState({
     company_name: "",
     service_vertical: "",
+    sub_vertical: "",
     industry: "",
     deal_value: ""
   });
@@ -80,7 +82,8 @@ export default function LeadDetailPage({ params }: { params: Promise<{ leadId: s
     if (lead && isEditOpen) {
       setEditForm({
         company_name: lead.company_name || "",
-        service_vertical: lead.service_vertical || "Advertising & Brand Films",
+        service_vertical: lead.service_vertical || "",
+        sub_vertical: lead.sub_vertical || "",
         industry: lead.industry || "",
         deal_value: lead.deal_value?.toString() || ""
       });
@@ -121,11 +124,6 @@ export default function LeadDetailPage({ params }: { params: Promise<{ leadId: s
     }
   };
 
-  const handleUpdateAddress = (e: React.FormEvent<HTMLDivElement>) => {
-    // Note: React.FormEvent<HTMLFormElement> is correct, but the type in the component was used on a form
-    // Fixing to proper submission handler
-  };
-
   const handleUpdateAddressSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!leadRef || !lead) return;
@@ -149,6 +147,7 @@ export default function LeadDetailPage({ params }: { params: Promise<{ leadId: s
     updateDocumentNonBlocking(leadRef, {
       company_name: editForm.company_name,
       service_vertical: editForm.service_vertical,
+      sub_vertical: editForm.sub_vertical,
       industry: editForm.industry,
       deal_value: parseFloat(editForm.deal_value) || 0,
       updatedAt: serverTimestamp()
@@ -157,6 +156,10 @@ export default function LeadDetailPage({ params }: { params: Promise<{ leadId: s
     toast({ title: "Details Updated", description: "Opportunity record has been synced." });
     setIsEditOpen(false);
   };
+
+  const activeVertical = useMemo(() => 
+    CONTENT_VERTICALS.find(v => v.name === editForm.service_vertical), 
+  [editForm.service_vertical]);
 
   if (isTenantLoading || isLeadLoading) {
     return (
@@ -207,7 +210,6 @@ export default function LeadDetailPage({ params }: { params: Promise<{ leadId: s
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-8">
-          {/* Status Tracker */}
           <Card className="border-none shadow-sm rounded-[2rem] bg-white overflow-hidden">
             <CardHeader className="bg-slate-50/50 pb-6 border-b">
               <div className="flex items-center justify-between">
@@ -301,7 +303,6 @@ export default function LeadDetailPage({ params }: { params: Promise<{ leadId: s
             </CardContent>
           </Card>
 
-          {/* Drafted Proposals Section */}
           <Card className="border-none shadow-sm rounded-[2rem] bg-white overflow-hidden">
             <CardHeader className="bg-indigo-50/30">
               <CardTitle className="text-lg flex items-center gap-2">
@@ -341,7 +342,6 @@ export default function LeadDetailPage({ params }: { params: Promise<{ leadId: s
             </CardContent>
           </Card>
 
-          {/* Billing Context */}
           <Card className="border-none shadow-sm rounded-[2rem] bg-white">
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
@@ -365,7 +365,6 @@ export default function LeadDetailPage({ params }: { params: Promise<{ leadId: s
         </div>
 
         <div className="space-y-8">
-          {/* Commercials Card */}
           <Card className="border-none shadow-sm rounded-[2rem] bg-white">
             <CardHeader>
               <CardTitle className="text-base uppercase tracking-widest text-muted-foreground font-bold">Commercials</CardTitle>
@@ -394,20 +393,32 @@ export default function LeadDetailPage({ params }: { params: Promise<{ leadId: s
             </CardContent>
           </Card>
 
-          {/* Deal Context */}
           <Card className="border-none shadow-sm rounded-[2rem] bg-white">
             <CardHeader>
               <CardTitle className="text-lg">Deal Context</CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="flex items-center gap-4">
-                <div className="h-12 w-12 rounded-2xl bg-accent/5 flex items-center justify-center text-accent">
-                  <Zap className="h-6 w-6" />
+              <div className="flex flex-col gap-4">
+                <div className="flex items-center gap-4">
+                  <div className="h-12 w-12 rounded-2xl bg-accent/5 flex items-center justify-center text-accent">
+                    <Zap className="h-6 w-6" />
+                  </div>
+                  <div>
+                    <p className="font-bold text-base leading-none">{lead.service_vertical || 'General Production'}</p>
+                    <p className="text-xs text-muted-foreground mt-1 uppercase font-bold tracking-tighter">Service Vertical</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="font-bold text-base leading-none">{lead.service_vertical || 'General Production'}</p>
-                  <p className="text-xs text-muted-foreground mt-1 uppercase font-bold tracking-tighter">Service Vertical</p>
-                </div>
+                {lead.sub_vertical && (
+                  <div className="flex items-center gap-4 pl-4 border-l-2 border-slate-100">
+                    <div className="h-8 w-8 rounded-xl bg-primary/5 flex items-center justify-center text-primary">
+                      <ListTree className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <p className="font-bold text-sm leading-none">{lead.sub_vertical}</p>
+                      <p className="text-[10px] text-muted-foreground mt-1 uppercase font-bold tracking-tighter">Sub Category</p>
+                    </div>
+                  </div>
+                )}
               </div>
               <div className="space-y-3 pt-4 border-t">
                 <div className="flex items-center gap-3 text-xs">
@@ -435,7 +446,6 @@ export default function LeadDetailPage({ params }: { params: Promise<{ leadId: s
         </div>
       </div>
 
-      {/* EDIT MODAL */}
       <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
         <DialogContent className="sm:max-w-[450px] rounded-[2.5rem]">
           <DialogHeader>
@@ -449,18 +459,37 @@ export default function LeadDetailPage({ params }: { params: Promise<{ leadId: s
               <Label>Company Name</Label>
               <Input value={editForm.company_name} onChange={(e) => setEditForm({...editForm, company_name: e.target.value})} required className="rounded-xl" />
             </div>
-            <div className="space-y-2">
-              <Label>Service Vertical</Label>
-              <Select value={editForm.service_vertical} onValueChange={(val) => setEditForm({...editForm, service_vertical: val})}>
-                <SelectTrigger className="rounded-xl">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {CONTENT_VERTICALS.map(v => (
-                    <SelectItem key={v.id} value={v.name}>{v.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <div className="grid grid-cols-1 gap-4">
+              <div className="space-y-2">
+                <Label>Service Vertical</Label>
+                <Select value={editForm.service_vertical} onValueChange={(val) => setEditForm({...editForm, service_vertical: val, sub_vertical: ""})}>
+                  <SelectTrigger className="rounded-xl">
+                    <SelectValue placeholder="Select vertical" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CONTENT_VERTICALS.map(v => (
+                      <SelectItem key={v.id} value={v.name}>{v.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Sub Vertical</Label>
+                <Select 
+                  disabled={!editForm.service_vertical}
+                  value={editForm.sub_vertical} 
+                  onValueChange={(val) => setEditForm({...editForm, sub_vertical: val})}
+                >
+                  <SelectTrigger className="rounded-xl">
+                    <SelectValue placeholder="Select sub category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {activeVertical?.services.map(s => (
+                      <SelectItem key={s} value={s}>{s}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">

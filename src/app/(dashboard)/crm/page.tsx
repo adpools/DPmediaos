@@ -19,7 +19,8 @@ import {
   Archive, 
   List,
   Target,
-  CheckCircle2
+  CheckCircle2,
+  ListTree
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -80,7 +81,8 @@ export default function CRMPage() {
   // Quick Add State
   const [newLead, setNewLead] = useState({
     company_name: "",
-    service_vertical: "Advertising & Brand Films",
+    service_vertical: "",
+    sub_vertical: "",
     industry: "",
     deal_value: "",
     stage: "lead"
@@ -116,9 +118,13 @@ export default function CRMPage() {
 
   const filteredLeads = useMemo(() => {
     if (!leads) return [];
+    // Only show leads that are NOT at 'client' stage (onboarded clients directory)
     return leads.filter(l => 
-      l.company_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      l.service_vertical?.toLowerCase().includes(searchQuery.toLowerCase())
+      l.stage !== 'client' && (
+        l.company_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        l.service_vertical?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        l.sub_vertical?.toLowerCase().includes(searchQuery.toLowerCase())
+      )
     );
   }, [leads, searchQuery]);
 
@@ -156,7 +162,7 @@ export default function CRMPage() {
       description: `${newLead.company_name} has been added to your pipeline.`,
     });
 
-    setNewLead({ company_name: "", service_vertical: "Advertising & Brand Films", industry: "", deal_value: "", stage: "lead" });
+    setNewLead({ company_name: "", service_vertical: "", sub_vertical: "", industry: "", deal_value: "", stage: "lead" });
     setIsAddOpen(false);
     setIsSubmitting(false);
   };
@@ -164,11 +170,9 @@ export default function CRMPage() {
   const handleMarkAsWon = (lead: any) => {
     if (!db || !companyId || !lead) return;
 
-    // 1. Update Lead Status
     const leadRef = doc(db, 'companies', companyId, 'leads', lead.id);
     updateDocumentNonBlocking(leadRef, { stage: 'won', updatedAt: serverTimestamp() });
 
-    // 2. Provision Project
     const projectsRef = collection(db, 'companies', companyId, 'projects');
     const projectRefCode = `PROJ-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
     
@@ -206,6 +210,10 @@ export default function CRMPage() {
     setLeadToArchive(null);
   };
 
+  const activeVertical = useMemo(() => 
+    CONTENT_VERTICALS.find(v => v.name === newLead.service_vertical), 
+  [newLead.service_vertical]);
+
   if (isTenantLoading || isLeadsLoading) {
     return (
       <div className="flex items-center justify-center h-[80vh]">
@@ -216,7 +224,6 @@ export default function CRMPage() {
 
   return (
     <div className="flex flex-col h-full space-y-6">
-      {/* Header Section - Sticky & Fixed */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 shrink-0 bg-background pb-4 border-b z-20 sticky top-0">
         <div>
           <h1 className="text-3xl font-bold text-primary">Sales Pipeline</h1>
@@ -284,21 +291,44 @@ export default function CRMPage() {
                   />
                 </div>
                 
-                <div className="space-y-2">
-                  <Label htmlFor="vertical">Service Vertical</Label>
-                  <Select 
-                    value={newLead.service_vertical} 
-                    onValueChange={(val) => setNewLead({...newLead, service_vertical: val})}
-                  >
-                    <SelectTrigger className="rounded-xl h-11">
-                      <SelectValue placeholder="Select vertical" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {CONTENT_VERTICALS.map(v => (
-                        <SelectItem key={v.id} value={v.name}>{v.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                <div className="grid grid-cols-1 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="vertical">Service Vertical</Label>
+                    <Select 
+                      value={newLead.service_vertical} 
+                      onValueChange={(val) => setNewLead({...newLead, service_vertical: val, sub_vertical: ""})}
+                    >
+                      <SelectTrigger className="rounded-xl h-11">
+                        <SelectValue placeholder="Select vertical" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {CONTENT_VERTICALS.map(v => (
+                          <SelectItem key={v.id} value={v.name}>{v.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="subVertical">Sub Vertical</Label>
+                    <Select 
+                      disabled={!newLead.service_vertical}
+                      value={newLead.sub_vertical} 
+                      onValueChange={(val) => setNewLead({...newLead, sub_vertical: val})}
+                    >
+                      <SelectTrigger className="rounded-xl h-11">
+                        <div className="flex items-center gap-2">
+                          <ListTree className="h-3 w-3 text-muted-foreground" />
+                          <SelectValue placeholder={newLead.service_vertical ? "Select sub category" : "Select vertical first"} />
+                        </div>
+                      </SelectTrigger>
+                      <SelectContent>
+                        {activeVertical?.services.map(s => (
+                          <SelectItem key={s} value={s}>{s}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
@@ -337,7 +367,6 @@ export default function CRMPage() {
         </div>
       </div>
 
-      {/* Kanban Board - Horizontal Scroll Optimized */}
       <div className="flex-1 min-h-0 relative">
         <div className="absolute inset-0 overflow-x-auto overflow-y-hidden custom-scrollbar pb-6">
           <div className="flex h-full gap-6 w-max min-w-full">
@@ -350,7 +379,6 @@ export default function CRMPage() {
                   key={stage.id} 
                   className="flex flex-col gap-4 w-[320px] shrink-0 h-full bg-slate-50/50 rounded-[2rem] p-3 border border-slate-200/50"
                 >
-                  {/* Stage Header */}
                   <div className="flex items-center justify-between px-3 shrink-0 py-2">
                     <div className="flex items-center gap-2">
                       <div className={cn("h-2.5 w-2.5 rounded-full", stage.color || 'bg-slate-200')} />
@@ -362,7 +390,6 @@ export default function CRMPage() {
                     </span>
                   </div>
 
-                  {/* Column Content - Vertical Scroll within Column */}
                   <div className="flex-1 overflow-y-auto custom-scrollbar pr-1 space-y-4 pb-4">
                     {leadsInStage.map((lead) => (
                       <Card key={lead.id} className="hover:ring-2 hover:ring-primary/10 transition-all border-none shadow-sm group bg-white rounded-2xl">
@@ -406,16 +433,17 @@ export default function CRMPage() {
                           </div>
                           
                           <div className="space-y-2">
-                            <div className="flex items-center gap-2 text-[10px] text-muted-foreground font-bold uppercase tracking-tighter">
-                              <Zap className="h-3.5 w-3.5 text-accent" />
-                              <span className="truncate">{lead.service_vertical || 'General Production'}</span>
-                            </div>
-                            {lead.scope && lead.scope.length > 0 && (
-                              <div className="flex items-center gap-2 text-[9px] text-primary/60 font-black uppercase tracking-widest">
-                                <List className="h-3 w-3" />
-                                <span>{lead.scope.length} Briefed</span>
+                            <div className="flex flex-col gap-1">
+                              <div className="flex items-center gap-2 text-[10px] text-primary font-black uppercase tracking-tighter">
+                                <Zap className="h-3.5 w-3.5 text-accent" />
+                                <span className="truncate">{lead.service_vertical || 'General Production'}</span>
                               </div>
-                            )}
+                              {lead.sub_vertical && (
+                                <span className="text-[9px] text-muted-foreground font-bold uppercase pl-5 border-l border-slate-100 ml-1.5 mt-0.5">
+                                  {lead.sub_vertical}
+                                </span>
+                              )}
+                            </div>
                           </div>
 
                           <div className="flex items-center justify-between pt-4 border-t border-slate-50">
@@ -433,7 +461,6 @@ export default function CRMPage() {
                       </Card>
                     ))}
                     
-                    {/* Quick Add Placeholder */}
                     <Button 
                       variant="ghost" 
                       className="w-full border-2 border-dashed border-slate-200 h-24 hover:bg-white hover:border-primary/20 hover:shadow-sm transition-all rounded-2xl group shrink-0"
@@ -455,7 +482,6 @@ export default function CRMPage() {
         </div>
       </div>
 
-      {/* Archive Confirmation */}
       <AlertDialog open={!!leadToArchive} onOpenChange={(open) => !open && setLeadToArchive(null)}>
         <AlertDialogContent className="rounded-[2rem] p-8">
           <AlertDialogHeader>
