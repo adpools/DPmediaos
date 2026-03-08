@@ -32,7 +32,8 @@ import {
   Mic,
   BookOpen,
   Play,
-  Scissors
+  Scissors,
+  X
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -208,7 +209,7 @@ export default function ClientsPage() {
     const allServices = Object.values(selectedServices).flat();
 
     try {
-      await addDocumentNonBlocking(leadsRef, {
+      addDocumentNonBlocking(leadsRef, {
         company_id: companyId,
         ...newClient,
         service_vertical: primaryVertical,
@@ -397,6 +398,7 @@ export default function ClientsPage() {
       <Dialog open={isOnboardOpen} onOpenChange={(open) => !open && resetOnboarding()}>
         <DialogContent className="sm:max-w-[1000px] rounded-[3rem] p-0 overflow-hidden border-none shadow-2xl h-[90vh] max-h-[900px]">
           <div className="flex flex-col h-full bg-white">
+            {/* Header */}
             <div className="p-8 border-b bg-primary/5 flex items-center justify-between shrink-0">
               <div className="flex items-center gap-4">
                 <div className="h-12 w-12 bg-primary rounded-2xl flex items-center justify-center text-white shadow-lg">
@@ -413,6 +415,7 @@ export default function ClientsPage() {
               </div>
             </div>
 
+            {/* Content Area */}
             <div className="flex-1 flex overflow-hidden">
               {onboardStep === 'info' ? (
                 <div className="flex-1 p-10 space-y-8 animate-in fade-in slide-in-from-left-4 duration-300 overflow-y-auto">
@@ -474,35 +477,39 @@ export default function ClientsPage() {
               ) : (
                 <div className="flex-1 flex overflow-hidden animate-in fade-in slide-in-from-right-4 duration-300">
                   <div className="flex-1 flex flex-col p-8 bg-slate-50/50 overflow-hidden">
-                    <div className="mb-6 shrink-0">
+                    {/* Vertical Selector - Compact & Scrollable */}
+                    <div className="mb-6 shrink-0 flex flex-col min-h-0">
                       <h3 className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-4">Select Content Vertical</h3>
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                        {CONTENT_VERTICALS.map((vertical) => (
-                          <Card 
-                            key={vertical.id}
-                            className={cn(
-                              "cursor-pointer transition-all duration-300 border-2 rounded-2xl group",
-                              selectedVerticalId === vertical.id 
-                                ? "border-primary shadow-lg ring-4 ring-primary/5 bg-white" 
-                                : "border-transparent hover:border-slate-200 bg-white"
-                            )}
-                            onClick={() => setSelectedVerticalId(vertical.id)}
-                          >
-                            <CardContent className="p-4 flex flex-col items-center text-center gap-2">
-                              <div className={cn("h-8 w-8 rounded-lg flex items-center justify-center text-white", vertical.color)}>
-                                <vertical.icon className="h-4 w-4" />
-                              </div>
-                              <span className="text-[9px] font-black leading-tight uppercase tracking-tight">{vertical.name}</span>
-                            </CardContent>
-                          </Card>
-                        ))}
+                      <div className="overflow-x-auto pb-4 scrollbar-hide">
+                        <div className="flex gap-3">
+                          {CONTENT_VERTICALS.map((vertical) => (
+                            <Card 
+                              key={vertical.id}
+                              className={cn(
+                                "cursor-pointer transition-all duration-300 border-2 rounded-2xl group shrink-0 w-44",
+                                selectedVerticalId === vertical.id 
+                                  ? "border-primary shadow-lg ring-4 ring-primary/5 bg-white" 
+                                  : "border-transparent hover:border-slate-200 bg-white"
+                              )}
+                              onClick={() => setSelectedVerticalId(vertical.id)}
+                            >
+                              <CardContent className="p-4 flex flex-col items-center text-center gap-2">
+                                <div className={cn("h-8 w-8 rounded-lg flex items-center justify-center text-white", vertical.color)}>
+                                  <vertical.icon className="h-4 w-4" />
+                                </div>
+                                <span className="text-[9px] font-black leading-tight uppercase tracking-tight">{vertical.name}</span>
+                              </CardContent>
+                            </Card>
+                          ))}
+                        </div>
                       </div>
                     </div>
 
-                    <div className="flex-1 overflow-hidden flex flex-col">
+                    {/* Services Configurator - Full Scrollability Fix */}
+                    <div className="flex-1 min-h-0 flex flex-col">
                       <h3 className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-4">Configure Production Services</h3>
                       {activeVertical ? (
-                        <ScrollArea className="flex-1 pr-4">
+                        <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pb-4">
                             {activeVertical.services.map((service) => {
                               const isSelected = selectedServices[activeVertical.id]?.includes(service);
@@ -510,35 +517,40 @@ export default function ClientsPage() {
                                 <div 
                                   key={service}
                                   className={cn(
-                                    "flex items-center gap-3 p-3 rounded-xl border transition-all cursor-pointer group",
+                                    "flex items-center gap-3 p-4 rounded-xl border transition-all cursor-pointer group",
                                     isSelected 
                                       ? "bg-primary/5 border-primary/20" 
                                       : "bg-white border-slate-100 hover:border-slate-200"
                                   )}
                                   onClick={() => toggleService(activeVertical.id, service)}
                                 >
-                                  <Checkbox checked={isSelected} className="h-4 w-4 rounded" />
-                                  <p className={cn("text-[11px] font-bold", isSelected ? "text-primary" : "text-slate-600")}>{service}</p>
+                                  <Checkbox 
+                                    checked={isSelected} 
+                                    className="h-5 w-5 rounded border-2" 
+                                    onCheckedChange={() => toggleService(activeVertical.id, service)}
+                                  />
+                                  <p className={cn("text-xs font-bold", isSelected ? "text-primary" : "text-slate-600")}>{service}</p>
                                 </div>
                               );
                             })}
                           </div>
-                        </ScrollArea>
+                        </div>
                       ) : (
-                        <div className="flex-1 flex flex-col items-center justify-center border-2 border-dashed rounded-3xl text-muted-foreground opacity-40">
+                        <div className="flex-1 flex flex-col items-center justify-center border-2 border-dashed rounded-3xl text-muted-foreground opacity-40 bg-white/50">
                           <Zap className="h-10 w-10 mb-2" />
-                          <p className="text-[10px] font-black uppercase tracking-widest">Select a vertical above</p>
+                          <p className="text-[10px] font-black uppercase tracking-widest">Select a vertical above to see options</p>
                         </div>
                       )}
                     </div>
                   </div>
 
+                  {/* Sidebar Summary */}
                   <aside className="w-80 border-l bg-white flex flex-col shrink-0">
                     <div className="p-6 border-b bg-slate-50/50 shrink-0">
                       <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Scope Synthesis</h4>
                       <p className="text-xs font-bold text-slate-700">Project Brief Summary</p>
                     </div>
-                    <ScrollArea className="flex-1 p-6">
+                    <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
                       <div className="space-y-6">
                         {totalServicesCount === 0 ? (
                           <div className="text-center py-12 text-[10px] font-bold text-slate-300 uppercase tracking-widest">No services selected</div>
@@ -554,9 +566,9 @@ export default function ClientsPage() {
                                 <div className="space-y-1 pl-3">
                                   {services.map(s => (
                                     <div key={s} className="flex items-center justify-between text-[10px] font-bold text-slate-600 group">
-                                      <span>• {s}</span>
-                                      <button onClick={() => toggleService(vId, s)} className="opacity-0 group-hover:opacity-100 text-rose-400">
-                                        <Trash2 className="h-3 w-3" />
+                                      <span className="flex-1 pr-2">• {s}</span>
+                                      <button onClick={(e) => { e.stopPropagation(); toggleService(vId, s); }} className="text-rose-400 hover:text-rose-600">
+                                        <X className="h-3 w-3" />
                                       </button>
                                     </div>
                                   ))}
@@ -566,7 +578,7 @@ export default function ClientsPage() {
                           })
                         )}
                       </div>
-                    </ScrollArea>
+                    </div>
                     <div className="p-6 border-t bg-slate-50/50 shrink-0">
                       <div className="flex justify-between items-center mb-4">
                         <span className="text-[9px] font-black uppercase text-slate-400">Total Selection</span>
@@ -578,6 +590,7 @@ export default function ClientsPage() {
               )}
             </div>
 
+            {/* Footer */}
             <div className="p-8 border-t bg-white flex items-center justify-between shrink-0">
               {onboardStep === 'info' ? (
                 <>
@@ -610,6 +623,7 @@ export default function ClientsPage() {
         </DialogContent>
       </Dialog>
 
+      {/* Archive Confirmation */}
       <AlertDialog open={!!clientToArchive} onOpenChange={(open) => !open && setClientToArchive(null)}>
         <AlertDialogContent className="rounded-[2rem]">
           <AlertDialogHeader>
@@ -624,6 +638,23 @@ export default function ClientsPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <style jsx global>{`
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 6px;
+          height: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: #e2e8f0;
+          border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: #cbd5e1;
+        }
+      `}</style>
     </div>
   );
 }
