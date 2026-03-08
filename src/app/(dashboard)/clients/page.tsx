@@ -32,7 +32,8 @@ import {
   BookOpen,
   Play,
   Scissors,
-  X
+  X,
+  User
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -74,6 +75,7 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 
 export const INDUSTRIES = [
   'Luxury & Lifestyle',
@@ -145,7 +147,10 @@ export default function ClientsPage() {
   const [newClient, setNewClient] = useState({
     company_name: "",
     industry: "Luxury & Lifestyle",
-    email: ""
+    email: "",
+    contact_person: "",
+    gstin: "",
+    billing_address: ""
   });
 
   const [selectedVerticalId, setSelectedVerticalId] = useState<string | null>(null);
@@ -230,7 +235,7 @@ export default function ClientsPage() {
   };
 
   const resetOnboarding = () => {
-    setNewClient({ company_name: "", industry: "Luxury & Lifestyle", email: "" });
+    setNewClient({ company_name: "", industry: "Luxury & Lifestyle", email: "", contact_person: "", gstin: "", billing_address: "" });
     setSelectedVerticalId(null);
     setSelectedServices({});
     setOnboardStep('info');
@@ -438,14 +443,50 @@ export default function ClientsPage() {
                       </Select>
                     </div>
                     <div className="space-y-2">
+                      <Label htmlFor="contactPerson" className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Contact Person (Optional)</Label>
+                      <div className="relative">
+                        <User className="absolute left-3 top-3.5 h-4 w-4 text-muted-foreground" />
+                        <Input 
+                          id="contactPerson" 
+                          placeholder="e.g. Sarah Jenkins" 
+                          value={newClient.contact_person}
+                          onChange={(e) => setNewClient({...newClient, contact_person: e.target.value})}
+                          className="rounded-xl h-12 pl-10"
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
                       <Label htmlFor="email" className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Primary Contact Email</Label>
+                      <div className="relative">
+                        <Mail className="absolute left-3 top-3.5 h-4 w-4 text-muted-foreground" />
+                        <Input 
+                          id="email" 
+                          type="email"
+                          placeholder="poc@client.com" 
+                          value={newClient.email}
+                          onChange={(e) => setNewClient({...newClient, email: e.target.value})}
+                          className="rounded-xl h-12 pl-10"
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="gstin" className="text-[10px] font-black uppercase text-slate-500 tracking-widest">GSTIN (Optional)</Label>
                       <Input 
-                        id="email" 
-                        type="email"
-                        placeholder="poc@client.com" 
-                        value={newClient.email}
-                        onChange={(e) => setNewClient({...newClient, email: e.target.value})}
-                        className="rounded-xl h-12"
+                        id="gstin" 
+                        placeholder="e.g. 22AAAAA0000A1Z5" 
+                        value={newClient.gstin}
+                        onChange={(e) => setNewClient({...newClient, gstin: e.target.value})}
+                        className="rounded-xl h-12 uppercase font-mono"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="billingAddress" className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Billing Address (Optional)</Label>
+                      <Textarea 
+                        id="billingAddress" 
+                        placeholder="Complete billing address for invoices..." 
+                        value={newClient.billing_address}
+                        onChange={(e) => setNewClient({...newClient, billing_address: e.target.value})}
+                        className="rounded-xl min-h-[100px]"
                       />
                     </div>
                   </div>
