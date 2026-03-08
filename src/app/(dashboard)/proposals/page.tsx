@@ -36,7 +36,8 @@ import {
   TrendingUp,
   ImageIcon,
   Trash2,
-  X
+  X,
+  Copy
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -230,20 +231,31 @@ function ProposalsContent() {
     }
   };
 
-  const handleShare = (proposal: any) => {
+  const handleShareCopy = (proposal: any) => {
     const shareUrl = `${window.location.origin}/proposals?id=${proposal.id}`;
     navigator.clipboard.writeText(shareUrl).then(() => {
       toast({
         title: "Link Copied",
-        description: "The strategy blueprint link has been copied to your clipboard.",
-      });
-    }).catch(() => {
-      toast({
-        variant: "destructive",
-        title: "Share Failed",
-        description: "Could not copy link to clipboard.",
+        description: "Direct link has been copied to your clipboard.",
       });
     });
+  };
+
+  const handleShareWhatsApp = (proposal: any) => {
+    const shareUrl = `${window.location.origin}/proposals?id=${proposal.id}`;
+    const text = encodeURIComponent(`Hi, check out this production strategy blueprint: ${proposal.title}\n\nLink: ${shareUrl}`);
+    window.open(`https://wa.me/?text=${text}`, '_blank');
+  };
+
+  const handleShareEmail = (proposal: any) => {
+    const shareUrl = `${window.location.origin}/proposals?id=${proposal.id}`;
+    const subject = encodeURIComponent(`Strategy Blueprint: ${proposal.title}`);
+    const body = encodeURIComponent(`Hello,\n\nPlease find the production strategy blueprint for ${proposal.client_name} below:\n\n${shareUrl}\n\nBest regards,\n${profile?.fullName || 'Production Team'}`);
+    window.location.href = `mailto:?subject=${subject}&body=${body}`;
+  };
+
+  const handlePrint = () => {
+    window.print();
   };
 
   const renderSectionVisuals = (section: any) => {
@@ -401,7 +413,26 @@ function ProposalsContent() {
                 <div className="p-8 md:w-80 bg-slate-50/50 border-l flex flex-col gap-3">
                   <Button className="w-full rounded-xl h-11 font-bold gap-2" onClick={() => handleViewProposal(prop)}><ExternalLink className="h-4 w-4" /> View Blueprint</Button>
                   <div className="flex gap-2">
-                    <Button variant="outline" className="flex-1 rounded-xl h-11 gap-2" onClick={() => handleShare(prop)}><Share2 className="h-4 w-4" /> Share</Button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="outline" className="flex-1 rounded-xl h-11 gap-2">
+                          <Share2 className="h-4 w-4" /> Share
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="rounded-xl w-56 p-2">
+                        <DropdownMenuLabel className="text-[10px] uppercase font-black text-muted-foreground tracking-widest px-3 py-2">Distribution Channels</DropdownMenuLabel>
+                        <DropdownMenuItem onClick={() => handleShareWhatsApp(prop)} className="gap-2 py-3 cursor-pointer rounded-lg">
+                          <MessageSquare className="h-4 w-4 text-emerald-500" /> Share via WhatsApp
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleShareEmail(prop)} className="gap-2 py-3 cursor-pointer rounded-lg">
+                          <Mail className="h-4 w-4 text-primary" /> Share via Email
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => handleShareCopy(prop)} className="gap-2 py-3 cursor-pointer rounded-lg">
+                          <Copy className="h-4 w-4 text-slate-500" /> Copy Direct Link
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                     <Button variant="outline" size="icon" className="h-11 w-11 rounded-xl text-rose-500 hover:bg-rose-50" onClick={() => setProposalToDelete(prop)}><Trash2 className="h-4 w-4" /></Button>
                   </div>
                 </div>
@@ -435,7 +466,12 @@ function ProposalsContent() {
                   <p className="text-sm text-muted-foreground font-black uppercase tracking-widest mt-1">Strategy: {viewingProposal?.proposal_number}</p>
                 </div>
               </div>
-              <Button variant="ghost" size="icon" className="rounded-full" onClick={() => setIsViewOpen(false)}><X className="h-6 w-6" /></Button>
+              <div className="flex items-center gap-3">
+                <Button variant="outline" className="rounded-xl gap-2 h-11" onClick={handlePrint}>
+                  <Printer className="h-4 w-4" /> Print / PDF
+                </Button>
+                <Button variant="ghost" size="icon" className="rounded-full" onClick={() => setIsViewOpen(false)}><X className="h-6 w-6" /></Button>
+              </div>
             </div>
 
             <div className="flex-1 flex min-h-0 overflow-hidden">
@@ -449,14 +485,19 @@ function ProposalsContent() {
                   ))}
                 </div>
               </aside>
-              <main className="flex-1 p-12 overflow-y-auto custom-scrollbar bg-white">
-                <div className="max-w-2xl mx-auto space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <main className="flex-1 p-12 overflow-y-auto custom-scrollbar bg-white print:overflow-visible print:p-0">
+                <div className="max-w-2xl mx-auto space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500 print:max-w-none">
                   <div className="space-y-4">
-                    <Badge variant="outline" className="text-[10px] font-black uppercase text-primary">Phase {activeSectionIdx + 1}</Badge>
+                    <Badge variant="outline" className="text-[10px] font-black uppercase text-primary print:hidden">Phase {activeSectionIdx + 1}</Badge>
                     <h1 className="text-4xl font-black text-slate-900 tracking-tighter">{viewingProposal?.parsedContent?.sections[activeSectionIdx]?.title}</h1>
                   </div>
                   <div className="prose prose-slate prose-lg max-w-none text-lg leading-relaxed text-slate-600 font-medium whitespace-pre-line border-l-4 border-primary/10 pl-8">{viewingProposal?.parsedContent?.sections[activeSectionIdx]?.content}</div>
                   {renderSectionVisuals(viewingProposal?.parsedContent?.sections[activeSectionIdx])}
+                  
+                  {/* Print-only footer */}
+                  <div className="hidden print:block pt-20 text-center border-t border-slate-100">
+                    <p className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em]">Generated by DP Media OS Strategy Engine</p>
+                  </div>
                 </div>
               </main>
             </div>
@@ -468,6 +509,18 @@ function ProposalsContent() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <style jsx global>{`
+        @media print {
+          .no-print { display: none !important; }
+          body { background: white !important; }
+          main { padding: 0 !important; }
+          .max-w-7xl { max-width: 100% !important; margin: 0 !important; }
+          [role="dialog"] { padding: 0 !important; margin: 0 !important; width: 100% !important; max-width: 100% !important; height: auto !important; }
+          .rounded-[3.5rem] { border-radius: 0 !important; }
+          .shadow-2xl { shadow: none !important; }
+        }
+      `}</style>
     </div>
   );
 }
