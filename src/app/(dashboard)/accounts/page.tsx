@@ -34,7 +34,9 @@ import {
   Zap,
   Globe,
   Lock,
-  Cpu
+  Cpu,
+  Trash2,
+  X
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -52,7 +54,7 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { addDocumentNonBlocking } from "@/firebase/non-blocking-updates";
+import { addDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { toast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { format, startOfMonth, endOfMonth, isSameMonth } from "date-fns";
@@ -60,6 +62,24 @@ import { consultAIAccountant, type AIAccountantOutput } from "@/ai/flows/ai-acco
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export default function AccountsPage() {
   const { companyId, isLoading: isTenantLoading, company, profile } = useTenant();
@@ -68,6 +88,10 @@ export default function AccountsPage() {
   const [isAddAccountOpen, setIsAddOpen] = useState(false);
   const [isLogExpenseOpen, setIsLogExpenseOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Deletion State
+  const [accountToDelete, setAccountToDelete] = useState<any>(null);
+  const [expenseToDelete, setExpenseToDelete] = useState<any>(null);
 
   // Frequency State
   const [filingFrequency, setFilingFrequency] = useState<'monthly' | 'quarterly'>('monthly');
@@ -243,7 +267,11 @@ export default function AccountsPage() {
     
     addDocumentNonBlocking(expensesRef, {
       company_id: companyId,
+      category: newExpense.category,
+      description: newExpense.description,
       amount: parseFloat(newExpense.amount) || 0,
+      date: newExpense.date,
+      status: newExpense.status,
       created_at: serverTimestamp(),
     });
 
@@ -251,6 +279,22 @@ export default function AccountsPage() {
     setNewExpense({ category: "Salary", description: "", amount: "", date: new Date().toISOString().split('T')[0], account_id: "", status: "Paid" });
     setIsLogExpenseOpen(false);
     setIsSubmitting(false);
+  };
+
+  const handleDeleteAccount = () => {
+    if (!db || !companyId || !accountToDelete) return;
+    const accountRef = doc(db, 'companies', companyId, 'financial_accounts', accountToDelete.id);
+    deleteDocumentNonBlocking(accountRef);
+    toast({ title: "Vault Decommissioned", description: `"${accountToDelete.name}" has been removed.` });
+    setAccountToDelete(null);
+  };
+
+  const handleDeleteExpense = () => {
+    if (!db || !companyId || !expenseToDelete) return;
+    const expenseRef = doc(db, 'companies', companyId, 'expenses', expenseToDelete.id);
+    deleteDocumentNonBlocking(expenseRef);
+    toast({ title: "Expense Purged", description: "Record removed from ledger." });
+    setExpenseToDelete(null);
   };
 
   const handleStartFiling = (periodData: any) => {
@@ -461,7 +505,7 @@ export default function AccountsPage() {
                   </div>
                 ) : (
                   accounts?.map((acc) => (
-                    <Card key={acc.id} className="border-none shadow-sm rounded-[1.5rem] group hover:shadow-md transition-all border border-slate-50">
+                    <Card key={acc.id} className="border-none shadow-sm rounded-[1.5rem] group hover:shadow-md transition-all border border-slate-50 relative">
                       <CardContent className="p-6 space-y-4">
                         <div className="flex justify-between items-start">
                           <div className={`h-10 w-10 rounded-xl flex items-center justify-center ${
@@ -469,7 +513,22 @@ export default function AccountsPage() {
                           }`}>
                             {acc.type === 'Bank' ? <Building2 className="h-5 w-5" /> : <Banknote className="h-5 w-5" />}
                           </div>
-                          <Badge variant="secondary" className="text-[9px] font-bold uppercase px-2">{acc.type}</Badge>
+                          <div className="flex items-center gap-2">
+                            <Badge variant="secondary" className="text-[9px] font-bold uppercase px-2">{acc.type}</Badge>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-7 w-7 rounded-lg">
+                                  <MoreVertical className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="rounded-xl w-48">
+                                <DropdownMenuLabel className="text-[10px] uppercase font-bold text-muted-foreground px-3 py-2">Vault Actions</DropdownMenuLabel>
+                                <DropdownMenuItem className="gap-2 text-rose-500 focus:text-rose-600 focus:bg-rose-50 cursor-pointer" onClick={() => setAccountToDelete(acc)}>
+                                  <Trash2 className="h-3.5 w-3.5" /> Decommission Vault
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
                         </div>
                         <div>
                           <h4 className="font-bold text-lg leading-none">{acc.name}</h4>
@@ -546,7 +605,7 @@ export default function AccountsPage() {
                 </CardHeader>
                 <CardContent className="p-0">
                   <div className="overflow-x-auto custom-scrollbar">
-                    <table className="w-full text-sm min-w-[650px]">
+                    <table className="w-full text-sm min-w-[750px]">
                       <thead>
                         <tr className="border-b bg-slate-50/30">
                           <th className="px-6 md:px-8 py-4 text-left font-bold text-[10px] uppercase tracking-widest text-muted-foreground">Date</th>
@@ -554,16 +613,17 @@ export default function AccountsPage() {
                           <th className="px-6 md:px-8 py-4 text-left font-bold text-[10px] uppercase tracking-widest text-muted-foreground">Description</th>
                           <th className="px-6 md:px-8 py-4 text-left font-bold text-[10px] uppercase tracking-widest text-muted-foreground">Amount</th>
                           <th className="px-6 md:px-8 py-4 text-left font-bold text-[10px] uppercase tracking-widest text-muted-foreground">Status</th>
+                          <th className="px-6 md:px-8 py-4 text-right"></th>
                         </tr>
                       </thead>
                       <tbody className="divide-y">
                         {expenses?.length === 0 ? (
                           <tr>
-                            <td colSpan={5} className="px-8 py-16 text-center text-muted-foreground italic text-xs">No running costs registered.</td>
+                            <td colSpan={6} className="px-8 py-16 text-center text-muted-foreground italic text-xs">No running costs registered.</td>
                           </tr>
                         ) : (
                           expenses?.map((ex) => (
-                            <tr key={ex.id} className="hover:bg-slate-50/50 transition-colors">
+                            <tr key={ex.id} className="hover:bg-slate-50/50 transition-colors group">
                               <td className="px-6 md:px-8 py-5 text-slate-500 font-medium text-xs whitespace-nowrap">{format(new Date(ex.date), 'MMM dd, yyyy')}</td>
                               <td className="px-6 md:px-8 py-5">
                                 <Badge variant="secondary" className="text-[8px] md:text-[9px] uppercase font-bold py-0">{ex.category}</Badge>
@@ -574,6 +634,16 @@ export default function AccountsPage() {
                                 <Badge variant={ex.status === 'Paid' ? 'default' : 'outline'} className="text-[8px] md:text-[9px] uppercase font-bold py-0">
                                   {ex.status}
                                 </Badge>
+                              </td>
+                              <td className="px-6 md:px-8 py-5 text-right">
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon" 
+                                  className="h-8 w-8 text-rose-500 hover:bg-rose-50 opacity-0 group-hover:opacity-100 transition-opacity"
+                                  onClick={() => setExpenseToDelete(ex)}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
                               </td>
                             </tr>
                           ))
@@ -1072,6 +1142,44 @@ export default function AccountsPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* CONFIRMATION DIALOGS */}
+      
+      {/* Account Deletion */}
+      <AlertDialog open={!!accountToDelete} onOpenChange={(open) => !open && setAccountToDelete(null)}>
+        <AlertDialogContent className="rounded-[2rem]">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Decommission Vault?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently remove the account "{accountToDelete?.name}" from your workspace dashboard. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="rounded-xl">Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteAccount} className="bg-rose-500 hover:bg-rose-600 rounded-xl">
+              Confirm Decommission
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Expense Deletion */}
+      <AlertDialog open={!!expenseToDelete} onOpenChange={(open) => !open && setExpenseToDelete(null)}>
+        <AlertDialogContent className="rounded-[2rem]">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Purge Expense Record?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently remove the record for "{expenseToDelete?.description}" from your operational ledger.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="rounded-xl">Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteExpense} className="bg-rose-500 hover:bg-rose-600 rounded-xl">
+              Confirm Purge
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
