@@ -25,7 +25,8 @@ import {
   CreditCard, 
   ChevronRight, 
   Plus,
-  Target
+  Target,
+  IndianRupee
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -48,13 +49,12 @@ export default function ClientPortfolioPage({ params }: { params: Promise<{ clie
   const db = useFirestore();
   const router = useRouter();
 
-  // Create Project State
-  const [isCreateProjectOpen, setIsCreateProjectOpen] = useState(false);
+  // Create Lead State
+  const [isCreateLeadOpen, setIsCreateLeadOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [newProject, setNewProject] = useState({
-    name: "",
-    budget: "",
-    deadline: ""
+  const [newLead, setNewLead] = useState({
+    title: "",
+    value: ""
   });
 
   // 1. Fetch Client (Lead) Info
@@ -112,8 +112,6 @@ export default function ClientPortfolioPage({ params }: { params: Promise<{ clie
 
   const pipelineStats = useMemo(() => {
     if (!allRelatedLeads) return { count: 0, totalValue: 0 };
-    // Pipeline stages: exclude 'client' (confirmed partner) and 'won' (already projects)
-    // Actually typically pipeline includes everything from lead to negotiation.
     const pipelineItems = allRelatedLeads.filter(l => 
       !['client', 'won', 'lost'].includes(l.stage || '')
     );
@@ -155,39 +153,33 @@ export default function ClientPortfolioPage({ params }: { params: Promise<{ clie
 
   // --- ACTIONS ---
 
-  const handleCreateProject = async (e: React.FormEvent) => {
+  const handleCreateLead = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!companyId || !client || !newProject.name) return;
+    if (!companyId || !client || !newLead.title) return;
 
     setIsSubmitting(true);
-    const projectsRef = collection(db!, 'companies', companyId, 'projects');
-    const projectRefCode = `PROJ-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
-    const colors = ['card-pink', 'card-purple'];
-    const randomColor = colors[Math.floor(Math.random() * colors.length)];
+    const leadsRef = collection(db!, 'companies', companyId, 'leads');
 
     try {
-      addDocumentNonBlocking(projectsRef, {
+      addDocumentNonBlocking(leadsRef, {
         company_id: companyId,
-        project_name: newProject.name,
-        client_name: client.company_name,
-        project_ref: projectRefCode,
-        budget: parseFloat(newProject.budget) || 0,
-        deadline: newProject.deadline,
-        status: 'in_progress',
-        progress: 0,
-        color: randomColor,
+        company_name: client.company_name,
+        industry: client.industry,
+        service_vertical: client.service_vertical,
+        deal_value: parseFloat(newLead.value) || 0,
+        stage: 'lead',
         created_at: serverTimestamp(),
       });
 
       toast({ 
-        title: "Production Launched", 
-        description: `"${newProject.name}" has been initialized for this client.` 
+        title: "Sales Lead Created", 
+        description: `A new opportunity for ${client.company_name} has been added to the pipeline.` 
       });
 
-      setNewProject({ name: "", budget: "", deadline: "" });
-      setIsCreateProjectOpen(false);
+      setNewLead({ title: "", value: "" });
+      setIsCreateLeadOpen(false);
     } catch (error) {
-      toast({ variant: "destructive", title: "Launch Failed", description: "Could not initialize production workspace." });
+      toast({ variant: "destructive", title: "Error", description: "Could not create sales lead." });
     } finally {
       setIsSubmitting(false);
     }
@@ -229,13 +221,8 @@ export default function ClientPortfolioPage({ params }: { params: Promise<{ clie
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <Link href={`/crm/${clientId}`}>
-            <Button variant="outline" className="rounded-xl font-bold text-xs h-10 gap-2 border-primary/20 text-primary hover:bg-primary/5">
-              <Briefcase className="h-4 w-4" /> Sales Pipeline
-            </Button>
-          </Link>
-          <Button onClick={() => setIsCreateProjectOpen(true)} className="rounded-xl shadow-lg shadow-primary/20 font-bold text-xs h-10 gap-2">
-            <Plus className="h-4 w-4" /> Launch Production
+          <Button onClick={() => setIsCreateLeadOpen(true)} className="rounded-xl shadow-lg shadow-primary/20 font-bold text-xs h-10 gap-2">
+            <Plus className="h-4 w-4" /> Create Lead
           </Button>
         </div>
       </div>
@@ -382,7 +369,7 @@ export default function ClientPortfolioPage({ params }: { params: Promise<{ clie
                           <Badge variant="outline" className="text-[9px] font-black uppercase tracking-widest border-primary/20 text-primary bg-white px-3">
                             {proj.status?.replace('_', ' ')}
                           </Badge>
-                          <span className="text-[10px] font-black text-primary bg-primary/5 px-2 py-0.5 rounded-full">{proj.progress}%</span>
+                          <span className="text-10px] font-black text-primary bg-primary/5 px-2 py-0.5 rounded-full">{proj.progress}%</span>
                         </div>
                         <Link href={`/projects/${proj.id}`}>
                           <CardTitle className="text-xl font-bold group-hover:text-primary transition-colors cursor-pointer leading-tight">{proj.project_name}</CardTitle>
@@ -481,57 +468,48 @@ export default function ClientPortfolioPage({ params }: { params: Promise<{ clie
         </main>
       </div>
 
-      {/* Launch Production Dialog */}
-      <Dialog open={isCreateProjectOpen} onOpenChange={setIsCreateProjectOpen}>
+      {/* Create Lead Dialog */}
+      <Dialog open={isCreateLeadOpen} onOpenChange={setIsCreateLeadOpen}>
         <DialogContent className="sm:max-w-[425px] rounded-[2.5rem]">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-2xl font-bold">
               <Sparkles className="h-6 w-6 text-accent" />
-              Launch Production
+              Create Sales Lead
             </DialogTitle>
             <DialogDescription>
-              Initialize a new production workspace for {client.company_name}.
+              Initialize a new sales opportunity for {client.company_name}.
             </DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleCreateProject} className="space-y-5 py-4">
+          <form onSubmit={handleCreateLead} className="space-y-5 py-4">
             <div className="space-y-2">
-              <Label htmlFor="projectName">Project Title</Label>
+              <Label htmlFor="leadTitle">Opportunity Title</Label>
               <Input 
-                id="projectName" 
-                placeholder="e.g. Autumn Brand Film" 
-                value={newProject.name}
-                onChange={(e) => setNewProject({...newProject, name: e.target.value})}
+                id="leadTitle" 
+                placeholder="e.g. Summer Campaign 2024" 
+                value={newLead.title}
+                onChange={(e) => setNewLead({...newLead, title: e.target.value})}
                 required
                 className="rounded-xl h-11"
               />
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="budget">Budget (₹)</Label>
+            <div className="space-y-2">
+              <Label htmlFor="dealValue">Projected Value (₹)</Label>
+              <div className="relative">
+                <IndianRupee className="absolute left-3 top-3.5 h-4 w-4 text-muted-foreground" />
                 <Input 
-                  id="budget" 
+                  id="dealValue" 
                   type="number"
                   placeholder="50000" 
-                  value={newProject.budget}
-                  onChange={(e) => setNewProject({...newProject, budget: e.target.value})}
-                  className="rounded-xl h-11"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="deadline">Target Deadline</Label>
-                <Input 
-                  id="deadline" 
-                  type="date"
-                  value={newProject.deadline}
-                  onChange={(e) => setNewProject({...newProject, deadline: e.target.value})}
-                  className="rounded-xl h-11"
+                  value={newLead.value}
+                  onChange={(e) => setNewLead({...newLead, value: e.target.value})}
+                  className="rounded-xl h-11 pl-9"
                 />
               </div>
             </div>
             <DialogFooter className="pt-4">
               <Button type="submit" disabled={isSubmitting} className="w-full rounded-xl h-12 font-bold shadow-lg shadow-primary/20">
                 {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                Launch Workspace
+                Initialize Opportunity
               </Button>
             </DialogFooter>
           </form>
