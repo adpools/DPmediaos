@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo } from "react";
@@ -205,7 +206,7 @@ export default function ClientsPage() {
     if (!companyId || !newClient.company_name) return;
 
     setIsSubmitting(true);
-    const leadsRef = collection(db, 'companies', companyId, 'leads');
+    const leadsRef = collection(db!, 'companies', companyId, 'leads');
     
     const primaryVertical = activeVertical?.name || "General Production";
     const allServices = Object.values(selectedServices).flat();
@@ -213,7 +214,7 @@ export default function ClientsPage() {
     try {
       if (createdLeadId) {
         // Update existing lead with newly architected scope
-        const leadDocRef = doc(db, 'companies', companyId, 'leads', createdLeadId);
+        const leadDocRef = doc(db!, 'companies', companyId, 'leads', createdLeadId);
         updateDocumentNonBlocking(leadDocRef, {
           ...newClient,
           service_vertical: primaryVertical,
@@ -631,20 +632,12 @@ export default function ClientsPage() {
                   <Button variant="ghost" onClick={() => setIsOnboardOpen(false)} className="rounded-xl font-bold text-slate-400">Cancel</Button>
                   <div className="flex gap-3">
                     <Button 
-                      variant="outline"
                       onClick={() => handleOnboardClient(false)} 
-                      disabled={!newClient.company_name || isSubmitting}
-                      className="rounded-2xl h-12 px-6 font-black uppercase text-[10px] tracking-widest gap-2"
-                    >
-                      {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Onboard Client"}
-                    </Button>
-                    <Button 
-                      onClick={() => handleOnboardClient(true)} 
                       disabled={!newClient.company_name || isSubmitting}
                       className="rounded-2xl h-12 px-10 font-black uppercase text-xs tracking-widest gap-2 shadow-xl shadow-primary/20"
                     >
-                      {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                      Create Lead <ChevronRight className="h-4 w-4" />
+                      {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <CheckCircle2 className="h-4 w-4" />}
+                      Onboard Client
                     </Button>
                   </div>
                 </>
