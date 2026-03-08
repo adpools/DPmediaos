@@ -111,6 +111,27 @@ function ProposalsContent() {
 
   const [generatedDraft, setGeneratedDraft] = useState<GenerateProposalContentOutput | null>(null);
 
+  const proposalsQuery = useMemoFirebase(() => {
+    if (!db || !companyId) return null;
+    return query(
+      collection(db, 'companies', companyId, 'proposals'),
+      orderBy('created_at', 'desc')
+    );
+  }, [db, companyId]);
+
+  const { data: proposals, isLoading: isProposalsLoading } = useCollection(proposalsQuery);
+
+  const leadsQuery = useMemoFirebase(() => {
+    if (!db || !companyId) return null;
+    return query(
+      collection(db, 'companies', companyId, 'leads'),
+      orderBy('company_name', 'asc')
+    );
+  }, [db, companyId]);
+
+  const { data: leads } = useCollection(leadsQuery);
+
+  // Handle URL Source Params
   useEffect(() => {
     const source = searchParams.get('source');
     if (source === 'research' || source === 'crm') {
@@ -134,25 +155,16 @@ function ProposalsContent() {
     }
   }, [searchParams]);
 
-  const proposalsQuery = useMemoFirebase(() => {
-    if (!db || !companyId) return null;
-    return query(
-      collection(db, 'companies', companyId, 'proposals'),
-      orderBy('created_at', 'desc')
-    );
-  }, [db, companyId]);
-
-  const { data: proposals, isLoading: isProposalsLoading } = useCollection(proposalsQuery);
-
-  const leadsQuery = useMemoFirebase(() => {
-    if (!db || !companyId) return null;
-    return query(
-      collection(db, 'companies', companyId, 'leads'),
-      orderBy('company_name', 'asc')
-    );
-  }, [db, companyId]);
-
-  const { data: leads } = useCollection(leadsQuery);
+  // Handle Share Deep Linking
+  useEffect(() => {
+    const propId = searchParams.get('id');
+    if (propId && proposals) {
+      const target = proposals.find(p => p.id === propId);
+      if (target) {
+        handleViewProposal(target);
+      }
+    }
+  }, [searchParams, proposals]);
 
   const handleGenerateAI = async () => {
     if (!aiInputs.service_vertical || !aiInputs.client_type || !aiInputs.project_description) {
@@ -217,6 +229,22 @@ function ProposalsContent() {
       setViewingProposal({ ...proposal, parsedContent: { proposal_title: proposal.title, client: proposal.client_name, sections: [] } });
       setIsViewOpen(true);
     }
+  };
+
+  const handleShare = (proposal: any) => {
+    const shareUrl = `${window.location.origin}/proposals?id=${proposal.id}`;
+    navigator.clipboard.writeText(shareUrl).then(() => {
+      toast({
+        title: "Link Copied",
+        description: "The strategy blueprint link has been copied to your clipboard.",
+      });
+    }).catch(() => {
+      toast({
+        variant: "destructive",
+        title: "Share Failed",
+        description: "Could not copy link to clipboard.",
+      });
+    });
   };
 
   const renderSectionVisuals = (section: any) => {
@@ -374,7 +402,7 @@ function ProposalsContent() {
                 <div className="p-8 md:w-80 bg-slate-50/50 border-l flex flex-col gap-3">
                   <Button className="w-full rounded-xl h-11 font-bold gap-2" onClick={() => handleViewProposal(prop)}><ExternalLink className="h-4 w-4" /> View Blueprint</Button>
                   <div className="flex gap-2">
-                    <Button variant="outline" className="flex-1 rounded-xl h-11 gap-2"><Share2 className="h-4 w-4" /> Share</Button>
+                    <Button variant="outline" className="flex-1 rounded-xl h-11 gap-2" onClick={() => handleShare(prop)}><Share2 className="h-4 w-4" /> Share</Button>
                     <Button variant="outline" size="icon" className="h-11 w-11 rounded-xl text-rose-500 hover:bg-rose-50" onClick={() => setProposalToDelete(prop)}><Trash2 className="h-4 w-4" /></Button>
                   </div>
                 </div>
