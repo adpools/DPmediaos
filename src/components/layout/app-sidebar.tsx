@@ -112,7 +112,7 @@ export function AppSidebar() {
   const logoUrl = PlaceHolderImages.find(img => img.id === 'app-logo')?.imageUrl || "https://picsum.photos/seed/logo/200/200";
 
   return (
-    <Sidebar collapsible="icon" className="border-none bg-white">
+    <Sidebar collapsible="icon" className="border-none bg-white font-body">
       <SidebarHeader className="p-4">
         <div className="flex items-center gap-3">
           <div className="h-8 w-8 shrink-0 overflow-hidden rounded-lg border bg-slate-50 flex items-center justify-center">
@@ -127,8 +127,8 @@ export function AppSidebar() {
           </div>
           {state !== "collapsed" && (
             <div className="flex flex-col">
-              <span className="text-xs font-black tracking-tight text-primary uppercase leading-none">Marzelz</span>
-              <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest leading-none mt-0.5">Lifestyle</span>
+              <span className="text-xs font-bold tracking-tight text-primary uppercase leading-none">Marzelz</span>
+              <span className="text-[8px] font-medium text-muted-foreground uppercase tracking-widest leading-none mt-0.5">Lifestyle</span>
             </div>
           )}
         </div>
@@ -146,7 +146,7 @@ export function AppSidebar() {
           return (
             <SidebarGroup key={group.label} className="py-1">
               <div className="mb-1 px-2">
-                <span className="text-[9px] font-black uppercase tracking-[0.15em] text-muted-foreground/40 leading-none">{group.label}</span>
+                <span className="text-[9px] font-semibold uppercase tracking-[0.15em] text-muted-foreground/60 leading-none">{group.label}</span>
               </div>
               <SidebarMenu>
                 {visibleItems.map((item) => (
@@ -159,7 +159,7 @@ export function AppSidebar() {
                     >
                       <Link href={item.url} className="flex items-center gap-2.5">
                         <item.icon className={cn("h-3.5 w-3.5", pathname === item.url ? "text-primary" : "text-slate-500")} />
-                        <span className="font-bold text-[11px] flex-1 leading-none">{item.title}</span>
+                        <span className="font-medium text-[11px] flex-1 leading-none">{item.title}</span>
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
@@ -171,7 +171,7 @@ export function AppSidebar() {
 
         <SidebarGroup className="mt-2 pt-2 border-t border-slate-50">
           <div className="mb-1 px-2">
-            <span className="text-[9px] font-black uppercase tracking-[0.15em] text-muted-foreground/40 leading-none">System</span>
+            <span className="text-[9px] font-semibold uppercase tracking-[0.15em] text-muted-foreground/60 leading-none">System</span>
           </div>
           <SidebarMenu>
             <SidebarMenuItem>
@@ -183,7 +183,7 @@ export function AppSidebar() {
               >
                 <Link href="/settings" className="flex items-center gap-2.5">
                   <UserCircle className="h-3.5 w-3.5 text-slate-500" />
-                  <span className="font-bold text-[11px] flex-1 leading-none">Account Center</span>
+                  <span className="font-medium text-[11px] flex-1 leading-none">Account Center</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
@@ -198,7 +198,7 @@ export function AppSidebar() {
                 >
                   <Link href="/settings/rbac" className="flex items-center gap-2.5">
                     <ShieldCheck className="h-3.5 w-3.5 text-slate-500" />
-                    <span className="font-bold text-[11px] flex-1 leading-none">Access Control</span>
+                    <span className="font-medium text-[11px] flex-1 leading-none">Access Control</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -212,7 +212,7 @@ export function AppSidebar() {
               >
                 <div className="flex items-center gap-2.5">
                   <LogOut className="h-3.5 w-3.5" />
-                  <span className="font-bold text-[11px] flex-1 leading-none">Logout</span>
+                  <span className="font-medium text-[11px] flex-1 leading-none">Logout</span>
                 </div>
               </SidebarMenuButton>
             </SidebarMenuItem>
@@ -233,8 +233,8 @@ export function AppSidebar() {
           </Avatar>
           {state !== "collapsed" && (
             <div className="flex flex-col min-w-0">
-              <span className="text-[11px] font-bold font-headline truncate text-slate-800 leading-none">{profile?.fullName}</span>
-              <span className="text-[8px] text-muted-foreground font-black uppercase tracking-widest truncate leading-none mt-1">{company?.name || 'Workspace'}</span>
+              <span className="text-[11px] font-semibold font-body truncate text-slate-800 leading-none">{profile?.fullName}</span>
+              <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest truncate leading-none mt-1">{company?.name || 'Workspace'}</span>
             </div>
           )}
         </div>
