@@ -65,7 +65,6 @@ import {
   AlertDialogFooter, 
   AlertDialogHeader, 
   AlertDialogTitle, 
-  AlertDialogTrigger 
 } from "@/components/ui/alert-dialog";
 
 type ViewMode = 'grid' | 'list' | 'timeline';
@@ -80,6 +79,7 @@ export default function ProjectsPage() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [projectToDelete, setProjectToDelete] = useState<any>(null);
 
   // Form State
   const [newProject, setNewProject] = useState({
@@ -179,11 +179,12 @@ export default function ProjectsPage() {
     setIsSubmitting(false);
   };
 
-  const handleDeleteProject = (projectId: string) => {
-    if (!db || !companyId || !projectId) return;
-    const projectRef = doc(db, 'companies', companyId, 'projects', projectId);
+  const handleConfirmDelete = () => {
+    if (!db || !companyId || !projectToDelete) return;
+    const projectRef = doc(db, 'companies', companyId, 'projects', projectToDelete.id);
     deleteDocumentNonBlocking(projectRef);
     toast({ title: "Project Deleted", description: "The workspace has been removed permanently." });
+    setProjectToDelete(null);
   };
 
   if (isTenantLoading || isProjectsLoading) {
@@ -229,7 +230,6 @@ export default function ProjectsPage() {
                 </DialogDescription>
               </DialogHeader>
               <form onSubmit={handleCreateProject} className="space-y-4 py-4">
-                {/* Lead Import Dropdown */}
                 <div className="space-y-2 p-4 bg-primary/5 rounded-2xl border border-primary/10">
                   <Label htmlFor="importLead" className="text-[10px] font-bold uppercase tracking-widest text-primary flex items-center gap-2">
                     <Database className="h-3 w-3" /> Smart Import from CRM
@@ -423,17 +423,35 @@ export default function ProjectsPage() {
                 project={proj} 
                 view={viewMode} 
                 index={idx}
-                onDelete={handleDeleteProject}
+                onDelete={(p) => setProjectToDelete(p)}
               />
             ))}
           </div>
         )}
       </div>
+
+      {/* STABLE DELETE DIALOG */}
+      <AlertDialog open={!!projectToDelete} onOpenChange={(open) => !open && setProjectToDelete(null)}>
+        <AlertDialogContent className="rounded-[2rem]">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Workspace Permanently?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently remove the project "{projectToDelete?.project_name}" and all associated tasks, assets, and schedule data. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="rounded-xl">Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmDelete} className="bg-rose-500 hover:bg-rose-600 rounded-xl">
+              Confirm Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
 
-function ProjectCard({ project, view, index, onDelete }: { project: any, view: ViewMode, index: number, onDelete: (id: string) => void }) {
+function ProjectCard({ project, view, index, onDelete }: { project: any, view: ViewMode, index: number, onDelete: (p: any) => void }) {
   const isEven = index % 2 === 0;
 
   if (view === 'grid') {
@@ -477,14 +495,12 @@ function ProjectCard({ project, view, index, onDelete }: { project: any, view: V
         "relative flex flex-col md:flex-row items-center gap-8 md:gap-0",
         isEven ? "md:flex-row-reverse" : "md:flex-row"
       )}>
-        {/* Timeline Dot */}
         <div className="absolute left-4 md:left-[50%] -translate-x-[50%] z-10">
           <div className="h-10 w-10 rounded-full bg-white border-4 border-slate-100 flex items-center justify-center shadow-sm">
             <div className={cn("h-3 w-3 rounded-full", project.progress === 100 ? "bg-emerald-500" : "bg-primary")} />
           </div>
         </div>
 
-        {/* Content Card */}
         <div className="w-full md:w-[45%] ml-12 md:ml-0">
           <Link href={`/projects/${project.id}`}>
             <Card className="border-none shadow-soft rounded-[2rem] overflow-hidden group cursor-pointer">
@@ -514,12 +530,10 @@ function ProjectCard({ project, view, index, onDelete }: { project: any, view: V
     );
   }
 
-  // Refined List View
   return (
     <Card className="border-none shadow-sm hover:shadow-md transition-all group overflow-hidden rounded-2xl bg-white border border-slate-50">
       <CardContent className="p-0">
         <div className="flex flex-col md:flex-row md:items-center">
-          {/* Main Title Area */}
           <Link 
             href={`/projects/${project.id}`} 
             className="p-5 md:p-6 md:w-[35%] flex flex-col gap-2 relative group-hover:bg-slate-50/50 transition-colors"
@@ -542,7 +556,6 @@ function ProjectCard({ project, view, index, onDelete }: { project: any, view: V
             </div>
           </Link>
 
-          {/* Progress Area */}
           <div className="flex-1 px-5 md:px-6 py-4 md:py-0 border-y md:border-y-0 md:border-x border-slate-100">
             <div className="space-y-2 md:space-y-3">
               <div className="flex justify-between items-end">
@@ -556,7 +569,6 @@ function ProjectCard({ project, view, index, onDelete }: { project: any, view: V
             </div>
           </div>
 
-          {/* Metadata & Actions Area */}
           <div className="p-5 md:p-6 md:w-[30%] flex items-center justify-between gap-4 md:gap-6 bg-slate-50/30">
             <div className="flex items-center gap-4 md:gap-8">
               <div className="flex flex-col">
@@ -604,27 +616,9 @@ function ProjectCard({ project, view, index, onDelete }: { project: any, view: V
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator className="bg-slate-50" />
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <DropdownMenuItem className="rounded-lg m-1 py-2 cursor-pointer text-rose-500 focus:text-rose-600 focus:bg-rose-50" onSelect={(e) => e.preventDefault()}>
-                        <Trash2 className="h-3.5 w-3.5 mr-2" /> Delete Project
-                      </DropdownMenuItem>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent className="rounded-[2rem]">
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Delete Workspace Permanently?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          This will permanently remove the project "{project.project_name}" and all associated tasks, assets, and schedule data.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel className="rounded-xl">Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={() => onDelete(project.id)} className="bg-rose-500 hover:bg-rose-600 rounded-xl">
-                          Confirm Delete
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
+                  <DropdownMenuItem className="rounded-lg m-1 py-2 cursor-pointer text-rose-500 focus:text-rose-600 focus:bg-rose-50" onClick={() => onDelete(project)}>
+                    <Trash2 className="h-3.5 w-3.5 mr-2" /> Delete Project
+                  </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>

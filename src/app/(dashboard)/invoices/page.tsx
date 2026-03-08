@@ -26,7 +26,6 @@ import {
   AlertDialogFooter, 
   AlertDialogHeader, 
   AlertDialogTitle, 
-  AlertDialogTrigger 
 } from "@/components/ui/alert-dialog";
 
 export default function InvoicesPage() {
@@ -34,6 +33,7 @@ export default function InvoicesPage() {
   const db = useFirestore();
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [invoiceToDelete, setInvoiceToDelete] = useState<any>(null);
 
   // Invoice State
   const [newInvoice, setNewInvoice] = useState({
@@ -138,11 +138,12 @@ export default function InvoicesPage() {
     setIsSubmitting(false);
   };
 
-  const handleDeleteInvoice = (invoiceId: string) => {
-    if (!db || !companyId || !invoiceId) return;
-    const invoiceRef = doc(db, 'companies', companyId, 'invoices', invoiceId);
+  const handleConfirmDelete = () => {
+    if (!db || !companyId || !invoiceToDelete) return;
+    const invoiceRef = doc(db, 'companies', companyId, 'invoices', invoiceToDelete.id);
     deleteDocumentNonBlocking(invoiceRef);
     toast({ title: "Invoice Removed", description: "The billing record has been deleted." });
+    setInvoiceToDelete(null);
   };
 
   if (isTenantLoading || isInvoicesLoading) {
@@ -385,27 +386,14 @@ export default function InvoicesPage() {
                       </td>
                       <td className="p-4 text-right">
                         <div className="flex justify-end gap-2">
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity text-rose-500 hover:text-rose-600 hover:bg-rose-50">
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent className="rounded-[2rem]">
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Delete Invoice Record?</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  This will permanently remove invoice {inv.invoice_number}. This action cannot be reversed.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel className="rounded-xl">Cancel</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => handleDeleteInvoice(inv.id)} className="bg-rose-500 hover:bg-rose-600 rounded-xl">
-                                  Confirm Delete
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity text-rose-500 hover:text-rose-600 hover:bg-rose-50"
+                            onClick={() => setInvoiceToDelete(inv)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
                           <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"><Download className="h-4 w-4" /></Button>
                           <Link href={`/invoices/${inv.id}`}>
                             <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity text-primary">
@@ -422,6 +410,24 @@ export default function InvoicesPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* STABLE DELETE DIALOG */}
+      <AlertDialog open={!!invoiceToDelete} onOpenChange={(open) => !open && setInvoiceToDelete(null)}>
+        <AlertDialogContent className="rounded-[2rem]">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Invoice Record?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently remove invoice {invoiceToDelete?.invoice_number} from your production ledger. This action cannot be reversed.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="rounded-xl">Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmDelete} className="bg-rose-500 hover:bg-rose-600 rounded-xl">
+              Confirm Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

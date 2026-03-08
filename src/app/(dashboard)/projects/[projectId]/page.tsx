@@ -63,7 +63,6 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 
 export default function ProjectWorkspacePage({ params }: { params: Promise<{ projectId: string }> }) {
@@ -81,6 +80,8 @@ export default function ProjectWorkspacePage({ params }: { params: Promise<{ pro
   const [newAsset, setNewAsset] = useState({ name: "", category: "Equipment", status: "available" });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [taskToDelete, setTaskToDelete] = useState<any>(null);
+  const [assetToDelete, setAssetToDelete] = useState<any>(null);
 
   // 1. Fetch Project Details
   const projectRef = useMemoFirebase(() => {
@@ -148,18 +149,20 @@ export default function ProjectWorkspacePage({ params }: { params: Promise<{ pro
     toast({ title: "Asset Updated", description: `Item status changed to ${newStatus}.` });
   };
 
-  const handleDeleteTask = (taskId: string) => {
-    if (!db || !companyId || !projectId) return;
-    const taskRef = doc(db, 'companies', companyId, 'projects', projectId, 'tasks', taskId);
+  const handleConfirmDeleteTask = () => {
+    if (!db || !companyId || !projectId || !taskToDelete) return;
+    const taskRef = doc(db, 'companies', companyId, 'projects', projectId, 'tasks', taskToDelete.id);
     deleteDocumentNonBlocking(taskRef);
     toast({ title: "Objective Removed", description: "The task has been deleted from the roadmap." });
+    setTaskToDelete(null);
   };
 
-  const handleDeleteAsset = (assetId: string) => {
-    if (!db || !companyId || !projectId) return;
-    const assetRef = doc(db, 'companies', companyId, 'projects', projectId, 'items', assetId);
+  const handleConfirmDeleteAsset = () => {
+    if (!db || !companyId || !projectId || !assetToDelete) return;
+    const assetRef = doc(db, 'companies', companyId, 'projects', projectId, 'items', assetToDelete.id);
     deleteDocumentNonBlocking(assetRef);
     toast({ title: "Asset Removed", description: "Item has been removed from tracking." });
+    setAssetToDelete(null);
   };
 
   const handleSeedPhase = (phase: string) => {
@@ -356,7 +359,6 @@ export default function ProjectWorkspacePage({ params }: { params: Promise<{ pro
           </TabsTrigger>
         </TabsList>
 
-        {/* Phase Contents */}
         {["pre-prod", "production", "post-prod", "release"].map((phase) => (
           <TabsContent key={phase} value={phase} className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -425,27 +427,9 @@ export default function ProjectWorkspacePage({ params }: { params: Promise<{ pro
                                     Mark as {task.status === 'done' ? 'Pending' : 'Completed'}
                                   </DropdownMenuItem>
                                   <DropdownMenuSeparator />
-                                  <AlertDialog>
-                                    <AlertDialogTrigger asChild>
-                                      <DropdownMenuItem className="cursor-pointer gap-2 py-2 text-rose-500 focus:text-rose-600 focus:bg-rose-50" onSelect={(e) => e.preventDefault()}>
-                                        <Trash2 className="h-4 w-4" /> Delete Objective
-                                      </DropdownMenuItem>
-                                    </AlertDialogTrigger>
-                                    <AlertDialogContent className="rounded-[2rem]">
-                                      <AlertDialogHeader>
-                                        <AlertDialogTitle>Remove Objective?</AlertDialogTitle>
-                                        <AlertDialogDescription>
-                                          This will permanently remove "{task.title}" from this production phase.
-                                        </AlertDialogDescription>
-                                      </AlertDialogHeader>
-                                      <AlertDialogFooter>
-                                        <AlertDialogCancel className="rounded-xl">Cancel</AlertDialogCancel>
-                                        <AlertDialogAction onClick={() => handleDeleteTask(task.id)} className="bg-rose-500 hover:bg-rose-600 rounded-xl">
-                                          Confirm Delete
-                                        </AlertDialogAction>
-                                      </AlertDialogFooter>
-                                    </AlertDialogContent>
-                                  </AlertDialog>
+                                  <DropdownMenuItem className="cursor-pointer gap-2 py-2 text-rose-500 focus:text-rose-600 focus:bg-rose-50" onClick={() => setTaskToDelete(task)}>
+                                    <Trash2 className="h-4 w-4" /> Delete Objective
+                                  </DropdownMenuItem>
                                 </DropdownMenuContent>
                               </DropdownMenu>
                             </div>
@@ -513,7 +497,6 @@ export default function ProjectWorkspacePage({ params }: { params: Promise<{ pro
           </TabsContent>
         ))}
 
-        {/* ASSETS TAB CONTENT */}
         <TabsContent value="assets" className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="lg:col-span-2 space-y-6">
@@ -579,27 +562,9 @@ export default function ProjectWorkspacePage({ params }: { params: Promise<{ pro
                                   <Target className="h-4 w-4 text-rose-500" /> Maintenance
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator />
-                                <AlertDialog>
-                                  <AlertDialogTrigger asChild>
-                                    <DropdownMenuItem className="cursor-pointer gap-2 py-2 text-rose-500 focus:text-rose-600 focus:bg-rose-50" onSelect={(e) => e.preventDefault()}>
-                                      <Trash2 className="h-4 w-4" /> Remove Tracking
-                                    </DropdownMenuItem>
-                                  </AlertDialogTrigger>
-                                  <AlertDialogContent className="rounded-[2rem]">
-                                    <AlertDialogHeader>
-                                      <AlertDialogTitle>Delete Asset Record?</AlertDialogTitle>
-                                      <AlertDialogDescription>
-                                        This will permanently remove "{asset.name}" from your project inventory.
-                                      </AlertDialogDescription>
-                                    </AlertDialogHeader>
-                                    <AlertDialogFooter>
-                                      <AlertDialogCancel className="rounded-xl">Cancel</AlertDialogCancel>
-                                      <AlertDialogAction onClick={() => handleDeleteAsset(asset.id)} className="bg-rose-500 hover:bg-rose-600 rounded-xl">
-                                        Confirm Delete
-                                      </AlertDialogAction>
-                                    </AlertDialogFooter>
-                                  </AlertDialogContent>
-                                </AlertDialog>
+                                <DropdownMenuItem className="cursor-pointer gap-2 py-2 text-rose-500 focus:text-rose-600 focus:bg-rose-50" onClick={() => setAssetToDelete(asset)}>
+                                  <Trash2 className="h-4 w-4" /> Remove Tracking
+                                </DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>
                           </div>
@@ -633,7 +598,42 @@ export default function ProjectWorkspacePage({ params }: { params: Promise<{ pro
         </TabsContent>
       </Tabs>
 
-      {/* Add Task/Objective Dialog */}
+      {/* STABLE DIALOGS */}
+      <AlertDialog open={!!taskToDelete} onOpenChange={(open) => !open && setTaskToDelete(null)}>
+        <AlertDialogContent className="rounded-[2rem]">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove Objective?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently remove "{taskToDelete?.title}" from this production phase. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="rounded-xl">Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmDeleteTask} className="bg-rose-500 hover:bg-rose-600 rounded-xl">
+              Confirm Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={!!assetToDelete} onOpenChange={(open) => !open && setAssetToDelete(null)}>
+        <AlertDialogContent className="rounded-[2rem]">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Asset Record?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently remove "{assetToDelete?.name}" from your project inventory. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="rounded-xl">Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmDeleteAsset} className="bg-rose-500 hover:bg-rose-600 rounded-xl">
+              Confirm Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* MODALS */}
       <Dialog open={isAddTaskOpen} onOpenChange={setIsAddTaskOpen}>
         <DialogContent className="sm:max-w-[425px] rounded-[2rem]">
           <DialogHeader>
@@ -677,7 +677,6 @@ export default function ProjectWorkspacePage({ params }: { params: Promise<{ pro
         </DialogContent>
       </Dialog>
 
-      {/* Add Asset Dialog */}
       <Dialog open={isAddAssetOpen} onOpenChange={setIsAddAssetOpen}>
         <DialogContent className="sm:max-w-[425px] rounded-[2rem]">
           <DialogHeader>

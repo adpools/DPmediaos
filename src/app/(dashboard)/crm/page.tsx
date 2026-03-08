@@ -34,7 +34,6 @@ import {
   AlertDialogFooter, 
   AlertDialogHeader, 
   AlertDialogTitle, 
-  AlertDialogTrigger 
 } from "@/components/ui/alert-dialog";
 
 export default function CRMPage() {
@@ -42,6 +41,7 @@ export default function CRMPage() {
   const db = useFirestore();
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [leadToArchive, setLeadToArchive] = useState<any>(null);
 
   // Quick Add State
   const [newLead, setNewLead] = useState({
@@ -119,19 +119,20 @@ export default function CRMPage() {
     setIsSubmitting(false);
   };
 
-  const handleArchiveLead = (lead: any) => {
-    if (!db || !companyId || !lead.id) return;
+  const handleConfirmArchive = () => {
+    if (!db || !companyId || !leadToArchive) return;
     
     const archiveRef = collection(db, 'companies', companyId, 'archives');
     addDocumentNonBlocking(archiveRef, {
-      ...lead,
+      ...leadToArchive,
       archive_type: 'lead',
       archived_at: new Date().toISOString()
     });
 
-    const leadRef = doc(db, 'companies', companyId, 'leads', lead.id);
+    const leadRef = doc(db, 'companies', companyId, 'leads', leadToArchive.id);
     deleteDocumentNonBlocking(leadRef);
     toast({ title: "Opportunity Archived", description: "The lead has been moved to archives." });
+    setLeadToArchive(null);
   };
 
   if (isTenantLoading || isLeadsLoading) {
@@ -306,27 +307,9 @@ export default function CRMPage() {
                               </Link>
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
-                            <AlertDialog>
-                              <AlertDialogTrigger asChild>
-                                <DropdownMenuItem className="flex items-center gap-2 text-rose-500 focus:text-rose-600 focus:bg-rose-50" onSelect={(e) => e.preventDefault()}>
-                                  <Archive className="h-3.5 w-3.5" /> Archive Lead
-                                </DropdownMenuItem>
-                              </AlertDialogTrigger>
-                              <AlertDialogContent className="rounded-[2rem]">
-                                <AlertDialogHeader>
-                                  <AlertDialogTitle>Archive Lead Record?</AlertDialogTitle>
-                                  <AlertDialogDescription>
-                                    This will move the lead "{lead.company_name}" to the archives. It will no longer appear in the active sales pipeline.
-                                  </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                  <AlertDialogCancel className="rounded-xl">Cancel</AlertDialogCancel>
-                                  <AlertDialogAction onClick={() => handleArchiveLead(lead)} className="bg-rose-500 hover:bg-rose-600 rounded-xl">
-                                    Confirm Archive
-                                  </AlertDialogAction>
-                                </AlertDialogFooter>
-                              </AlertDialogContent>
-                            </AlertDialog>
+                            <DropdownMenuItem className="flex items-center gap-2 text-rose-500 focus:text-rose-600 focus:bg-rose-50" onClick={() => setLeadToArchive(lead)}>
+                              <Archive className="h-3.5 w-3.5" /> Archive Lead
+                            </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </div>
@@ -372,6 +355,24 @@ export default function CRMPage() {
           );
         })}
       </div>
+
+      {/* STABLE ARCHIVE DIALOG */}
+      <AlertDialog open={!!leadToArchive} onOpenChange={(open) => !open && setLeadToArchive(null)}>
+        <AlertDialogContent className="rounded-[2rem]">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Archive Lead Record?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will move the lead "{leadToArchive?.company_name}" to the archives. It will no longer appear in the active sales pipeline but remains accessible in the ledger.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="rounded-xl">Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmArchive} className="bg-rose-500 hover:bg-rose-600 rounded-xl">
+              Confirm Archive
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

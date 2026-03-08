@@ -36,7 +36,8 @@ import {
   CheckCircle2,
   TrendingUp,
   Image as ImageIcon,
-  Trash2
+  Trash2,
+  X
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -79,7 +80,6 @@ import {
   AlertDialogFooter, 
   AlertDialogHeader, 
   AlertDialogTitle, 
-  AlertDialogTrigger 
 } from "@/components/ui/alert-dialog";
 
 function ProposalsContent() {
@@ -96,6 +96,7 @@ function ProposalsContent() {
   const [viewingProposal, setViewingProposal] = useState<any>(null);
   const [isViewOpen, setIsViewOpen] = useState(false);
   const [activeSectionIdx, setActiveSectionIdx] = useState(0);
+  const [proposalToDelete, setProposalToDelete] = useState<any>(null);
 
   // Proposal Form State
   const [aiInputs, setAIInputs] = useState({
@@ -212,11 +213,12 @@ function ProposalsContent() {
     setIsSubmitting(false);
   };
 
-  const handleDeleteProposal = (proposalId: string) => {
-    if (!db || !companyId || !proposalId) return;
-    const proposalRef = doc(db, 'companies', companyId, 'proposals', proposalId);
+  const handleConfirmDelete = () => {
+    if (!db || !companyId || !proposalToDelete) return;
+    const proposalRef = doc(db, 'companies', companyId, 'proposals', proposalToDelete.id);
     deleteDocumentNonBlocking(proposalRef);
     toast({ title: "Proposal Removed", description: "Strategy has been deleted from your workspace." });
+    setProposalToDelete(null);
   };
 
   const handleViewProposal = (proposal: any) => {
@@ -240,14 +242,12 @@ function ProposalsContent() {
 
   const handleDownloadPDF = (proposal: any) => {
     handleViewProposal(proposal);
-    // Give time for state to sync and dialog to render before print
     setTimeout(() => {
       window.print();
     }, 1000);
   };
 
   const renderSectionVisuals = (section: any) => {
-    // Robust safety guard
     if (!section || !section.title) return null;
     const title = section.title.toLowerCase();
     
@@ -599,28 +599,10 @@ function ProposalsContent() {
                             <div className="flex flex-col"><span className="text-xs font-bold">Direct Email</span><span className="text-[10px] text-muted-foreground">Professional Handshake</span></div>
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <DropdownMenuItem className="gap-3 cursor-pointer py-3 text-rose-500 focus:text-rose-600 focus:bg-rose-50" onSelect={(e) => e.preventDefault()}>
-                                <div className="h-8 w-8 bg-rose-50 text-rose-600 rounded-lg flex items-center justify-center"><Trash2 className="h-4 w-4" /></div>
-                                <div className="flex flex-col"><span className="text-xs font-bold">Delete</span><span className="text-[10px] text-muted-foreground">Remove permanently</span></div>
-                              </DropdownMenuItem>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent className="rounded-[2rem]">
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  This will permanently remove this production blueprint from your workspace. This action cannot be undone.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel className="rounded-xl">Cancel</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => handleDeleteProposal(prop.id)} className="bg-rose-500 hover:bg-rose-600 rounded-xl">
-                                  Confirm Delete
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
+                          <DropdownMenuItem className="gap-3 cursor-pointer py-3 text-rose-500 focus:text-rose-600 focus:bg-rose-50" onClick={() => setProposalToDelete(prop)}>
+                            <div className="h-8 w-8 bg-rose-50 text-rose-600 rounded-lg flex items-center justify-center"><Trash2 className="h-4 w-4" /></div>
+                            <div className="flex flex-col"><span className="text-xs font-bold">Delete</span><span className="text-[10px] text-muted-foreground">Remove permanently</span></div>
+                          </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
                       <Button variant="outline" size="icon" className="h-11 w-11 rounded-xl" onClick={() => handleDownloadPDF(prop)}>
@@ -634,6 +616,24 @@ function ProposalsContent() {
           ))
         )}
       </div>
+
+      {/* STABLE DELETE DIALOG */}
+      <AlertDialog open={!!proposalToDelete} onOpenChange={(open) => !open && setProposalToDelete(null)}>
+        <AlertDialogContent className="rounded-[2rem]">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently remove the production blueprint "{proposalToDelete?.title}" from your workspace. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="rounded-xl">Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmDelete} className="bg-rose-500 hover:bg-rose-600 rounded-xl">
+              Confirm Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <Dialog open={isViewOpen} onOpenChange={setIsViewOpen}>
         <DialogContent className="sm:max-w-[1000px] rounded-[3.5rem] p-0 overflow-hidden border-none shadow-2xl h-[90vh]">

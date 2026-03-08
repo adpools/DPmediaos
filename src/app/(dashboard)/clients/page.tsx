@@ -32,13 +32,13 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 
 export default function ClientsPage() {
   const { profile, isLoading: isTenantLoading, companyId } = useTenant();
   const db = useFirestore();
   const [searchQuery, setSearchQuery] = useState("");
+  const [clientToArchive, setClientToArchive] = useState<any>(null);
 
   // Fetch unique client entities from the leads collection
   const clientsQuery = useMemoFirebase(() => {
@@ -60,11 +60,13 @@ export default function ClientsPage() {
     );
   }, [leads, searchQuery]);
 
-  const handleArchiveClient = async (client: any) => {
-    if (!db || !companyId || !client.id) return;
+  const handleConfirmArchive = async () => {
+    if (!db || !companyId || !clientToArchive) return;
 
-    // 1. Move Client to Archive
+    const client = clientToArchive;
     const archiveRef = collection(db, 'companies', companyId, 'archives');
+    
+    // 1. Move Client to Archive
     addDocumentNonBlocking(archiveRef, {
       ...client,
       archive_type: 'client',
@@ -97,6 +99,7 @@ export default function ClientsPage() {
       title: "Client Archived", 
       description: `"${client.company_name}" and associated projects moved to archives.` 
     });
+    setClientToArchive(null);
   };
 
   if (isTenantLoading || isLeadsLoading) {
@@ -205,33 +208,12 @@ export default function ClientsPage() {
                           </Link>
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <DropdownMenuItem 
-                              className="gap-2 text-rose-500 focus:text-rose-600 focus:bg-rose-50 cursor-pointer" 
-                              onSelect={(e) => e.preventDefault()}
-                            >
-                              <Archive className="h-3.5 w-3.5" /> Archive Client
-                            </DropdownMenuItem>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent className="rounded-[2rem]">
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Archive Client Record?</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                This will move "{client.company_name}" and ALL associated projects to the archives. They will no longer appear in active lists but remain accessible in the ledger.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel className="rounded-xl">Cancel</AlertDialogCancel>
-                              <AlertDialogAction 
-                                onClick={() => handleArchiveClient(client)}
-                                className="bg-rose-500 hover:bg-rose-600 rounded-xl"
-                              >
-                                Confirm Archive
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
+                        <DropdownMenuItem 
+                          className="gap-2 text-rose-500 focus:text-rose-600 focus:bg-rose-50 cursor-pointer" 
+                          onClick={() => setClientToArchive(client)}
+                        >
+                          <Archive className="h-3.5 w-3.5" /> Archive Client
+                        </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                     <Link href={`/clients/${client.id}`}>
@@ -244,6 +226,27 @@ export default function ClientsPage() {
           ))
         )}
       </div>
+
+      {/* STABLE ARCHIVE DIALOG */}
+      <AlertDialog open={!!clientToArchive} onOpenChange={(open) => !open && setClientToArchive(null)}>
+        <AlertDialogContent className="rounded-[2rem]">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Archive Client Record?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will move "{clientToArchive?.company_name}" and ALL associated projects to the archives. They will no longer appear in active lists but remain accessible in the ledger.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="rounded-xl">Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleConfirmArchive}
+              className="bg-rose-500 hover:bg-rose-600 rounded-xl"
+            >
+              Confirm Archive
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
