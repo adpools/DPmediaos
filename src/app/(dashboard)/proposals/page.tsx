@@ -750,14 +750,13 @@ function ProposalsContent() {
 
                     {/* NAV CONTROLS */}
                     <div className="pt-12 border-t flex justify-between items-center">
-                      <Button 
-                        variant="ghost" 
+                      <button 
                         disabled={activeSectionIdx === 0}
                         onClick={() => setActiveSectionIdx(prev => prev - 1)}
-                        className="rounded-xl font-black uppercase text-[10px] tracking-widest"
+                        className="rounded-xl font-black uppercase text-[10px] tracking-widest px-4 py-2 hover:bg-slate-50 disabled:opacity-30"
                       >
                         Previous Section
-                      </Button>
+                      </button>
                       <Button 
                         disabled={activeSectionIdx === (viewingProposal?.parsedContent?.sections?.length || 0) - 1}
                         onClick={() => setActiveSectionIdx(prev => prev + 1)}
