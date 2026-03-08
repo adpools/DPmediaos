@@ -4,12 +4,12 @@
 import { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Building2, Search, Filter, MoreHorizontal, Plus, Briefcase, Mail, Phone, Loader2, ExternalLink, Zap, Trash2, Archive } from "lucide-react";
+import { Building2, Search, Filter, MoreHorizontal, Plus, Briefcase, Mail, Phone, Loader2, ExternalLink, Zap, Trash2, Archive, Sparkles } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { useTenant } from "@/hooks/use-tenant";
 import { useCollection, useMemoFirebase } from "@/firebase";
-import { collection, query, orderBy, doc, getDocs, where } from "firebase/firestore";
+import { collection, query, orderBy, doc, getDocs, where, serverTimestamp } from "firebase/firestore";
 import { useFirestore } from "@/firebase";
 import { addDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { toast } from "@/hooks/use-toast";
@@ -33,12 +33,33 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export default function ClientsPage() {
   const { profile, isLoading: isTenantLoading, companyId } = useTenant();
   const db = useFirestore();
   const [searchQuery, setSearchQuery] = useState("");
   const [clientToArchive, setClientToArchive] = useState<any>(null);
+  
+  // Onboarding Form State
+  const [isOnboardOpen, setIsOnboardOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [newClient, setNewClient] = useState({
+    company_name: "",
+    industry: "Advertising",
+    service_vertical: "Brand Film",
+    email: "",
+    deal_value: ""
+  });
 
   // Fetch unique client entities from the leads collection
   const clientsQuery = useMemoFirebase(() => {
@@ -59,6 +80,31 @@ export default function ClientsPage() {
       l.service_vertical?.toLowerCase().includes(searchQuery.toLowerCase())
     );
   }, [leads, searchQuery]);
+
+  const handleOnboardClient = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!companyId || !newClient.company_name) return;
+
+    setIsSubmitting(true);
+    const leadsRef = collection(db, 'companies', companyId, 'leads');
+    
+    addDocumentNonBlocking(leadsRef, {
+      company_id: companyId,
+      ...newClient,
+      deal_value: parseFloat(newClient.deal_value) || 0,
+      stage: 'lead', // Initial CRM stage
+      created_at: serverTimestamp(),
+    });
+
+    toast({ 
+      title: "Client Onboarded", 
+      description: `${newClient.company_name} has been added to your directory and pipeline.` 
+    });
+
+    setNewClient({ company_name: "", industry: "Advertising", service_vertical: "Brand Film", email: "", deal_value: "" });
+    setIsOnboardOpen(false);
+    setIsSubmitting(false);
+  };
 
   const handleConfirmArchive = async () => {
     if (!db || !companyId || !clientToArchive) return;
@@ -127,11 +173,9 @@ export default function ClientsPage() {
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
-          <Link href="/crm">
-            <Button className="gap-2 rounded-xl shadow-lg shadow-primary/20">
-              <Plus className="h-4 w-4" /> Onboard Client
-            </Button>
-          </Link>
+          <Button onClick={() => setIsOnboardOpen(true)} className="gap-2 rounded-xl shadow-lg shadow-primary/20">
+            <Plus className="h-4 w-4" /> Onboard Client
+          </Button>
         </div>
       </div>
 
@@ -142,10 +186,8 @@ export default function ClientsPage() {
             <p className="font-medium">No partners found matching your search.</p>
             {!searchQuery && (
               <>
-                <p className="text-xs mb-4">Start by adding a lead in the CRM.</p>
-                <Link href="/crm">
-                  <Button variant="outline" size="sm" className="rounded-xl">Go to CRM</Button>
-                </Link>
+                <p className="text-xs mb-4">Start by onboarding your first client.</p>
+                <Button variant="outline" size="sm" className="rounded-xl" onClick={() => setIsOnboardOpen(true)}>Initialize Directory</Button>
               </>
             )}
           </div>
@@ -227,7 +269,95 @@ export default function ClientsPage() {
         )}
       </div>
 
-      {/* STABLE ARCHIVE DIALOG */}
+      {/* ONBOARD CLIENT DIALOG */}
+      <Dialog open={isOnboardOpen} onOpenChange={setIsOnboardOpen}>
+        <DialogContent className="sm:max-w-[450px] rounded-[2.5rem]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-accent" />
+              Onboard New Client
+            </DialogTitle>
+            <DialogDescription>
+              Register a new partner company into your production OS.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleOnboardClient} className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="companyName">Client Company Name</Label>
+              <Input 
+                id="companyName" 
+                placeholder="e.g. RedBull Media" 
+                value={newClient.company_name}
+                onChange={(e) => setNewClient({...newClient, company_name: e.target.value})}
+                required
+                className="rounded-xl h-11"
+              />
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="industry">Industry</Label>
+                <Select onValueChange={(val) => setNewClient({...newClient, industry: val})} defaultValue="Advertising">
+                  <SelectTrigger className="rounded-xl h-11">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {['Advertising', 'Fashion', 'Real Estate', 'Tech', 'Entertainment', 'Luxury', 'Other'].map(i => (
+                      <SelectItem key={i} value={i}>{i}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="vertical">Vertical</Label>
+                <Select onValueChange={(val) => setNewClient({...newClient, service_vertical: val})} defaultValue="Brand Film">
+                  <SelectTrigger className="rounded-xl h-11">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {['Brand Film', 'Corporate Video', 'TV Commercial', 'Social Content', 'Documentary', 'Music Video', 'Virtual Production'].map(v => (
+                      <SelectItem key={v} value={v}>{v}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="email">Point of Contact Email</Label>
+              <Input 
+                id="email" 
+                type="email"
+                placeholder="poc@client.com" 
+                value={newClient.email}
+                onChange={(e) => setNewClient({...newClient, email: e.target.value})}
+                className="rounded-xl h-11"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="value">Est. Commercial Value (₹)</Label>
+              <Input 
+                id="value" 
+                type="number"
+                placeholder="50000" 
+                value={newClient.deal_value}
+                onChange={(e) => setNewClient({...newClient, deal_value: e.target.value})}
+                className="rounded-xl h-11"
+              />
+            </div>
+
+            <DialogFooter className="pt-4">
+              <Button type="submit" disabled={isSubmitting} className="w-full rounded-xl h-12 font-bold shadow-lg shadow-primary/20">
+                {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                Authorize Onboarding
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* ARCHIVE DIALOG */}
       <AlertDialog open={!!clientToArchive} onOpenChange={(open) => !open && setClientToArchive(null)}>
         <AlertDialogContent className="rounded-[2rem]">
           <AlertDialogHeader>
