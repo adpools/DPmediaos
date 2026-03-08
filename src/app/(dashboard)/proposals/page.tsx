@@ -175,7 +175,7 @@ function ProposalsContent() {
       setGeneratedDraft(result);
       setGenerationStep('preview');
       setActiveSectionIdx(0);
-      toast({ title: "Draft Generated", description: "Proposal draft is ready for review." });
+      toast({ title: "Proposal Draft Generated", description: "Review and refine your strategy." });
     } catch (error) {
       toast({ variant: "destructive", title: "Generation Failed" });
     } finally {
@@ -205,7 +205,7 @@ function ProposalsContent() {
     setGenerationStep('input');
     setIsAddOpen(false);
     setIsSubmitting(false);
-    toast({ title: "Proposal Saved" });
+    toast({ title: "Proposal Saved Successfully" });
   };
 
   const handleConfirmDelete = () => {
@@ -230,20 +230,20 @@ function ProposalsContent() {
   const handleShareCopy = (proposal: any) => {
     const shareUrl = `${window.location.origin}/proposals?id=${proposal.id}`;
     navigator.clipboard.writeText(shareUrl).then(() => {
-      toast({ title: "Link Copied", description: "Direct access link ready." });
+      toast({ title: "Proposal Link Copied", description: "Link ready for direct distribution." });
     });
   };
 
   const handleShareWhatsApp = (proposal: any) => {
     const shareUrl = `${window.location.origin}/proposals?id=${proposal.id}`;
-    const text = encodeURIComponent(`Hi, please find the production proposal for ${proposal.client_name} here: ${shareUrl}\n\nYou can also export this as a PDF from the viewer.`);
+    const text = encodeURIComponent(`Hi, please find the formal production proposal for ${proposal.client_name} via the secure link below. \n\nLink: ${shareUrl}\n\n(Tip: For a hard copy, use the 'Print/PDF' button within the link to download the professional file.)`);
     window.open(`https://wa.me/?text=${text}`, '_blank');
   };
 
   const handleShareEmail = (proposal: any) => {
     const shareUrl = `${window.location.origin}/proposals?id=${proposal.id}`;
     const subject = encodeURIComponent(`Production Proposal: ${proposal.title}`);
-    const body = encodeURIComponent(`Hello,\n\nPlease review the production proposal for ${proposal.client_name} via the link below. You can also download the professional PDF version directly from the platform.\n\nLink: ${shareUrl}\n\nBest regards,\n${profile?.fullName || 'Production Team'}`);
+    const body = encodeURIComponent(`Hello,\n\nPlease review the high-premium production proposal for ${proposal.client_name} using the access link below. \n\nYou can view the full strategy interactiveley or download the professional PDF version directly from the platform.\n\nAccess Link: ${shareUrl}\n\nBest regards,\n${profile?.fullName || 'The Production Team'}`);
     window.location.href = `mailto:?subject=${subject}&body=${body}`;
   };
 
@@ -260,7 +260,7 @@ function ProposalsContent() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 no-print">
         <div>
           <h1 className="text-3xl font-bold text-primary">Proposals</h1>
-          <p className="text-muted-foreground text-sm">Automated synthesis of premium production proposals.</p>
+          <p className="text-muted-foreground text-sm">Create and distribute high-premium production strategies.</p>
         </div>
         <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
           <DialogTrigger asChild>
@@ -277,7 +277,7 @@ function ProposalsContent() {
                   </div>
                   <div>
                     <DialogTitle className="text-2xl font-black text-white">Proposal Architect</DialogTitle>
-                    <DialogDescription className="text-slate-400 text-xs">AI Proposal Engine</DialogDescription>
+                    <DialogDescription className="text-slate-400 text-xs">AI-Powered Strategy Engine</DialogDescription>
                   </div>
                 </div>
               </div>
@@ -287,14 +287,14 @@ function ProposalsContent() {
                   <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 flex flex-col">
                     <div className="space-y-2 p-5 bg-indigo-500/10 rounded-3xl border border-indigo-500/20 shrink-0">
                       <Label className="text-[10px] font-black uppercase text-indigo-400 tracking-widest flex items-center gap-2 mb-2">
-                        <Database className="h-3 w-3" /> Context Sync
+                        <Database className="h-3 w-3" /> Opportunity Context
                       </Label>
                       <Select onValueChange={(val) => {
                         const lead = leads?.find(l => l.id === val);
                         if (lead) setAIInputs(prev => ({ ...prev, leadId: lead.id, service_vertical: lead.service_vertical || "", client_type: lead.industry || "", location: lead.billing_address || "", budget: lead.deal_value ? `₹${lead.deal_value.toLocaleString()}` : "" }));
                       }} value={aiInputs.leadId}>
                         <SelectTrigger className="bg-white/5 border-white/10 rounded-xl h-10 text-xs text-slate-300">
-                          <SelectValue placeholder="Link to CRM Opportunity..." />
+                          <SelectValue placeholder="Sync with CRM Opportunity..." />
                         </SelectTrigger>
                         <SelectContent>
                           {leads?.map((lead) => (
@@ -306,24 +306,24 @@ function ProposalsContent() {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 shrink-0">
                       <div className="space-y-2">
-                        <Label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Service Vertical</Label>
+                        <Label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Service Category</Label>
                         <Input placeholder="e.g. Brand Commercial" value={aiInputs.service_vertical} onChange={(e) => setAIInputs({...aiInputs, service_vertical: e.target.value})} className="bg-white/5 border-white/10 rounded-xl h-11 text-white" />
                       </div>
                       <div className="space-y-2">
-                        <Label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Client Industry</Label>
+                        <Label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Target Industry</Label>
                         <Input placeholder="e.g. Real Estate" value={aiInputs.client_type} onChange={(e) => setAIInputs({...aiInputs, client_type: e.target.value})} className="bg-white/5 border-white/10 rounded-xl h-11 text-white" />
                       </div>
                     </div>
 
                     <div className="space-y-2 shrink-0">
-                      <Label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Vision & Brief</Label>
-                      <Textarea placeholder="Core objectives and requirements..." value={aiInputs.project_description} onChange={(e) => setAIInputs({...aiInputs, project_description: e.target.value})} className="bg-white/5 border-white/10 rounded-xl min-h-[120px] text-white" />
+                      <Label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Strategic Vision</Label>
+                      <Textarea placeholder="Describe the core goals and production requirements..." value={aiInputs.project_description} onChange={(e) => setAIInputs({...aiInputs, project_description: e.target.value})} className="bg-white/5 border-white/10 rounded-xl min-h-[120px] text-white" />
                     </div>
                   </div>
                 ) : (
                   <div className="flex h-full min-h-[400px] gap-8 animate-in zoom-in-95">
                     <aside className="w-64 space-y-4 shrink-0 overflow-y-auto pr-4 custom-scrollbar">
-                      <h3 className="text-[10px] font-black uppercase text-indigo-400 tracking-[0.2em] mb-4">Draft Navigation</h3>
+                      <h3 className="text-[10px] font-black uppercase text-indigo-400 tracking-[0.2em] mb-4">Structure Navigation</h3>
                       {generatedDraft?.sections.map((sec, idx) => (
                         <button key={idx} onClick={() => setActiveSectionIdx(idx)} className={cn("w-full text-left px-4 py-3 rounded-xl text-[11px] font-bold border border-transparent transition-all", activeSectionIdx === idx ? "bg-indigo-600 text-white shadow-lg" : "text-slate-400 hover:bg-white/5")}>
                           {idx + 1}. {sec.title}
@@ -342,14 +342,14 @@ function ProposalsContent() {
                 {generationStep === 'input' ? (
                   <Button onClick={handleGenerateAI} disabled={isGenerating} className="w-full bg-indigo-600 hover:bg-indigo-700 h-14 rounded-2xl font-black uppercase text-xs tracking-widest gap-3 shadow-xl">
                     {isGenerating ? <Loader2 className="h-5 w-5 animate-spin" /> : <Sparkles className="h-5 w-5" />}
-                    Create Proposals
+                    Generate Proposal
                   </Button>
                 ) : (
                   <div className="flex gap-4">
-                    <Button onClick={() => setGenerationStep('input')} variant="outline" className="flex-1 border-white/10 text-white rounded-2xl h-14 font-black uppercase text-[10px]">Refine Brief</Button>
+                    <Button onClick={() => setGenerationStep('input')} variant="outline" className="flex-1 border-white/10 text-white rounded-2xl h-14 font-black uppercase text-[10px]">Refine Inputs</Button>
                     <Button onClick={handleCreateProposal} disabled={isSubmitting} className="flex-[2] bg-indigo-600 hover:bg-indigo-700 h-14 rounded-2xl font-black uppercase text-xs tracking-widest gap-3 shadow-xl">
                       {isSubmitting ? <Loader2 className="h-5 w-5 animate-spin" /> : <FileCheck className="h-5 w-5" />}
-                      Finalize Proposal
+                      Finalize & Save Proposal
                     </Button>
                   </div>
                 )}
@@ -363,7 +363,7 @@ function ProposalsContent() {
         {proposals?.length === 0 ? (
           <Card className="border-2 border-dashed p-24 text-center rounded-[3rem] bg-white/50">
             <BrainCircuit className="h-16 w-16 mx-auto mb-6 opacity-10" />
-            <p className="font-black uppercase tracking-widest text-xs text-muted-foreground">No active proposals found.</p>
+            <p className="font-black uppercase tracking-widest text-xs text-muted-foreground">Your proposal vault is currently empty.</p>
             <Button variant="link" className="mt-4 font-bold" onClick={() => setIsAddOpen(true)}>Create Proposals</Button>
           </Card>
         ) : (
@@ -395,13 +395,13 @@ function ProposalsContent() {
                           <Share2 className="h-4 w-4" /> Distribute
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="rounded-xl w-60 p-2">
-                        <DropdownMenuLabel className="text-[10px] uppercase font-black text-muted-foreground tracking-widest px-3 py-2">Share Proposal</DropdownMenuLabel>
+                      <DropdownMenuContent align="end" className="rounded-xl w-64 p-2">
+                        <DropdownMenuLabel className="text-[10px] uppercase font-black text-muted-foreground tracking-widest px-3 py-2">Distribution Channels</DropdownMenuLabel>
                         <DropdownMenuItem onClick={() => handleShareWhatsApp(prop)} className="gap-2 py-3 cursor-pointer rounded-lg">
                           <MessageSquare className="h-4 w-4 text-emerald-500" /> Share via WhatsApp
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => handleShareEmail(prop)} className="gap-2 py-3 cursor-pointer rounded-lg">
-                          <Mail className="h-4 w-4 text-primary" /> Send via Email
+                          <Mail className="h-4 w-4 text-primary" /> Share via Email
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem onClick={() => handleShareCopy(prop)} className="gap-2 py-3 cursor-pointer rounded-lg">
@@ -421,7 +421,7 @@ function ProposalsContent() {
       <AlertDialog open={!!proposalToDelete} onOpenChange={(open) => !open && setProposalToDelete(null)}>
         <AlertDialogContent className="rounded-[2rem]">
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Proposal?</AlertDialogTitle>
+            <AlertDialogTitle>Delete Proposal Record?</AlertDialogTitle>
             <AlertDialogDescription>Permanently remove "{proposalToDelete?.title}"? This cannot be undone.</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -471,7 +471,6 @@ function ProposalsContent() {
                     {viewingProposal?.parsedContent?.sections[activeSectionIdx]?.content}
                   </div>
                   
-                  {/* Visual KPI Placeholders for specific sections */}
                   {viewingProposal?.parsedContent?.sections[activeSectionIdx]?.title.toLowerCase().includes('kpi') && (
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8 no-print">
                       {[{ label: 'Engagement', val: '+45%' }, { label: 'ROI', val: '185%' }, { label: 'Growth', val: '2.4x' }, { label: 'Reach', val: '50k+' }].map((k, i) => (
@@ -483,7 +482,6 @@ function ProposalsContent() {
                     </div>
                   )}
 
-                  {/* Print-only Footer */}
                   <div className="hidden print:block pt-24 text-center border-t border-slate-100">
                     <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">DP Media OS • Premium Production Proposal</p>
                     <p className="text-[8px] text-slate-300 mt-1">Electronically verified and generated via AI Architect</p>
@@ -493,8 +491,13 @@ function ProposalsContent() {
             </div>
 
             <div className="p-8 border-t bg-slate-50 flex items-center justify-between no-print shrink-0">
-              <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">AI Proposal Engine • {new Date().getFullYear()}</p>
-              <Button className="rounded-xl font-bold h-11 px-8 shadow-lg" onClick={() => setIsViewOpen(false)}>Close Proposal</Button>
+              <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Strategic Intelligence • {new Date().getFullYear()}</p>
+              <div className="flex gap-3">
+                <Button variant="outline" className="rounded-xl font-bold h-11 px-6 gap-2" onClick={() => handleShareWhatsApp(viewingProposal)}>
+                  <MessageSquare className="h-4 w-4" /> Share to WhatsApp
+                </Button>
+                <Button className="rounded-xl font-bold h-11 px-8 shadow-lg" onClick={() => setIsViewOpen(false)}>Close Viewer</Button>
+              </div>
             </div>
           </div>
         </DialogContent>
