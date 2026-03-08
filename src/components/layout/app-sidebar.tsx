@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from "react";
@@ -39,6 +40,9 @@ import { toast } from "@/hooks/use-toast";
 import { useTenant } from "@/hooks/use-tenant";
 import { useAuth } from "@/firebase";
 import { signOut } from "firebase/auth";
+import Image from "next/image";
+import { PlaceHolderImages } from "@/lib/placeholder-images";
+import { cn } from "@/lib/utils";
 
 // Module registry for dynamic navigation
 const workspaceItems = [
@@ -81,20 +85,26 @@ export function AppSidebar() {
     );
   }
 
+  const logoUrl = PlaceHolderImages.find(img => img.id === 'app-logo')?.imageUrl || "https://picsum.photos/seed/logo/200/200";
+
   return (
     <Sidebar collapsible="icon" className="border-none bg-white">
       <SidebarHeader className="p-6">
-        <div className="flex items-center gap-4">
-          <Avatar className="h-12 w-12 ring-2 ring-accent/10">
-            <AvatarImage src={profile?.avatar} />
-            <AvatarFallback className="bg-primary/5 text-primary text-xs font-bold">
-              {profile?.full_name?.substring(0, 2).toUpperCase() || 'U'}
-            </AvatarFallback>
-          </Avatar>
+        <div className="flex items-center gap-3">
+          <div className="h-10 w-10 shrink-0 overflow-hidden rounded-xl border bg-slate-50 flex items-center justify-center">
+            <Image 
+              src={logoUrl}
+              width={40}
+              height={40}
+              alt="Marzelz Logo"
+              className="object-contain"
+              data-ai-hint="minimalist logo"
+            />
+          </div>
           {state !== "collapsed" && (
             <div className="flex flex-col">
-              <span className="text-sm font-bold font-headline">{profile?.full_name}</span>
-              <span className="text-[10px] text-muted-foreground font-medium">{company?.name || 'Workspace'}</span>
+              <span className="text-sm font-black tracking-tight text-primary uppercase">Marzelz</span>
+              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest leading-none">Lifestyle</span>
             </div>
           )}
         </div>
@@ -183,10 +193,29 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="p-6">
-        <Button size="icon" className="h-12 w-12 rounded-2xl bg-accent hover:bg-accent/90 shadow-lg shadow-accent/30">
-          <Plus className="h-6 w-6" />
-        </Button>
+      <SidebarFooter className="p-4 mt-auto border-t space-y-4">
+        <div className={cn(
+          "flex items-center gap-3 p-2 rounded-xl hover:bg-slate-50 transition-colors cursor-pointer",
+          state === "collapsed" ? "justify-center" : ""
+        )}>
+          <Avatar className="h-9 w-9 ring-2 ring-accent/10 shrink-0">
+            <AvatarImage src={profile?.avatar} />
+            <AvatarFallback className="bg-primary/5 text-primary text-[10px] font-bold">
+              {profile?.full_name?.substring(0, 2).toUpperCase() || 'U'}
+            </AvatarFallback>
+          </Avatar>
+          {state !== "collapsed" && (
+            <div className="flex flex-col min-w-0">
+              <span className="text-xs font-bold font-headline truncate">{profile?.full_name}</span>
+              <span className="text-[9px] text-muted-foreground font-medium truncate">{company?.name || 'Workspace'}</span>
+            </div>
+          )}
+        </div>
+        <div className="flex justify-center w-full">
+          <Button size="icon" className="h-10 w-10 md:h-12 md:w-12 rounded-2xl bg-accent hover:bg-accent/90 shadow-lg shadow-accent/30 shrink-0">
+            <Plus className="h-5 w-5 md:h-6 md:w-6" />
+          </Button>
+        </div>
       </SidebarFooter>
     </Sidebar>
   );

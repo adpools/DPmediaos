@@ -3,9 +3,9 @@
   "placeholderImages": [
     {
       "id": "app-logo",
-      "description": "DP Media OS Logo",
-      "imageUrl": "https://picsum.photos/seed/dp-logo/200/200",
-      "imageHint": "media logo"
+      "description": "Marzelz Lifestyle Logo",
+      "imageUrl": "https://picsum.photos/seed/marzelz-logo/200/200",
+      "imageHint": "minimalist logo"
     },
     {
       "id": "talent-actor-1",
