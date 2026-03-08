@@ -218,7 +218,7 @@ export default function ClientsPage() {
 
       toast({ 
         title: "Client Onboarded", 
-        description: `${newClient.company_name} has been added with ${allServices.length} planned services.` 
+        description: `${newClient.company_name} has been added successfully.` 
       });
 
       resetOnboarding();
@@ -450,7 +450,7 @@ export default function ClientsPage() {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="value" className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Est. Account Value (₹)</Label>
+                      <Label htmlFor="value" className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Est. Account Value (₹) - Optional</Label>
                       <Input 
                         id="value" 
                         type="number"
@@ -588,13 +588,23 @@ export default function ClientsPage() {
               {onboardStep === 'info' ? (
                 <>
                   <Button variant="ghost" onClick={() => setIsOnboardOpen(false)} className="rounded-xl font-bold text-slate-400">Cancel</Button>
-                  <Button 
-                    onClick={() => setOnboardStep('services')} 
-                    disabled={!newClient.company_name}
-                    className="rounded-2xl h-12 px-10 font-black uppercase text-xs tracking-widest gap-2 shadow-xl shadow-primary/20"
-                  >
-                    Architect Scope <ChevronRight className="h-4 w-4" />
-                  </Button>
+                  <div className="flex gap-3">
+                    <Button 
+                      variant="outline"
+                      onClick={handleOnboardClient} 
+                      disabled={!newClient.company_name || isSubmitting}
+                      className="rounded-2xl h-12 px-6 font-black uppercase text-[10px] tracking-widest gap-2"
+                    >
+                      {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Finalize Now"}
+                    </Button>
+                    <Button 
+                      onClick={() => setOnboardStep('services')} 
+                      disabled={!newClient.company_name}
+                      className="rounded-2xl h-12 px-10 font-black uppercase text-xs tracking-widest gap-2 shadow-xl shadow-primary/20"
+                    >
+                      Architect Scope <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </>
               ) : (
                 <>
