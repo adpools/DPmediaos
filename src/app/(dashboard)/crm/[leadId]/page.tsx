@@ -37,6 +37,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { cn } from "@/lib/utils";
 
 export default function LeadDetailPage({ params }: { params: Promise<{ leadId: string }> }) {
   const { leadId } = use(params);
@@ -184,7 +185,7 @@ export default function LeadDetailPage({ params }: { params: Promise<{ leadId: s
                 </Select>
               </div>
             </CardHeader>
-            <CardContent className="p-8 space-y-8">
+            <CardContent className="p-8 space-y-10">
               <div className="space-y-4">
                 <div className="flex justify-between items-end">
                   <span className="text-[10px] font-bold uppercase tracking-widest text-primary">Pipeline Velocity</span>
@@ -192,17 +193,52 @@ export default function LeadDetailPage({ params }: { params: Promise<{ leadId: s
                 </div>
                 <Progress value={progressValue} className="h-2 rounded-full" />
               </div>
-              <div className="flex justify-between items-start gap-2">
+              
+              <div className="flex flex-col gap-6 relative px-2">
                 {PIPELINE_STAGES.map((s, idx) => {
                   const isCompleted = idx <= currentStageIndex;
+                  const isCurrent = idx === currentStageIndex;
+                  const isLast = idx === PIPELINE_STAGES.length - 1;
+                  
                   return (
-                    <div key={s.id} className="flex flex-col items-center gap-2 flex-1 group">
-                      <div className={`h-8 w-8 rounded-full flex items-center justify-center transition-colors ${isCompleted ? 'bg-primary text-white' : 'bg-slate-100 text-slate-300'}`}>
+                    <div key={s.id} className="flex gap-6 relative group">
+                      {/* Vertical Connector Line */}
+                      {!isLast && (
+                        <div className={cn(
+                          "absolute left-[15px] top-8 w-0.5 h-[calc(100%+8px)] z-0",
+                          idx < currentStageIndex ? "bg-primary" : "bg-slate-100"
+                        )} />
+                      )}
+                      
+                      {/* Stage Indicator */}
+                      <div className={cn(
+                        "relative z-10 h-8 w-8 rounded-full flex items-center justify-center shrink-0 transition-all duration-500",
+                        isCompleted 
+                          ? "bg-primary text-white shadow-lg shadow-primary/20 scale-110" 
+                          : "bg-slate-100 text-slate-300"
+                      )}>
                         {isCompleted ? <CheckCircle2 className="h-4 w-4" /> : <Clock className="h-4 w-4" />}
                       </div>
-                      <span className={`text-[9px] font-bold text-center uppercase tracking-tighter ${isCompleted ? 'text-primary' : 'text-slate-400'}`}>
-                        {s.name}
-                      </span>
+                      
+                      {/* Stage Info */}
+                      <div className="flex flex-col gap-1 pt-1.5 flex-1">
+                        <div className="flex items-center justify-between">
+                          <span className={cn(
+                            "text-[11px] font-black uppercase tracking-widest transition-colors",
+                            isCompleted ? "text-primary" : "text-slate-400"
+                          )}>
+                            {s.name}
+                          </span>
+                          {isCurrent && (
+                            <Badge className="bg-emerald-50 text-emerald-600 border-none font-bold text-[8px] h-4">ACTIVE</Badge>
+                          )}
+                        </div>
+                        {isCompleted && (
+                          <p className="text-[10px] text-muted-foreground font-medium italic">
+                            Stage reached successfully in current workflow.
+                          </p>
+                        )}
+                      </div>
                     </div>
                   );
                 })}
