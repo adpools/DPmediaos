@@ -1,33 +1,13 @@
 
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect } from "react";
 import { AppSidebar } from "@/components/layout/app-sidebar";
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { Toaster } from "@/components/ui/toaster";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
-import { 
-  Calendar, 
-  LayoutGrid, 
-  MoreHorizontal, 
-  Smile, 
-  ArrowRight, 
-  Plus, 
-  Loader2, 
-  X, 
-  Video, 
-  ChevronLeft,
-  ChevronRight
-} from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
+import { Loader2 } from "lucide-react";
 import { useTenant } from "@/hooks/use-tenant";
-import { doc, serverTimestamp, collection, query, where, orderBy, limit, collectionGroup } from "firebase/firestore";
-import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
-import { useRouter, usePathname } from "next/navigation";
-import { Badge } from "@/components/ui/badge";
-import Link from "next/link";
-import { cn } from "@/lib/utils";
+import { useRouter } from "next/navigation";
 
 export default function DashboardLayout({
   children,
@@ -35,48 +15,9 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const { profile, user, companyId, isSuperAdmin, isLoading } = useTenant();
-  const db = useFirestore();
   const router = useRouter();
-  const pathname = usePathname();
 
-  const isDashboard = pathname === '/dashboard';
-  const [isRightSidebarOpen, setIsRightSidebarOpen] = useState(true);
-
-  // 1. Fetch Projects for Sidebar Stats
-  const projectsQuery = useMemoFirebase(() => {
-    if (!db || !companyId) return null;
-    return query(collection(db, 'companies', companyId, 'projects'));
-  }, [db, companyId]);
-
-  const { data: projects } = useCollection(projectsQuery);
-
-  const completedCount = projects?.filter(p => p.status === 'completed').length || 0;
-  const inProgressCount = projects?.filter(p => p.status === 'in_progress').length || 0;
-
-  // 2. Fetch Talent for Sidebar Stats
-  const talentsQuery = useMemoFirebase(() => {
-    if (!db || !companyId) return null;
-    return query(collection(db, 'companies', companyId, 'talents'));
-  }, [db, companyId]);
-
-  const { data: talents } = useCollection(talentsQuery);
-  const talentCount = talents?.length || 0;
-
-  // 3. Fetch Upcoming Schedule Events from Production Days (Standardized to company_id)
-  const scheduleQuery = useMemoFirebase(() => {
-    if (!db || !companyId) return null;
-    return query(
-      collectionGroup(db, 'production_days'),
-      where('company_id', '==', companyId),
-      orderBy('date', 'asc'),
-      limit(1)
-    );
-  }, [db, companyId]);
-
-  const { data: upcomingEvents } = useCollection(scheduleQuery);
-  const nextEvent = upcomingEvents?.[0];
-
-  // 4. Protection & Redirection Logic
+  // Protection & Redirection Logic
   useEffect(() => {
     if (!isLoading) {
       const cId = profile?.company_id || (profile as any)?.companyId;
@@ -112,125 +53,12 @@ export default function DashboardLayout({
               <div className="h-8 w-8 bg-primary rounded-lg flex items-center justify-center text-white font-bold text-xs">DP</div>
               <span className="font-bold text-sm tracking-tight text-primary">DP Media OS</span>
             </div>
-            {isDashboard && (
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className="ml-auto" 
-                onClick={() => setIsRightSidebarOpen(!isRightSidebarOpen)}
-              >
-                {isRightSidebarOpen ? <ChevronRight className="h-5 w-5" /> : <ChevronLeft className="h-5 w-5" />}
-              </Button>
-            )}
           </header>
 
           <div className="flex flex-row flex-1 overflow-hidden relative">
-            {/* Toggle Button for Desktop & Tablet */}
-            {isDashboard && (
-              <div className="hidden md:block absolute top-8 right-8 z-50">
-                <Button 
-                  variant="outline" 
-                  size="icon" 
-                  onClick={() => setIsRightSidebarOpen(!isRightSidebarOpen)}
-                  className={cn(
-                    "rounded-xl bg-white shadow-soft transition-all duration-300 border-none hover:bg-slate-50",
-                    !isRightSidebarOpen && "bg-primary text-white hover:bg-primary/90"
-                  )}
-                >
-                  {isRightSidebarOpen ? (
-                    <ChevronRight className="h-5 w-5" />
-                  ) : (
-                    <ChevronLeft className="h-5 w-5" />
-                  )}
-                </Button>
-              </div>
-            )}
-
             <main className="flex-1 p-4 md:p-8 overflow-auto">
               {children}
             </main>
-            
-            {isDashboard && (
-              <aside 
-                className={cn(
-                  "fixed inset-y-0 right-0 z-40 w-[380px] p-8 bg-white/90 backdrop-blur-xl border-l shadow-2xl transition-all duration-500 ease-in-out transform flex flex-col gap-10",
-                  "xl:relative xl:bg-transparent xl:border-none xl:shadow-none xl:translate-x-0",
-                  isRightSidebarOpen ? "translate-x-0" : "translate-x-full xl:hidden"
-                )}
-              >
-                {/* Header: Today's Schedule */}
-                <div className="space-y-6">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-2xl font-bold font-headline text-[#1A1D2C]">Today's Schedule</h3>
-                    <div className="flex gap-2">
-                      <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl bg-white shadow-sm border border-white hover:bg-slate-50"><LayoutGrid className="h-5 w-5 text-slate-600" /></Button>
-                      <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl bg-white shadow-sm border border-white hover:bg-slate-50"><Calendar className="h-5 w-5 text-slate-600" /></Button>
-                    </div>
-                  </div>
-
-                  <Card className="border-none shadow-soft rounded-[2.5rem] overflow-hidden">
-                    <CardContent className="p-0">
-                      <div className="p-8 bg-white space-y-4">
-                        <div className="flex justify-between items-center">
-                          <span className="text-[10px] font-bold text-accent uppercase tracking-widest">
-                            {nextEvent ? `Next Production: ${new Date(nextEvent.date).toLocaleDateString()}` : 'No upcoming events'}
-                          </span>
-                          {nextEvent && <button className="text-[11px] text-[#4F46E5] font-bold hover:underline">+ Invite</button>}
-                        </div>
-                        <h4 className="font-bold text-xl text-[#1A1D2C]">
-                          {nextEvent ? nextEvent.location || 'Production Briefing' : 'Planning Session'}
-                        </h4>
-                      </div>
-                      <div className="px-8 py-6 bg-[#34D399] flex items-center justify-between text-white">
-                        <div className="flex items-center">
-                          <div className="flex -space-x-2">
-                            {[1, 2, 3].map(m => (
-                              <Avatar key={m} className="h-10 w-10 border-2 border-[#34D399]">
-                                <AvatarImage src={`https://picsum.photos/seed/${m + 50}/100/100`} />
-                                <AvatarFallback>U</AvatarFallback>
-                              </Avatar>
-                            ))}
-                            <div className="h-10 w-10 rounded-full bg-white/20 border-2 border-[#34D399] flex items-center justify-center text-xs font-bold">+</div>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-4">
-                          <div className="h-10 w-10 rounded-2xl bg-white/20 flex items-center justify-center hover:bg-white/30 transition-colors cursor-pointer">
-                            <Video className="h-5 w-5" />
-                          </div>
-                          <MoreHorizontal className="h-5 w-5 opacity-60" />
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-
-                {/* Production Project Stats */}
-                <div className="space-y-6">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-2xl font-bold font-headline text-[#1A1D2C]">Production Stats</h3>
-                    <MoreHorizontal className="h-5 w-5 text-slate-400" />
-                  </div>
-                  <div className="flex items-center gap-2 text-[11px] text-slate-400 font-bold uppercase tracking-widest">
-                    <Smile className="h-4 w-4 text-orange-400" /> Team Pulse
-                  </div>
-                  
-                  <div className="grid grid-cols-3 gap-4 pt-2">
-                    <div className="space-y-1">
-                      <span className="text-[10px] font-bold text-slate-400 uppercase">Done</span>
-                      <p className="text-2xl font-bold font-headline text-[#1A1D2C]">{completedCount}</p>
-                    </div>
-                    <div className="space-y-1">
-                      <span className="text-[10px] font-bold text-slate-400 uppercase">Active</span>
-                      <p className="text-2xl font-bold font-headline text-[#1A1D2C]">{inProgressCount}</p>
-                    </div>
-                    <div className="space-y-1">
-                      <span className="text-[10px] font-bold text-slate-400 uppercase">Talent</span>
-                      <p className="text-2xl font-bold font-headline text-[#1A1D2C]">{talentCount}</p>
-                    </div>
-                  </div>
-                </div>
-              </aside>
-            )}
           </div>
         </SidebarInset>
       </div>
