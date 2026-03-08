@@ -1,13 +1,13 @@
 
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AppSidebar } from "@/components/layout/app-sidebar";
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { Toaster } from "@/components/ui/toaster";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Calendar, LayoutGrid, MoreHorizontal, Smile, ArrowRight, Plus, Loader2, X, Video } from "lucide-react";
+import { Calendar, LayoutGrid, MoreHorizontal, Smile, ArrowRight, Plus, Loader2, X, Video, PanelRight } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { useTenant } from "@/hooks/use-tenant";
 import { doc, serverTimestamp, collection, query, where, orderBy, limit, collectionGroup } from "firebase/firestore";
@@ -16,6 +16,7 @@ import { updateDocumentNonBlocking, setDocumentNonBlocking } from "@/firebase/no
 import { useRouter, usePathname } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
+import { cn } from "@/lib/utils";
 
 export default function DashboardLayout({
   children,
@@ -28,6 +29,7 @@ export default function DashboardLayout({
   const pathname = usePathname();
 
   const isDashboard = pathname === '/dashboard';
+  const [isRightSidebarOpen, setIsRightSidebarOpen] = useState(true);
 
   // 1. Fetch Projects for Sidebar Stats
   const projectsQuery = useMemoFirebase(() => {
@@ -89,9 +91,9 @@ export default function DashboardLayout({
 
   return (
     <SidebarProvider>
-      <div className="flex min-h-screen w-full bg-[#F0F1F4]">
+      <div className="flex min-h-screen w-full bg-[#F0F1F4] overflow-hidden">
         <AppSidebar />
-        <SidebarInset className="flex flex-col bg-transparent">
+        <SidebarInset className="flex flex-col bg-transparent relative">
           {/* Mobile Header */}
           <header className="flex h-16 shrink-0 items-center gap-2 border-b bg-white px-4 md:hidden sticky top-0 z-20">
             <SidebarTrigger />
@@ -99,15 +101,48 @@ export default function DashboardLayout({
               <div className="h-8 w-8 bg-primary rounded-lg flex items-center justify-center text-white font-bold text-xs">DP</div>
               <span className="font-bold text-sm tracking-tight text-primary">DP Media OS</span>
             </div>
+            {isDashboard && (
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="ml-auto" 
+                onClick={() => setIsRightSidebarOpen(!isRightSidebarOpen)}
+              >
+                <PanelRight className="h-5 w-5" />
+              </Button>
+            )}
           </header>
 
-          <div className="flex flex-row flex-1 overflow-hidden">
+          <div className="flex flex-row flex-1 overflow-hidden relative">
+            {/* Toggle Button for Desktop */}
+            {isDashboard && (
+              <div className="hidden xl:block absolute top-8 right-8 z-50">
+                <Button 
+                  variant="outline" 
+                  size="icon" 
+                  onClick={() => setIsRightSidebarOpen(!isRightSidebarOpen)}
+                  className={cn(
+                    "rounded-xl bg-white shadow-soft transition-all duration-300 border-none",
+                    isRightSidebarOpen ? "mr-0" : ""
+                  )}
+                >
+                  <PanelRight className={cn("h-5 w-5 transition-transform duration-300", !isRightSidebarOpen && "rotate-180")} />
+                </Button>
+              </div>
+            )}
+
             <main className="flex-1 p-4 md:p-8 overflow-auto">
               {children}
             </main>
             
             {isDashboard && (
-              <aside className="w-[380px] p-8 hidden xl:flex flex-col gap-10 bg-transparent">
+              <aside 
+                className={cn(
+                  "fixed inset-y-0 right-0 z-40 w-[380px] p-8 bg-white/90 backdrop-blur-xl border-l shadow-2xl transition-all duration-500 ease-in-out transform flex flex-col gap-10",
+                  "xl:relative xl:bg-transparent xl:border-none xl:shadow-none xl:translate-x-0",
+                  isRightSidebarOpen ? "translate-x-0" : "translate-x-full xl:hidden"
+                )}
+              >
                 {/* Header: Today's Schedule */}
                 <div className="space-y-6">
                   <div className="flex items-center justify-between">
