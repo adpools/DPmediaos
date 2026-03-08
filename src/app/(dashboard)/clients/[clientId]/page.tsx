@@ -26,7 +26,10 @@ import {
   ChevronRight, 
   Plus,
   Target,
-  IndianRupee
+  IndianRupee,
+  AlertCircle,
+  Layers,
+  ArrowRight
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -42,6 +45,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { addDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { toast } from "@/hooks/use-toast";
+import { PIPELINE_STAGES } from "@/lib/mock-data";
 
 export default function ClientPortfolioPage({ params }: { params: Promise<{ clientId: string }> }) {
   const { clientId } = use(params);
@@ -111,13 +115,27 @@ export default function ClientPortfolioPage({ params }: { params: Promise<{ clie
   // --- ANALYTICS ---
 
   const pipelineStats = useMemo(() => {
-    if (!allRelatedLeads) return { count: 0, totalValue: 0 };
+    if (!allRelatedLeads) return { count: 0, totalValue: 0, items: [] };
     const pipelineItems = allRelatedLeads.filter(l => 
       !['client', 'won', 'lost'].includes(l.stage || '')
     );
     const totalValue = pipelineItems.reduce((sum, l) => sum + (l.deal_value || 0), 0);
-    return { count: pipelineItems.length, totalValue };
+    return { count: pipelineItems.length, totalValue, items: pipelineItems };
   }, [allRelatedLeads]);
+
+  const activeProjectsStats = useMemo(() => {
+    if (!projects) return { count: 0, totalValue: 0 };
+    const active = projects.filter(p => p.status === 'in_progress');
+    const totalValue = active.reduce((sum, p) => sum + (p.budget || 0), 0);
+    return { count: active.length, totalValue };
+  }, [projects]);
+
+  const invoiceStats = useMemo(() => {
+    if (!invoices) return { pendingCount: 0, pendingValue: 0 };
+    const pending = invoices.filter(inv => inv.payment_status === 'unpaid');
+    const total = pending.reduce((sum, inv) => sum + (inv.total || 0), 0);
+    return { pendingCount: pending.length, pendingValue: total };
+  }, [invoices]);
 
   const projectAnalytics = useMemo(() => {
     if (!projects) return [];
@@ -227,6 +245,44 @@ export default function ClientPortfolioPage({ params }: { params: Promise<{ clie
         </div>
       </div>
 
+      {/* KPI Stats Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+        <Card className="border-none shadow-sm rounded-3xl bg-white border-l-4 border-l-primary">
+          <CardContent className="pt-6">
+            <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1">Total Active Work</p>
+            <h4 className="text-2xl font-black text-slate-800">{activeProjectsStats.count} Projects</h4>
+            <p className="text-[9px] text-primary font-bold mt-1">₹{activeProjectsStats.totalValue.toLocaleString()} Aggregate Value</p>
+          </CardContent>
+        </Card>
+        
+        <Card className="border-none shadow-sm rounded-3xl bg-indigo-50 border-l-4 border-l-indigo-500">
+          <CardContent className="pt-6">
+            <p className="text-[10px] font-black text-indigo-600 uppercase tracking-widest mb-1">Sales Pipeline</p>
+            <h4 className="text-2xl font-black text-indigo-900">{pipelineStats.count} Opportunities</h4>
+            <p className="text-[9px] text-indigo-400 font-bold mt-1">₹{pipelineStats.totalValue.toLocaleString()} Projected Value</p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-none shadow-sm rounded-3xl bg-rose-50 border-l-4 border-l-rose-500">
+          <CardContent className="pt-6">
+            <p className="text-[10px] font-black text-rose-600 uppercase tracking-widest mb-1">Pending Invoices</p>
+            <h4 className="text-2xl font-black text-rose-900">{invoiceStats.pendingCount} Unpaid</h4>
+            <p className="text-[9px] text-rose-400 font-bold mt-1">₹{invoiceStats.pendingValue.toLocaleString()} Outstanding</p>
+          </CardContent>
+        </Card>
+
+        <Card className={cn(
+          "border-none shadow-sm rounded-3xl text-white border-l-4 transition-colors",
+          totals.profit >= 0 ? "bg-emerald-600 border-l-emerald-400" : "bg-rose-600 border-l-rose-400"
+        )}>
+          <CardContent className="pt-6">
+            <p className="text-[10px] font-black text-white/60 uppercase tracking-widest mb-1">Net Performance</p>
+            <h4 className="text-2xl font-black">₹{totals.profit.toLocaleString()}</h4>
+            <p className="text-[9px] text-white/40 font-bold mt-1">Life-to-date Margin</p>
+          </CardContent>
+        </Card>
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         {/* Sidebar Context */}
         <aside className="lg:col-span-4 space-y-6">
@@ -309,43 +365,10 @@ export default function ClientPortfolioPage({ params }: { params: Promise<{ clie
 
         {/* Main Content */}
         <main className="lg:col-span-8 space-y-8">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 md:gap-6">
-            <Card className="border-none shadow-sm rounded-3xl bg-white border-l-4 border-l-primary">
-              <CardContent className="pt-6">
-                <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1">Gross Revenue</p>
-                <h4 className="text-2xl font-black text-slate-800">₹{totals.revenue.toLocaleString()}</h4>
-                <p className="text-[9px] text-emerald-600 font-bold mt-1">+ Billed</p>
-              </CardContent>
-            </Card>
-            <Card className="border-none shadow-sm rounded-3xl bg-white border-l-4 border-l-rose-500">
-              <CardContent className="pt-6">
-                <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1">Production Burn</p>
-                <h4 className="text-2xl font-black text-rose-600">₹{totals.burn.toLocaleString()}</h4>
-                <p className="text-[9px] text-muted-foreground font-bold mt-1">Total Costs</p>
-              </CardContent>
-            </Card>
-            <Card className="border-none shadow-sm rounded-3xl bg-indigo-50 border-l-4 border-l-indigo-500">
-              <CardContent className="pt-6">
-                <p className="text-[10px] font-black text-indigo-600 uppercase tracking-widest mb-1">Sales Pipeline</p>
-                <h4 className="text-2xl font-black text-indigo-900">₹{pipelineStats.totalValue.toLocaleString()}</h4>
-                <p className="text-[9px] text-indigo-400 font-bold mt-1">{pipelineStats.count} Opportunities</p>
-              </CardContent>
-            </Card>
-            <Card className={cn(
-              "border-none shadow-sm rounded-3xl text-white border-l-4 transition-colors",
-              totals.profit >= 0 ? "bg-emerald-600 border-l-emerald-400" : "bg-rose-600 border-l-rose-400"
-            )}>
-              <CardContent className="pt-6">
-                <p className="text-[10px] font-black text-white/60 uppercase tracking-widest mb-1">Net Performance</p>
-                <h4 className="text-xl font-black">₹{totals.profit.toLocaleString()}</h4>
-                <p className="text-[9px] text-white/40 font-bold mt-1">Workspace Margin</p>
-              </CardContent>
-            </Card>
-          </div>
-
           <Tabs defaultValue="history" className="w-full">
             <TabsList className="bg-transparent h-auto p-0 gap-8 border-b border-slate-200 w-full justify-start rounded-none mb-8">
               <TabsTrigger value="history" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none text-xs font-black uppercase tracking-widest px-0 pb-3 transition-all">Production History</TabsTrigger>
+              <TabsTrigger value="pipeline" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none text-xs font-black uppercase tracking-widest px-0 pb-3 transition-all">Sales Pipeline</TabsTrigger>
               <TabsTrigger value="finance" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none text-xs font-black uppercase tracking-widest px-0 pb-3 transition-all">Financial Ledger</TabsTrigger>
             </TabsList>
 
@@ -369,7 +392,7 @@ export default function ClientPortfolioPage({ params }: { params: Promise<{ clie
                           <Badge variant="outline" className="text-[9px] font-black uppercase tracking-widest border-primary/20 text-primary bg-white px-3">
                             {proj.status?.replace('_', ' ')}
                           </Badge>
-                          <span className="text-10px] font-black text-primary bg-primary/5 px-2 py-0.5 rounded-full">{proj.progress}%</span>
+                          <span className="text-[10px] font-black text-primary bg-primary/5 px-2 py-0.5 rounded-full">{proj.progress}%</span>
                         </div>
                         <Link href={`/projects/${proj.id}`}>
                           <CardTitle className="text-xl font-bold group-hover:text-primary transition-colors cursor-pointer leading-tight">{proj.project_name}</CardTitle>
@@ -418,51 +441,128 @@ export default function ClientPortfolioPage({ params }: { params: Promise<{ clie
               )}
             </TabsContent>
 
-            <TabsContent value="finance" className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-              <Card className="border-none shadow-sm rounded-[2.5rem] overflow-hidden bg-white">
-                <CardContent className="p-0">
-                  <div className="overflow-x-auto custom-scrollbar">
-                    <table className="w-full text-sm">
-                      <thead className="bg-slate-50/50 border-b">
-                        <tr>
-                          <th className="px-10 py-5 text-left font-black text-[10px] uppercase tracking-widest text-muted-foreground">Invoice #</th>
-                          <th className="px-10 py-5 text-left font-black text-[10px] uppercase tracking-widest text-muted-foreground">Context Date</th>
-                          <th className="px-10 py-5 text-left font-black text-[10px] uppercase tracking-widest text-muted-foreground">Total Amount</th>
-                          <th className="px-10 py-5 text-left font-black text-[10px] uppercase tracking-widest text-muted-foreground">Status</th>
-                          <th className="px-10 py-5 text-right"></th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y">
-                        {isInvoicesLoading ? (
-                          <tr><td colSpan={5} className="text-center py-16"><Loader2 className="h-8 w-8 animate-spin mx-auto text-primary opacity-20" /></td></tr>
-                        ) : invoices?.length === 0 ? (
-                          <tr><td colSpan={5} className="px-10 py-24 text-center text-muted-foreground italic text-xs font-bold uppercase tracking-widest opacity-40">No Billing Records Generated.</td></tr>
-                        ) : (
-                          invoices?.map((inv) => (
-                            <tr key={inv.id} className="hover:bg-slate-50/50 transition-colors group">
-                              <td className="px-10 py-6 font-mono font-bold text-primary">{inv.invoice_number}</td>
-                              <td className="px-10 py-6 text-slate-500 font-bold text-xs uppercase tracking-tighter">{inv.issue_date}</td>
-                              <td className="px-10 py-6 font-black text-slate-800 text-xs">₹{inv.total?.toLocaleString()}</td>
-                              <td className="px-10 py-6">
-                                <Badge variant={inv.payment_status === 'paid' ? 'default' : 'secondary'} className="text-[9px] font-black uppercase px-3 py-1 border-none">
-                                  {inv.payment_status}
-                                </Badge>
-                              </td>
-                              <td className="px-10 py-6 text-right">
-                                <Link href={`/invoices/${inv.id}`}>
-                                  <Button variant="ghost" size="icon" className="h-9 w-9 text-primary opacity-0 group-hover:opacity-100 transition-opacity bg-primary/5 hover:bg-primary hover:text-white rounded-xl">
-                                    <ExternalLink className="h-4 w-4" />
-                                  </Button>
-                                </Link>
-                              </td>
-                            </tr>
-                          ))
-                        )}
-                      </tbody>
-                    </table>
+            <TabsContent value="pipeline" className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+              {pipelineStats.items.length === 0 ? (
+                <div className="py-32 text-center bg-white rounded-[3rem] border-2 border-dashed border-slate-100 px-8">
+                  <div className="h-16 w-16 bg-slate-50 rounded-3xl flex items-center justify-center mx-auto mb-4 text-slate-300">
+                    <Target className="h-8 w-8" />
                   </div>
-                </CardContent>
-              </Card>
+                  <p className="text-sm font-black uppercase tracking-widest text-slate-400">Pipeline Empty</p>
+                  <p className="text-xs text-muted-foreground mt-2">Create a new lead to start tracking opportunities for this client.</p>
+                  <Button onClick={() => setIsCreateLeadOpen(true)} variant="outline" className="mt-6 rounded-xl font-black text-[10px] uppercase tracking-widest px-8">
+                    Create Lead
+                  </Button>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {pipelineStats.items.map((lead) => {
+                    const stage = PIPELINE_STAGES.find(s => s.id === lead.stage);
+                    return (
+                      <Card key={lead.id} className="border-none shadow-sm rounded-[2.5rem] overflow-hidden group bg-white border border-slate-50 flex flex-col">
+                        <CardHeader className="bg-indigo-50/30 pb-6 pt-8 px-8">
+                          <div className="flex justify-between items-start mb-4">
+                            <Badge className={cn("text-[9px] font-black uppercase tracking-widest border-none px-3", stage?.color || 'bg-slate-100 text-slate-600')}>
+                              {stage?.name || 'Lead'}
+                            </Badge>
+                            <span className="text-[10px] font-black text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full">CRM Opportunity</span>
+                          </div>
+                          <Link href={`/crm/${lead.id}`}>
+                            <CardTitle className="text-xl font-bold group-hover:text-primary transition-colors cursor-pointer leading-tight">
+                              {lead.service_vertical || 'General Opportunity'}
+                            </CardTitle>
+                          </Link>
+                        </CardHeader>
+                        <CardContent className="p-8 space-y-6 flex-1 flex flex-col justify-between">
+                          <div className="space-y-4">
+                            <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-widest text-slate-400">
+                              <span className="flex items-center gap-2"><Clock className="h-3.5 w-3.5" /> Pipeline Status</span>
+                              <span>Est. Value</span>
+                            </div>
+                            <div className="bg-slate-50/80 p-5 rounded-2xl border border-white flex justify-between items-center">
+                              <div>
+                                <p className="text-[9px] font-black uppercase text-slate-400 tracking-wider mb-1">Current Focus</p>
+                                <p className="text-sm font-bold text-slate-800">{lead.industry || 'Media'}</p>
+                              </div>
+                              <div className="text-right">
+                                <p className="text-[9px] font-black uppercase text-slate-400 tracking-wider mb-1">Deal Projection</p>
+                                <p className="text-lg font-black text-indigo-600">₹{lead.deal_value?.toLocaleString()}</p>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="pt-6 border-t flex justify-end">
+                            <Link href={`/crm/${lead.id}`}>
+                              <Button variant="ghost" size="sm" className="h-9 rounded-2xl text-[10px] font-black uppercase tracking-widest gap-2 bg-slate-50 hover:bg-primary hover:text-white transition-all px-5">
+                                Manage Pipeline <ArrowRight className="h-3.5 w-3.5" />
+                              </Button>
+                            </Link>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+              )}
+            </TabsContent>
+
+            <TabsContent value="finance" className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <div className="space-y-6">
+                {invoiceStats.pendingCount > 0 && (
+                  <Alert className="bg-rose-50 border-rose-100 rounded-3xl p-6">
+                    <AlertCircle className="h-5 w-5 text-rose-600" />
+                    <div className="ml-4">
+                      <h4 className="text-sm font-black text-rose-900 uppercase tracking-widest">Attention Required</h4>
+                      <p className="text-xs text-rose-700 mt-1">
+                        There are <strong>{invoiceStats.pendingCount}</strong> outstanding invoices totaling <strong>₹{invoiceStats.pendingValue.toLocaleString()}</strong> for this client.
+                      </p>
+                    </div>
+                  </Alert>
+                )}
+
+                <Card className="border-none shadow-sm rounded-[2.5rem] overflow-hidden bg-white">
+                  <CardContent className="p-0">
+                    <div className="overflow-x-auto custom-scrollbar">
+                      <table className="w-full text-sm">
+                        <thead className="bg-slate-50/50 border-b">
+                          <tr>
+                            <th className="px-10 py-5 text-left font-black text-[10px] uppercase tracking-widest text-muted-foreground">Invoice #</th>
+                            <th className="px-10 py-5 text-left font-black text-[10px] uppercase tracking-widest text-muted-foreground">Context Date</th>
+                            <th className="px-10 py-5 text-left font-black text-[10px] uppercase tracking-widest text-muted-foreground">Total Amount</th>
+                            <th className="px-10 py-5 text-left font-black text-[10px] uppercase tracking-widest text-muted-foreground">Status</th>
+                            <th className="px-10 py-5 text-right"></th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y">
+                          {isInvoicesLoading ? (
+                            <tr><td colSpan={5} className="text-center py-16"><Loader2 className="h-8 w-8 animate-spin mx-auto text-primary opacity-20" /></td></tr>
+                          ) : invoices?.length === 0 ? (
+                            <tr><td colSpan={5} className="px-10 py-24 text-center text-muted-foreground italic text-xs font-bold uppercase tracking-widest opacity-40">No Billing Records Generated.</td></tr>
+                          ) : (
+                            invoices?.map((inv) => (
+                              <tr key={inv.id} className="hover:bg-slate-50/50 transition-colors group">
+                                <td className="px-10 py-6 font-mono font-bold text-primary">{inv.invoice_number}</td>
+                                <td className="px-10 py-6 text-slate-500 font-bold text-xs uppercase tracking-tighter">{inv.issue_date}</td>
+                                <td className="px-10 py-6 font-black text-slate-800 text-xs">₹{inv.total?.toLocaleString()}</td>
+                                <td className="px-10 py-6">
+                                  <Badge variant={inv.payment_status === 'paid' ? 'default' : 'secondary'} className={cn("text-[9px] font-black uppercase px-3 py-1 border-none", inv.payment_status !== 'paid' && "bg-rose-100 text-rose-600")}>
+                                    {inv.payment_status}
+                                  </Badge>
+                                </td>
+                                <td className="px-10 py-6 text-right">
+                                  <Link href={`/invoices/${inv.id}`}>
+                                    <Button variant="ghost" size="icon" className="h-9 w-9 text-primary opacity-0 group-hover:opacity-100 transition-opacity bg-primary/5 hover:bg-primary hover:text-white rounded-xl">
+                                      <ExternalLink className="h-4 w-4" />
+                                    </Button>
+                                  </Link>
+                                </td>
+                              </tr>
+                            ))
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
             </TabsContent>
           </Tabs>
         </main>
@@ -515,6 +615,14 @@ export default function ClientPortfolioPage({ params }: { params: Promise<{ clie
           </form>
         </DialogContent>
       </Dialog>
+    </div>
+  );
+}
+
+function Alert({ children, className }: { children: React.ReactNode, className?: string }) {
+  return (
+    <div className={cn("flex items-start border p-4", className)}>
+      {children}
     </div>
   );
 }
