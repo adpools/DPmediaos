@@ -112,6 +112,17 @@ export default function ProjectWorkspacePage({ params }: { params: Promise<{ pro
 
   const { data: assets, isLoading: isAssetsLoading } = useCollection(assetsQuery);
 
+  // 4. Fetch Production Schedule / Shoot Days
+  const shootDaysQuery = useMemoFirebase(() => {
+    if (!db || !companyId || !projectId) return null;
+    return query(
+      collection(db, 'companies', companyId, 'projects', projectId, 'production_days'),
+      orderBy('date', 'asc')
+    );
+  }, [db, companyId, projectId]);
+
+  const { data: shootDays, isLoading: isShootDaysLoading } = useCollection(shootDaysQuery);
+
   const handleToggleTask = (taskId: string, currentStatus: string) => {
     if (!db || !companyId || !projectId) return;
     const taskRef = doc(db, 'companies', companyId, 'projects', projectId, 'tasks', taskId);
@@ -180,7 +191,7 @@ export default function ProjectWorkspacePage({ params }: { params: Promise<{ pro
     setIsSubmitting(true);
     try {
       const tasksRef = collection(db, 'companies', companyId, 'projects', projectId, 'tasks');
-      await addDocumentNonBlocking(tasksRef, {
+      addDocumentNonBlocking(tasksRef, {
         title: newTask.title,
         phase: activeTab === 'assets' ? 'production' : activeTab,
         assignedTo: newTask.assignedTo || "Producer",
@@ -201,7 +212,7 @@ export default function ProjectWorkspacePage({ params }: { params: Promise<{ pro
     setIsSubmitting(true);
     try {
       const assetsRef = collection(db, 'companies', companyId, 'projects', projectId, 'items');
-      await addDocumentNonBlocking(assetsRef, {
+      addDocumentNonBlocking(assetsRef, {
         ...newAsset,
         created_at: serverTimestamp(),
       });
@@ -213,7 +224,7 @@ export default function ProjectWorkspacePage({ params }: { params: Promise<{ pro
     }
   };
 
-  if (isTenantLoading || isProjectLoading) {
+  if (isTenantLoading || isProjectLoading || isTasksLoading || isAssetsLoading || isShootDaysLoading) {
     return (
       <div className="flex items-center justify-center h-[80vh]">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
