@@ -1,21 +1,44 @@
 
 "use client";
 
+import { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Building2, Search, Filter, MoreHorizontal, Plus, Briefcase, Mail, Phone, Loader2, ExternalLink, Zap } from "lucide-react";
+import { Building2, Search, Filter, MoreHorizontal, Plus, Briefcase, Mail, Phone, Loader2, ExternalLink, Zap, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { useTenant } from "@/hooks/use-tenant";
 import { useCollection, useMemoFirebase } from "@/firebase";
-import { collection, query, orderBy } from "firebase/firestore";
+import { collection, query, orderBy, doc } from "firebase/firestore";
 import { useFirestore } from "@/firebase";
+import { deleteDocumentNonBlocking } from "@/firebase/non-blocking-updates";
+import { toast } from "@/hooks/use-toast";
 import Link from "next/link";
 import Image from "next/image";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 export default function ClientsPage() {
   const { profile, isLoading: isTenantLoading, companyId } = useTenant();
   const db = useFirestore();
+  const [searchQuery, setSearchQuery] = useState("");
 
   // Fetch unique client entities from the leads collection
   const clientsQuery = useMemoFirebase(() => {
@@ -27,6 +50,22 @@ export default function ClientsPage() {
   }, [db, companyId]);
 
   const { data: leads, isLoading: isLeadsLoading } = useCollection(clientsQuery);
+
+  const filteredLeads = useMemo(() => {
+    if (!leads) return [];
+    return leads.filter(l => 
+      l.company_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      l.industry?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      l.service_vertical?.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [leads, searchQuery]);
+
+  const handleDeleteClient = (clientId: string) => {
+    if (!db || !companyId || !clientId) return;
+    const clientRef = doc(db, 'companies', companyId, 'leads', clientId);
+    deleteDocumentNonBlocking(clientRef);
+    toast({ title: "Partner Removed", description: "The client has been deleted from your directory." });
+  };
 
   if (isTenantLoading || isLeadsLoading) {
     return (
@@ -46,7 +85,12 @@ export default function ClientsPage() {
         <div className="flex items-center gap-3">
           <div className="relative w-64">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Filter by company..." className="pl-9 h-10 rounded-xl" />
+            <Input 
+              placeholder="Filter by company..." 
+              className="pl-9 h-10 rounded-xl" 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
           </div>
           <Link href="/crm">
             <Button className="gap-2 rounded-xl shadow-lg shadow-primary/20">
@@ -57,17 +101,21 @@ export default function ClientsPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {leads?.length === 0 ? (
+        {filteredLeads.length === 0 ? (
           <div className="col-span-full py-20 text-center bg-white rounded-3xl border-2 border-dashed text-muted-foreground">
             <Building2 className="h-12 w-12 mx-auto mb-4 opacity-20" />
-            <p className="font-medium">No clients registered in your workspace.</p>
-            <p className="text-xs mb-4">Start by adding a lead in the CRM.</p>
-            <Link href="/crm">
-              <Button variant="outline" size="sm" className="rounded-xl">Go to CRM</Button>
-            </Link>
+            <p className="font-medium">No partners found matching your search.</p>
+            {!searchQuery && (
+              <>
+                <p className="text-xs mb-4">Start by adding a lead in the CRM.</p>
+                <Link href="/crm">
+                  <Button variant="outline" size="sm" className="rounded-xl">Go to CRM</Button>
+                </Link>
+              </>
+            )}
           </div>
         ) : (
-          leads?.map((client) => (
+          filteredLeads.map((client) => (
             <Card key={client.id} className="border-none shadow-sm hover:shadow-md transition-all rounded-[2rem] overflow-hidden group">
               <CardHeader className="bg-primary/5 pb-4 px-6 pt-6">
                 <div className="flex justify-between items-start">
@@ -106,7 +154,54 @@ export default function ClientsPage() {
                     ))}
                   </div>
                   <div className="flex gap-2">
-                    <Button variant="ghost" size="icon" className="h-8 w-8 rounded-xl"><MoreHorizontal className="h-4 w-4" /></Button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-xl">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="rounded-xl w-48">
+                        <DropdownMenuLabel className="text-[10px] font-bold uppercase text-muted-foreground px-3">Management</DropdownMenuLabel>
+                        <DropdownMenuItem asChild>
+                          <Link href={`/clients/${client.id}`} className="cursor-pointer gap-2">
+                            <ExternalLink className="h-3.5 w-3.5" /> Full Portfolio
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                          <Link href={`/crm/${client.id}`} className="cursor-pointer gap-2">
+                            <Briefcase className="h-3.5 w-3.5" /> CRM Opportunity
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <DropdownMenuItem 
+                              className="gap-2 text-rose-500 focus:text-rose-600 focus:bg-rose-50 cursor-pointer" 
+                              onSelect={(e) => e.preventDefault()}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" /> Remove Partner
+                            </DropdownMenuItem>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent className="rounded-[2rem]">
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Delete Client Record?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                This will remove "{client.company_name}" from your directory. Associated projects will remain but will no longer be linked to this CRM profile.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel className="rounded-xl">Cancel</AlertDialogCancel>
+                              <AlertDialogAction 
+                                onClick={() => handleDeleteClient(client.id)}
+                                className="bg-rose-500 hover:bg-rose-600 rounded-xl"
+                              >
+                                Confirm Delete
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                     <Link href={`/clients/${client.id}`}>
                       <Button size="sm" variant="secondary" className="h-8 text-[10px] font-bold uppercase rounded-xl">View Portfolio</Button>
                     </Link>
