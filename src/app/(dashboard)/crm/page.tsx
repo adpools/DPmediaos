@@ -46,7 +46,6 @@ import {
   SelectItem, 
   SelectTrigger, 
   SelectValue,
-  SelectSeparator 
 } from "@/components/ui/select";
 import { addDocumentNonBlocking, deleteDocumentNonBlocking, updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { toast } from "@/hooks/use-toast";
@@ -79,7 +78,6 @@ export default function CRMPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [leadToArchive, setLeadToArchive] = useState<any>(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const [isManualEntry, setIsManualEntry] = useState(false);
 
   // Quick Add State
   const [newLead, setNewLead] = useState({
@@ -99,63 +97,60 @@ export default function CRMPage() {
     );
   }, [db, companyId]);
 
-  const { data: leads, isLoading: isLeadsLoading } = useCollection(leadsQuery);
+  const { data: allLeads, isLoading: isLeadsLoading } = useCollection(leadsQuery);
 
-  // Derived: Unique existing clients for the dropdown
+  // Derived: Verified partners for the dropdown
   const uniqueClients = useMemo(() => {
-    if (!leads) return [];
-    const names = new Set();
-    const unique = [];
-    for (const lead of leads) {
-      if (!names.has(lead.company_name)) {
-        names.add(lead.company_name);
-        unique.push({
-          id: lead.id,
-          name: lead.company_name,
-          industry: lead.industry
-        });
+    if (!allLeads) return [];
+    const partnersMap: Record<string, any> = {};
+    
+    // Only pick companies that are officially onboarded ('client' stage)
+    allLeads.forEach(l => {
+      if (l.stage === 'client') {
+        partnersMap[l.company_name] = {
+          id: l.id,
+          name: l.company_name,
+          industry: l.industry
+        };
       }
-    }
-    return unique.sort((a, b) => a.name.localeCompare(b.name));
-  }, [leads]);
+    });
+    
+    return Object.values(partnersMap).sort((a, b) => a.name.localeCompare(b.name));
+  }, [allLeads]);
 
   const filteredLeads = useMemo(() => {
-    if (!leads) return [];
-    // Only show leads that are NOT at 'client' stage (onboarded clients directory)
-    return leads.filter(l => 
+    if (!allLeads) return [];
+    // Only show active pipeline items (not standard directory clients)
+    return allLeads.filter(l => 
       l.stage !== 'client' && (
         l.company_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         l.service_vertical?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         l.sub_vertical?.toLowerCase().includes(searchQuery.toLowerCase())
       )
     );
-  }, [leads, searchQuery]);
+  }, [allLeads, searchQuery]);
 
-  const handleSelectExistingClient = (clientId: string) => {
-    if (clientId === "NEW_COMPANY") {
-      setIsManualEntry(true);
-      setNewLead({ ...newLead, company_name: "" });
-      return;
-    }
-
-    const client = uniqueClients.find(c => c.id === clientId);
-    if (client) {
+  const handleSelectPartner = (clientId: string) => {
+    const partner = uniqueClients.find(c => c.id === clientId);
+    if (partner) {
       setNewLead({
         ...newLead,
-        company_name: client.name,
-        industry: client.industry || "",
+        company_name: partner.name,
+        industry: partner.industry || "",
       });
-      setIsManualEntry(false);
       toast({
-        title: "Client Linked",
-        description: `New lead assigned to ${client.name}.`,
+        title: "Partner Linked",
+        description: `Lead context inherited from ${partner.name}.`,
       });
     }
   };
 
   const handleAddLead = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!companyId || !newLead.company_name) return;
+    if (!companyId || !newLead.company_name) {
+      toast({ variant: "destructive", title: "Selection Required", description: "Please select a client company from your directory." });
+      return;
+    }
 
     setIsSubmitting(true);
     const leadsRef = collection(db, 'companies', companyId, 'leads');
@@ -168,14 +163,13 @@ export default function CRMPage() {
     });
 
     toast({
-      title: "Lead Captured",
-      description: `${newLead.company_name} has been added to your pipeline.`,
+      title: "Lead Created",
+      description: `${newLead.company_name} opportunity is now live in the pipeline.`,
     });
 
     setNewLead({ company_name: "", service_vertical: "", sub_vertical: "", industry: "", deal_value: "", stage: "lead" });
     setIsAddOpen(false);
     setIsSubmitting(false);
-    setIsManualEntry(false);
   };
 
   const handleMarkAsWon = (lead: any) => {
@@ -184,7 +178,7 @@ export default function CRMPage() {
     const leadRef = doc(db, 'companies', companyId, 'leads', lead.id);
     updateDocumentNonBlocking(leadRef, { stage: 'won', updatedAt: serverTimestamp() });
 
-    const projectsRef = collection(db, 'companies', companyId, 'projects');
+    const projectsRef = collection(db, 'companies', companyId!, 'projects');
     const projectRefCode = `PROJ-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
     
     addDocumentNonBlocking(projectsRef, {
@@ -225,14 +219,6 @@ export default function CRMPage() {
     CONTENT_VERTICALS.find(v => v.name === newLead.service_vertical), 
   [newLead.service_vertical]);
 
-  const resetDialog = (open: boolean) => {
-    setIsAddOpen(open);
-    if (!open) {
-      setIsManualEntry(false);
-      setNewLead({ company_name: "", service_vertical: "", sub_vertical: "", industry: "", deal_value: "", stage: "lead" });
-    }
-  };
-
   if (isTenantLoading || isLeadsLoading) {
     return (
       <div className="flex items-center justify-center h-[80vh]">
@@ -259,10 +245,10 @@ export default function CRMPage() {
             />
           </div>
           
-          <Dialog open={isAddOpen} onOpenChange={resetDialog}>
+          <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
             <DialogTrigger asChild>
               <Button className="gap-2 rounded-xl shadow-xl shadow-primary/30 h-10 px-6 font-bold">
-                <Plus className="h-4 w-4" /> Add Lead
+                <Plus className="h-4 w-4" /> Create Lead
               </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[425px] rounded-[2rem] p-8 max-h-[90vh] overflow-y-auto custom-scrollbar">
@@ -272,54 +258,33 @@ export default function CRMPage() {
                   Create Lead
                 </DialogTitle>
                 <DialogDescription>
-                  Initialize a new production opportunity. Select an existing company or enter a new one.
+                  Initialize a new opportunity for an existing partner in your directory.
                 </DialogDescription>
               </DialogHeader>
               <form onSubmit={handleAddLead} className="space-y-5 py-4">
                 <div className="space-y-2">
-                  <Label className="text-[10px] font-black uppercase text-slate-500 tracking-widest flex items-center justify-between">
-                    <span>Client Company</span>
-                    {isManualEntry && (
-                      <button 
-                        type="button" 
-                        onClick={() => setIsManualEntry(false)} 
-                        className="text-primary hover:underline flex items-center gap-1"
-                      >
-                        <List className="h-3 w-3" /> Pick Existing
-                      </button>
-                    )}
+                  <Label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">
+                    Select Client Company
                   </Label>
                   
-                  {!isManualEntry ? (
-                    <Select onValueChange={handleSelectExistingClient}>
-                      <SelectTrigger className="rounded-xl h-11 bg-white shadow-none">
-                        <SelectValue placeholder="Select or search client..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {uniqueClients.map((client) => (
-                          <SelectItem key={client.id} value={client.id} className="text-xs">
-                            {client.name}
+                  <Select onValueChange={handleSelectPartner}>
+                    <SelectTrigger className="rounded-xl h-11 bg-white shadow-none">
+                      <SelectValue placeholder="Pick partner from directory..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {uniqueClients.length === 0 ? (
+                        <div className="p-4 text-center text-xs text-muted-foreground">
+                          No partners found in directory. Onboard a client first.
+                        </div>
+                      ) : (
+                        uniqueClients.map((partner) => (
+                          <SelectItem key={partner.id} value={partner.id} className="text-xs">
+                            {partner.name}
                           </SelectItem>
-                        ))}
-                        <SelectSeparator />
-                        <SelectItem value="NEW_COMPANY" className="text-primary font-bold">
-                          <Plus className="h-3 w-3 inline mr-2" /> Enter New Company...
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
-                  ) : (
-                    <div className="relative">
-                      <Building2 className="absolute left-3 top-3.5 h-4 w-4 text-muted-foreground" />
-                      <Input 
-                        placeholder="New Company Name" 
-                        value={newLead.company_name}
-                        onChange={(e) => setNewLead({...newLead, company_name: e.target.value})}
-                        required
-                        className="rounded-xl h-11 pl-10"
-                        autoFocus
-                      />
-                    </div>
-                  )}
+                        ))
+                      )}
+                    </SelectContent>
+                  </Select>
                 </div>
                 
                 <div className="grid grid-cols-1 gap-4">
