@@ -54,6 +54,7 @@
         "company_id": { "type": "string" },
         "company_name": { "type": "string" },
         "email": { "type": "string", "format": "email" },
+        "contact_person": { "type": "string", "description": "Primary liaison for the client." },
         "industry": { "type": "string" },
         "service_vertical": { "type": "string" },
         "deal_value": { "type": "number" },
