@@ -18,7 +18,8 @@ import {
   Loader2,
   Building2,
   Wallet,
-  Settings2
+  Settings2,
+  Archive
 } from "lucide-react";
 import {
   Sidebar,
@@ -53,6 +54,7 @@ const workspaceItems = [
   { title: "Accounts", url: "/accounts", icon: Wallet, module: "accounts" },
   { title: "Market Research", url: "/research", icon: Search, module: "research" },
   { title: "Analytics", url: "/reports", icon: PieChart, module: "reports" },
+  { title: "Archives", url: "/archives", icon: Archive, module: "archives", isCore: true },
 ];
 
 export function AppSidebar() {

@@ -24,7 +24,8 @@ import {
   Layers,
   ArrowRight,
   Database,
-  Trash2
+  Trash2,
+  Archive
 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
@@ -79,7 +80,7 @@ export default function ProjectsPage() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [projectToDelete, setProjectToDelete] = useState<any>(null);
+  const [projectToArchive, setProjectToArchive] = useState<any>(null);
 
   // Form State
   const [newProject, setNewProject] = useState({
@@ -179,12 +180,24 @@ export default function ProjectsPage() {
     setIsSubmitting(false);
   };
 
-  const handleConfirmDelete = () => {
-    if (!db || !companyId || !projectToDelete) return;
-    const projectRef = doc(db, 'companies', companyId, 'projects', projectToDelete.id);
+  const handleConfirmArchive = () => {
+    if (!db || !companyId || !projectToArchive) return;
+    
+    const archiveRef = collection(db, 'companies', companyId, 'archives');
+    addDocumentNonBlocking(archiveRef, {
+      ...projectToArchive,
+      archive_type: 'project',
+      archived_at: new Date().toISOString()
+    });
+
+    const projectRef = doc(db, 'companies', companyId, 'projects', projectToArchive.id);
     deleteDocumentNonBlocking(projectRef);
-    toast({ title: "Project Deleted", description: "The workspace has been removed permanently." });
-    setProjectToDelete(null);
+    
+    toast({ 
+      title: "Project Decommissioned", 
+      description: `"${projectToArchive.project_name}" has been moved to the vault.` 
+    });
+    setProjectToArchive(null);
   };
 
   if (isTenantLoading || isProjectsLoading) {
@@ -423,26 +436,26 @@ export default function ProjectsPage() {
                 project={proj} 
                 view={viewMode} 
                 index={idx}
-                onDelete={(p) => setProjectToDelete(p)}
+                onArchive={(p) => setProjectToArchive(p)}
               />
             ))}
           </div>
         )}
       </div>
 
-      {/* STABLE DELETE DIALOG */}
-      <AlertDialog open={!!projectToDelete} onOpenChange={(open) => !open && setProjectToDelete(null)}>
+      {/* ARCHIVE DIALOG */}
+      <AlertDialog open={!!projectToArchive} onOpenChange={(open) => !open && setProjectToArchive(null)}>
         <AlertDialogContent className="rounded-[2rem]">
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Workspace Permanently?</AlertDialogTitle>
+            <AlertDialogTitle>Archive Workspace?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently remove the project "{projectToDelete?.project_name}" and all associated tasks, assets, and schedule data. This action cannot be undone.
+              This will move the project "{projectToArchive?.project_name}" to your workspace archives. You can restore it or delete it permanently from the Archives vault.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel className="rounded-xl">Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleConfirmDelete} className="bg-rose-500 hover:bg-rose-600 rounded-xl">
-              Confirm Delete
+            <AlertDialogAction onClick={handleConfirmArchive} className="bg-primary hover:bg-primary/90 rounded-xl">
+              Archive Project
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -451,41 +464,60 @@ export default function ProjectsPage() {
   );
 }
 
-function ProjectCard({ project, view, index, onDelete }: { project: any, view: ViewMode, index: number, onDelete: (p: any) => void }) {
+function ProjectCard({ project, view, index, onArchive }: { project: any, view: ViewMode, index: number, onArchive: (p: any) => void }) {
   const isEven = index % 2 === 0;
 
   if (view === 'grid') {
     return (
-      <Link href={`/projects/${project.id}`}>
-        <Card className="border-none shadow-sm hover:shadow-md transition-all overflow-hidden group rounded-3xl cursor-pointer">
-          <div className={cn("h-32 p-6 flex flex-col justify-end", project.color || 'card-pink')}>
-            <Badge variant="secondary" className="w-fit text-[9px] uppercase font-bold bg-white/20 text-white border-none backdrop-blur-md mb-2">
-              {project.status?.replace('_', ' ')}
-            </Badge>
-            <h3 className="text-white font-bold text-lg leading-tight line-clamp-1">{project.project_name}</h3>
+      <Card className="border-none shadow-sm hover:shadow-md transition-all overflow-hidden group rounded-3xl">
+        <div className={cn("h-32 p-6 flex flex-col justify-end relative", project.color || 'card-pink')}>
+          <div className="absolute top-4 right-4">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8 text-white/60 hover:text-white hover:bg-white/10 rounded-full">
+                  <MoreVertical className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="rounded-xl w-48">
+                <DropdownMenuItem asChild>
+                  <Link href={`/projects/${project.id}`} className="cursor-pointer gap-2">
+                    <ExternalLink className="h-4 w-4" /> Workspace
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem className="text-rose-500 gap-2 cursor-pointer" onClick={() => onArchive(project)}>
+                  <Archive className="h-4 w-4" /> Archive
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
-          <CardContent className="p-6 space-y-4 bg-white">
-            <div className="flex justify-between items-center text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
-              <span className="truncate max-w-[70%]">Client: {project.client_name}</span>
-              <span>{project.progress || 0}%</span>
+          <Badge variant="secondary" className="w-fit text-[9px] uppercase font-bold bg-white/20 text-white border-none backdrop-blur-md mb-2">
+            {project.status?.replace('_', ' ')}
+          </Badge>
+          <Link href={`/projects/${project.id}`}>
+            <h3 className="text-white font-bold text-lg leading-tight line-clamp-1 hover:underline">{project.project_name}</h3>
+          </Link>
+        </div>
+        <CardContent className="p-6 space-y-4 bg-white">
+          <div className="flex justify-between items-center text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+            <span className="truncate max-w-[70%]">Client: {project.client_name}</span>
+            <span>{project.progress || 0}%</span>
+          </div>
+          <Progress value={project.progress || 0} className="h-1.5" />
+          <div className="flex items-center justify-between pt-2 border-t">
+            <div className="flex items-center gap-2 text-[10px] font-bold text-primary">
+              <Clock className="h-3 w-3" />
+              {project.deadline || 'No Deadline'}
             </div>
-            <Progress value={project.progress || 0} className="h-1.5" />
-            <div className="flex items-center justify-between pt-2 border-t">
-              <div className="flex items-center gap-2 text-[10px] font-bold text-primary">
-                <Clock className="h-3 w-3" />
-                {project.deadline || 'No Deadline'}
-              </div>
-              <div className="flex -space-x-2">
-                {[1,2].map(i => (
-                  <div key={i} className="h-6 w-6 rounded-full border-2 border-white bg-muted overflow-hidden">
-                    <Image src={`https://picsum.photos/seed/${project.id+i}/40/40`} width={24} height={24} alt="team" />
-                  </div>
-                ))}
-              </div>
+            <div className="flex -space-x-2">
+              {[1,2].map(i => (
+                <div key={i} className="h-6 w-6 rounded-full border-2 border-white bg-muted overflow-hidden">
+                  <Image src={`https://picsum.photos/seed/${project.id+i}/40/40`} width={24} height={24} alt="team" />
+                </div>
+              ))}
             </div>
-          </CardContent>
-        </Card>
-      </Link>
+          </div>
+        </CardContent>
+      </Card>
     );
   }
 
@@ -502,29 +534,40 @@ function ProjectCard({ project, view, index, onDelete }: { project: any, view: V
         </div>
 
         <div className="w-full md:w-[45%] ml-12 md:ml-0">
-          <Link href={`/projects/${project.id}`}>
-            <Card className="border-none shadow-soft rounded-[2rem] overflow-hidden group cursor-pointer">
-              <CardContent className="p-6 space-y-4 bg-white">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
-                    {project.deadline || 'Date Pending'}
-                  </span>
-                  {project.progress === 100 && <CheckCircle2 className="h-4 w-4 text-emerald-500" />}
+          <Card className="border-none shadow-soft rounded-[2rem] overflow-hidden group">
+            <CardContent className="p-6 space-y-4 bg-white">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+                  {project.deadline || 'Date Pending'}
+                </span>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-7 w-7 rounded-full">
+                      <MoreVertical className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="rounded-xl">
+                    <DropdownMenuItem className="text-rose-500 gap-2" onClick={() => onArchive(project)}>
+                      <Archive className="h-4 w-4" /> Archive
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+              <div>
+                <Link href={`/projects/${project.id}`}>
+                  <h4 className="font-bold text-lg hover:text-primary transition-colors">{project.project_name}</h4>
+                </Link>
+                <p className="text-xs text-muted-foreground">Client: {project.client_name}</p>
+              </div>
+              <div className="space-y-2">
+                <div className="flex justify-between text-[9px] font-bold uppercase text-muted-foreground">
+                  <span>Current Phase</span>
+                  <span>{project.progress}% Complete</span>
                 </div>
-                <div>
-                  <h4 className="font-bold text-lg group-hover:text-primary transition-colors">{project.project_name}</h4>
-                  <p className="text-xs text-muted-foreground">Client: {project.client_name}</p>
-                </div>
-                <div className="space-y-2">
-                  <div className="flex justify-between text-[9px] font-bold uppercase text-muted-foreground">
-                    <span>Current Phase</span>
-                    <span>{project.progress}% Complete</span>
-                  </div>
-                  <Progress value={project.progress} className="h-1" />
-                </div>
-              </CardContent>
-            </Card>
-          </Link>
+                <Progress value={project.progress} className="h-1" />
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
     );
@@ -610,14 +653,9 @@ function ProjectCard({ project, view, index, onDelete }: { project: any, view: V
                       <ExternalLink className="h-3.5 w-3.5" /> Workspace Overview
                     </Link>
                   </DropdownMenuItem>
-                  <DropdownMenuItem asChild className="rounded-lg m-1 py-2 cursor-pointer">
-                    <Link href={`/projects/budgets`} className="flex items-center gap-2">
-                      <Plus className="h-3.5 w-3.5" /> Budget Tracking
-                    </Link>
-                  </DropdownMenuItem>
                   <DropdownMenuSeparator className="bg-slate-50" />
-                  <DropdownMenuItem className="rounded-lg m-1 py-2 cursor-pointer text-rose-500 focus:text-rose-600 focus:bg-rose-50" onClick={() => onDelete(project)}>
-                    <Trash2 className="h-3.5 w-3.5 mr-2" /> Delete Project
+                  <DropdownMenuItem className="rounded-lg m-1 py-2 cursor-pointer text-rose-500 focus:text-rose-600 focus:bg-rose-50" onClick={() => onArchive(project)}>
+                    <Archive className="h-3.5 w-3.5 mr-2" /> Archive Project
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
