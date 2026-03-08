@@ -45,7 +45,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { useTenant } from "@/hooks/use-tenant";
 import { useCollection, useMemoFirebase, useFirestore } from "@/firebase";
-import { collection, query, orderBy, serverTimestamp, where, doc, updateDoc } from "firebase/firestore";
+import { collection, query, orderBy, serverTimestamp, doc } from "firebase/firestore";
 import { 
   Dialog, 
   DialogContent, 
@@ -53,14 +53,13 @@ import {
   DialogFooter, 
   DialogHeader, 
   DialogTitle, 
-  DialogTrigger 
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { addDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { toast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { format, startOfMonth, endOfMonth, isSameMonth } from "date-fns";
+import { format, isSameMonth } from "date-fns";
 import { consultAIAccountant, type AIAccountantOutput } from "@/ai/flows/ai-accountant-flow";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Progress } from "@/components/ui/progress";
@@ -118,7 +117,7 @@ export const PRODUCTION_CATEGORIES_MAP: Record<string, string[]> = {
 };
 
 export default function AccountsPage() {
-  const { companyId, isLoading: isTenantLoading, company, profile } = useTenant();
+  const { companyId, isLoading: isTenantLoading, company } = useTenant();
   const db = useFirestore();
   const [activeTab, setActiveTab] = useState("overview");
   const [isAddAccountOpen, setIsAddOpen] = useState(false);
@@ -259,7 +258,7 @@ export default function AccountsPage() {
       if (filingFrequency === 'monthly') {
         periodKey = format(date, 'MMM yyyy');
       } else {
-        const month = date.getMonth(); // 0-11
+        const month = date.getMonth(); 
         const year = date.getFullYear();
         const q = Math.floor(month / 3) + 1;
         periodKey = `Q${q} ${year}`;
@@ -864,7 +863,7 @@ export default function AccountsPage() {
                           </tr>
                         ) : (
                           gstStats.periods.map((m, idx) => (
-                            <tr key={idx} className="hover:bg-slate-50/50 transition-colors">
+                            <tr key={idx} className="hover:bg-slate-50 transition-colors">
                               <td className="px-8 py-5 font-bold text-slate-700 text-sm">{m.period}</td>
                               <td className="px-8 py-5 font-mono font-bold text-xs text-primary">₹{m.output.toLocaleString()}</td>
                               <td className="px-8 py-5">

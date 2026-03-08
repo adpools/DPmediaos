@@ -159,7 +159,7 @@ export default function ProjectWorkspacePage({ params }: { params: Promise<{ pro
 
   const { data: invoices, isLoading: isInvoicesLoading } = useCollection(invoicesQuery);
 
-  // 6. Fetch Expenses related to this project
+  // 6. Fetch Expenses related to this project (Sync with global ledger)
   const projectExpensesQuery = useMemoFirebase(() => {
     if (!db || !companyId || !projectId) return null;
     return query(
