@@ -41,7 +41,7 @@ import { useTenant } from "@/hooks/use-tenant";
 import { useCollection, useMemoFirebase } from "@/firebase";
 import { collection, query, orderBy, doc, getDocs, where, serverTimestamp } from "firebase/firestore";
 import { useFirestore } from "@/firebase";
-import { addDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase/non-blocking-updates";
+import { addDocumentNonBlocking, deleteDocumentNonBlocking, updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { toast } from "@/hooks/use-toast";
 import Link from "next/link";
 import Image from "next/image";
@@ -143,6 +143,7 @@ export default function ClientsPage() {
   const [isOnboardOpen, setIsOnboardOpen] = useState(false);
   const [onboardStep, setOnboardStep] = useState<'info' | 'services'>('info');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [createdLeadId, setCreatedLeadId] = useState<string | null>(null);
   
   const [newClient, setNewClient] = useState({
     company_name: "",
@@ -200,7 +201,7 @@ export default function ClientsPage() {
     });
   };
 
-  const handleOnboardClient = async () => {
+  const handleOnboardClient = async (shouldAdvance: boolean = false) => {
     if (!companyId || !newClient.company_name) return;
 
     setIsSubmitting(true);
@@ -210,22 +211,40 @@ export default function ClientsPage() {
     const allServices = Object.values(selectedServices).flat();
 
     try {
-      addDocumentNonBlocking(leadsRef, {
-        company_id: companyId,
-        ...newClient,
-        service_vertical: primaryVertical,
-        scope: allServices,
-        deal_value: 0,
-        stage: 'lead',
-        created_at: serverTimestamp(),
-      });
+      if (createdLeadId) {
+        // Update existing lead with newly architected scope
+        const leadDocRef = doc(db, 'companies', companyId, 'leads', createdLeadId);
+        updateDocumentNonBlocking(leadDocRef, {
+          ...newClient,
+          service_vertical: primaryVertical,
+          scope: allServices,
+          updatedAt: serverTimestamp(),
+        });
+      } else {
+        // Create new lead
+        const res = await addDocumentNonBlocking(leadsRef, {
+          company_id: companyId,
+          ...newClient,
+          service_vertical: primaryVertical,
+          scope: allServices,
+          deal_value: 0,
+          stage: 'lead',
+          created_at: serverTimestamp(),
+        });
+        
+        if (res?.id) setCreatedLeadId(res.id);
+      }
 
-      toast({ 
-        title: "Client Onboarded", 
-        description: `${newClient.company_name} has been added successfully.` 
-      });
-
-      resetOnboarding();
+      if (shouldAdvance) {
+        setOnboardStep('services');
+        toast({ title: "Lead Created", description: "Identity registered. Architecting scope..." });
+      } else {
+        toast({ 
+          title: "Client Onboarded", 
+          description: `${newClient.company_name} has been added successfully.` 
+        });
+        resetOnboarding();
+      }
     } catch (error) {
       console.error("Onboarding failed:", error);
       toast({ variant: "destructive", title: "Registration Error", description: "Failed to save client profile." });
@@ -238,6 +257,7 @@ export default function ClientsPage() {
     setNewClient({ company_name: "", industry: "Luxury & Lifestyle", email: "", contact_person: "", gstin: "", billing_address: "" });
     setSelectedVerticalId(null);
     setSelectedServices({});
+    setCreatedLeadId(null);
     setOnboardStep('info');
     setIsOnboardOpen(false);
   };
@@ -612,17 +632,18 @@ export default function ClientsPage() {
                   <div className="flex gap-3">
                     <Button 
                       variant="outline"
-                      onClick={handleOnboardClient} 
+                      onClick={() => handleOnboardClient(false)} 
                       disabled={!newClient.company_name || isSubmitting}
                       className="rounded-2xl h-12 px-6 font-black uppercase text-[10px] tracking-widest gap-2"
                     >
-                      {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Finalize Now"}
+                      {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Onboard Client"}
                     </Button>
                     <Button 
-                      onClick={() => setOnboardStep('services')} 
-                      disabled={!newClient.company_name}
+                      onClick={() => handleOnboardClient(true)} 
+                      disabled={!newClient.company_name || isSubmitting}
                       className="rounded-2xl h-12 px-10 font-black uppercase text-xs tracking-widest gap-2 shadow-xl shadow-primary/20"
                     >
+                      {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
                       Architect Scope <ChevronRight className="h-4 w-4" />
                     </Button>
                   </div>
@@ -633,7 +654,7 @@ export default function ClientsPage() {
                     <ChevronLeft className="h-4 w-4" /> Back to Details
                   </Button>
                   <Button 
-                    onClick={handleOnboardClient} 
+                    onClick={() => handleOnboardClient(false)} 
                     disabled={isSubmitting}
                     className="rounded-2xl h-12 px-10 font-black uppercase text-xs tracking-widest gap-2 shadow-xl shadow-primary/20"
                   >
