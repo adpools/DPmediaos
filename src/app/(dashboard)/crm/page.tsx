@@ -55,7 +55,7 @@ import {
   DropdownMenuContent, 
   DropdownMenuItem, 
   DropdownMenuLabel,
-  DropdownMenuSeparator,
+  DropdownMenuSeparator, 
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
 import { 
@@ -259,7 +259,7 @@ export default function CRMPage() {
               <form onSubmit={handleAddLead} className="space-y-5 py-4">
                 <div className="space-y-2 p-4 bg-indigo-50 rounded-2xl border border-indigo-100">
                   <Label className="text-[10px] font-black uppercase text-indigo-600 tracking-widest flex items-center gap-2 mb-2">
-                    <Database className="h-3 w-3" /> Link to Existing Partner
+                    <Database className="h-3 w-3" /> Client Company
                   </Label>
                   <Select onValueChange={handleSelectExistingClient}>
                     <SelectTrigger className="rounded-xl h-9 bg-white shadow-none text-xs border-indigo-100">
@@ -280,7 +280,7 @@ export default function CRMPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="companyName">Client Company</Label>
+                  <Label htmlFor="companyName">Company Name</Label>
                   <Input 
                     id="companyName" 
                     placeholder="e.g. RedBull Media" 
