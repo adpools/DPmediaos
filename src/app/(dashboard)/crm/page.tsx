@@ -264,13 +264,13 @@ export default function CRMPage() {
         </div>
       </div>
 
-      <div className="flex gap-6 overflow-x-auto pb-6 min-h-[calc(100vh-250px)] scrollbar-hide">
+      <div className="flex gap-6 overflow-x-auto pb-10 min-h-[calc(100vh-300px)]">
         {PIPELINE_STAGES.map((stage) => {
           const leadsInStage = leads?.filter(l => l.stage === stage.id) || [];
           const totalValue = leadsInStage.reduce((sum, l) => sum + (l.deal_value || 0), 0);
 
           return (
-            <div key={stage.id} className="flex flex-col gap-4 min-w-[320px] w-[320px]">
+            <div key={stage.id} className="flex flex-col gap-4 min-w-[320px] w-[320px] shrink-0">
               <div className="flex items-center justify-between px-3">
                 <div className="flex items-center gap-2">
                   <h3 className="font-bold text-sm uppercase tracking-wider">{stage.name}</h3>
