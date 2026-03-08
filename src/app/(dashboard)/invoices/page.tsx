@@ -4,7 +4,7 @@
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, Cloud, Search, CheckCircle2, Download, Filter, TrendingUp, Loader2, IndianRupee, FileText, Sparkles, ExternalLink, Trash2 } from "lucide-react";
+import { Plus, Cloud, Search, CheckCircle2, Download, Filter, TrendingUp, Loader2, IndianRupee, FileText, Sparkles, ExternalLink, Trash2, Briefcase, Building2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { useTenant } from "@/hooks/use-tenant";
@@ -83,11 +83,11 @@ export default function InvoicesPage() {
 
   const handleCreateInvoice = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!companyId || !newInvoice.client_name || !newInvoice.project_id) {
+    if (!companyId || !newInvoice.client_name) {
       toast({
         variant: "destructive",
         title: "Validation Error",
-        description: "Please select both a client and a project.",
+        description: "Please select a client.",
       });
       return;
     }
@@ -108,7 +108,7 @@ export default function InvoicesPage() {
       payment_status: 'unpaid',
       line_items: [
         {
-          description: `${newInvoice.project_name} Services`,
+          description: `${newInvoice.project_name || 'General Production'} Services`,
           unit_price: amount,
           quantity: 1,
           total: amount
@@ -212,7 +212,7 @@ export default function InvoicesPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="project">Production Project</Label>
+                  <Label htmlFor="project">Production Project (Optional)</Label>
                   <Select 
                     value={newInvoice.project_id} 
                     onValueChange={(val) => {
@@ -225,7 +225,7 @@ export default function InvoicesPage() {
                         project_ref: proj?.project_ref || "",
                         client_name: proj?.client_name || newInvoice.client_name,
                         client_id: lead?.id || newInvoice.client_id,
-                        total: proj?.budget ? proj.budget.toString() : ""
+                        total: proj?.budget ? proj.budget.toString() : newInvoice.total
                       });
                     }}
                   >
@@ -233,6 +233,7 @@ export default function InvoicesPage() {
                       <SelectValue placeholder="Link to project" />
                     </SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="none">None (General Billing)</SelectItem>
                       {projects?.length === 0 ? (
                         <div className="p-4 text-center text-xs text-muted-foreground">No active projects found.</div>
                       ) : (
@@ -358,8 +359,7 @@ export default function InvoicesPage() {
               <thead className="bg-slate-50/50 border-b">
                 <tr>
                   <th className="p-4 text-left font-bold text-[11px] uppercase tracking-wider">Invoice #</th>
-                  <th className="p-4 text-left font-bold text-[11px] uppercase tracking-wider">Client</th>
-                  <th className="p-4 text-left font-bold text-[11px] uppercase tracking-wider">Project</th>
+                  <th className="p-4 text-left font-bold text-[11px] uppercase tracking-wider">Context</th>
                   <th className="p-4 text-left font-bold text-[11px] uppercase tracking-wider">Due Date</th>
                   <th className="p-4 text-left font-bold text-[11px] uppercase tracking-wider">Amount</th>
                   <th className="p-4 text-left font-bold text-[11px] uppercase tracking-wider">Status</th>
@@ -369,14 +369,31 @@ export default function InvoicesPage() {
               <tbody className="divide-y">
                 {invoices?.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="p-12 text-center text-muted-foreground">No invoices generated yet.</td>
+                    <td colSpan={6} className="p-12 text-center text-muted-foreground">No invoices generated yet.</td>
                   </tr>
                 ) : (
                   invoices?.map((inv) => (
                     <tr key={inv.id} className="hover:bg-slate-50 transition-colors group">
-                      <td className="p-4 font-mono font-bold text-primary">{inv.invoice_number}</td>
-                      <td className="p-4 font-bold">{inv.client_name}</td>
-                      <td className="p-4 text-xs text-muted-foreground font-medium">{inv.project_name || 'General Production'}</td>
+                      <td className="p-4">
+                        <div className="flex flex-col">
+                          <span className="font-mono font-bold text-primary">{inv.invoice_number}</span>
+                          <span className="text-[10px] text-muted-foreground font-medium uppercase">{new Date(inv.created_at?.toDate?.() || inv.created_at).toLocaleDateString()}</span>
+                        </div>
+                      </td>
+                      <td className="p-4">
+                        <div className="flex flex-col gap-1">
+                          <div className="flex items-center gap-2">
+                            <Building2 className="h-3 w-3 text-muted-foreground" />
+                            <span className="font-bold text-sm leading-none">{inv.client_name}</span>
+                          </div>
+                          {inv.project_name && (
+                            <div className="flex items-center gap-2">
+                              <Briefcase className="h-3 w-3 text-primary/60" />
+                              <span className="text-[10px] text-muted-foreground font-bold">{inv.project_name}</span>
+                            </div>
+                          )}
+                        </div>
+                      </td>
                       <td className="p-4 text-muted-foreground text-xs font-medium">{inv.due_date}</td>
                       <td className="p-4 font-bold">₹{(inv.total || 0).toLocaleString()}</td>
                       <td className="p-4">

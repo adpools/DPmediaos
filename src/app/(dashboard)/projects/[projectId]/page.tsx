@@ -29,7 +29,10 @@ import {
   Package,
   Box,
   Monitor,
-  Check
+  Check,
+  Receipt,
+  ExternalLink,
+  Download
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -124,6 +127,18 @@ export default function ProjectWorkspacePage({ params }: { params: Promise<{ pro
 
   const { data: shootDays, isLoading: isShootDaysLoading } = useCollection(shootDaysQuery);
 
+  // 5. Fetch Invoices related to this project
+  const invoicesQuery = useMemoFirebase(() => {
+    if (!db || !companyId || !projectId) return null;
+    return query(
+      collection(db, 'companies', companyId, 'invoices'),
+      where('project_id', '==', projectId),
+      orderBy('created_at', 'desc')
+    );
+  }, [db, companyId, projectId]);
+
+  const { data: invoices, isLoading: isInvoicesLoading } = useCollection(invoicesQuery);
+
   const handleToggleTask = (taskId: string, currentStatus: string) => {
     if (!db || !companyId || !projectId) return;
     const taskRef = doc(db, 'companies', companyId, 'projects', projectId, 'tasks', taskId);
@@ -196,7 +211,7 @@ export default function ProjectWorkspacePage({ params }: { params: Promise<{ pro
       const tasksRef = collection(db, 'companies', companyId, 'projects', projectId, 'tasks');
       addDocumentNonBlocking(tasksRef, {
         title: newTask.title,
-        phase: activeTab === 'assets' ? 'production' : activeTab,
+        phase: activeTab === 'assets' ? 'production' : (activeTab === 'finances' ? 'production' : activeTab),
         assignedTo: newTask.assignedTo || "Producer",
         status: 'todo',
         priority: 'Medium',
@@ -227,7 +242,7 @@ export default function ProjectWorkspacePage({ params }: { params: Promise<{ pro
     }
   };
 
-  if (isTenantLoading || isProjectLoading || isTasksLoading || isAssetsLoading || isShootDaysLoading) {
+  if (isTenantLoading || isProjectLoading || isTasksLoading || isAssetsLoading || isShootDaysLoading || isInvoicesLoading) {
     return (
       <div className="flex items-center justify-center h-[80vh]">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -258,9 +273,13 @@ export default function ProjectWorkspacePage({ params }: { params: Promise<{ pro
       case 'post-prod': return <Scissors className="h-4 w-4" />;
       case 'release': return <Rocket className="h-4 w-4" />;
       case 'assets': return <Package className="h-4 w-4" />;
+      case 'finances': return <Receipt className="h-4 w-4" />;
       default: return <Target className="h-4 w-4" />;
     }
   };
+
+  const totalBilled = invoices?.reduce((sum, inv) => sum + (inv.total || 0), 0) || 0;
+  const totalOutstanding = invoices?.reduce((sum, inv) => inv.payment_status !== 'paid' ? sum + (inv.total || 0) : sum, 0) || 0;
 
   return (
     <div className="space-y-8 max-w-7xl mx-auto">
@@ -343,19 +362,22 @@ export default function ProjectWorkspacePage({ params }: { params: Promise<{ pro
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="bg-white/50 border p-1 rounded-2xl h-auto flex-wrap mb-8">
           <TabsTrigger value="pre-prod" className="rounded-xl px-6 py-2.5 gap-2 data-[state=active]:bg-primary data-[state=active]:text-white font-bold text-xs uppercase tracking-widest">
-            <FileText className="h-4 w-4" /> Pre-Production
+            <FileText className="h-4 w-4" /> Pre-Prod
           </TabsTrigger>
           <TabsTrigger value="production" className="rounded-xl px-6 py-2.5 gap-2 data-[state=active]:bg-primary data-[state=active]:text-white font-bold text-xs uppercase tracking-widest">
             <Camera className="h-4 w-4" /> Production
           </TabsTrigger>
           <TabsTrigger value="post-prod" className="rounded-xl px-6 py-2.5 gap-2 data-[state=active]:bg-primary data-[state=active]:text-white font-bold text-xs uppercase tracking-widest">
-            <Scissors className="h-4 w-4" /> Post-Production
+            <Scissors className="h-4 w-4" /> Post-Prod
           </TabsTrigger>
           <TabsTrigger value="release" className="rounded-xl px-6 py-2.5 gap-2 data-[state=active]:bg-primary data-[state=active]:text-white font-bold text-xs uppercase tracking-widest">
             <Rocket className="h-4 w-4" /> Release
           </TabsTrigger>
           <TabsTrigger value="assets" className="rounded-xl px-6 py-2.5 gap-2 data-[state=active]:bg-primary data-[state=active]:text-white font-bold text-xs uppercase tracking-widest">
-            <Package className="h-4 w-4" /> Asset Tracking
+            <Package className="h-4 w-4" /> Assets
+          </TabsTrigger>
+          <TabsTrigger value="finances" className="rounded-xl px-6 py-2.5 gap-2 data-[state=active]:bg-primary data-[state=active]:text-white font-bold text-xs uppercase tracking-widest">
+            <Receipt className="h-4 w-4" /> Finance
           </TabsTrigger>
         </TabsList>
 
@@ -408,12 +430,6 @@ export default function ProjectWorkspacePage({ params }: { params: Promise<{ pro
                               </div>
                             </div>
                             <div className="flex items-center gap-4">
-                              <div className="flex -space-x-2 opacity-60">
-                                <Avatar className="h-6 w-6 border-2 border-white ring-1 ring-slate-100">
-                                  <AvatarImage src={`https://picsum.photos/seed/${task.id}/40/40`} />
-                                  <AvatarFallback className="text-[8px]">C</AvatarFallback>
-                                </Avatar>
-                              </div>
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                   <Button variant="ghost" size="icon" className="rounded-xl opacity-0 group-hover:opacity-100 transition-opacity">
@@ -421,7 +437,6 @@ export default function ProjectWorkspacePage({ params }: { params: Promise<{ pro
                                   </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end" className="rounded-xl w-48">
-                                  <DropdownMenuLabel className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground px-3 py-2">Actions</DropdownMenuLabel>
                                   <DropdownMenuItem className="cursor-pointer gap-2 py-2" onClick={() => handleToggleTask(task.id, task.status)}>
                                     {task.status === 'done' ? <Clock className="h-4 w-4" /> : <CheckCircle2 className="h-4 w-4" />}
                                     Mark as {task.status === 'done' ? 'Pending' : 'Completed'}
@@ -590,6 +605,103 @@ export default function ProjectWorkspacePage({ params }: { params: Promise<{ pro
                       <span>{assets?.length ? Math.round((assets.filter(a => a.status === 'available').length / assets.length) * 100) : 0}%</span>
                     </div>
                     <Progress value={assets?.length ? (assets.filter(a => a.status === 'available').length / assets.length) * 100 : 0} className="h-1 bg-white/10" />
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="finances" className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="lg:col-span-2 space-y-6">
+              <Card className="border-none shadow-sm rounded-[2rem] overflow-hidden bg-white">
+                <CardHeader className="bg-slate-50/50 flex flex-row items-center justify-between border-b px-8 py-6">
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <div className="p-1.5 bg-primary/10 rounded-lg text-primary"><Receipt className="h-4 w-4" /></div>
+                      <CardTitle className="text-xl">Project Billing Ledger</CardTitle>
+                    </div>
+                    <CardDescription>Consolidated invoices and payment history for this workspace.</CardDescription>
+                  </div>
+                  <Link href="/invoices">
+                    <Button variant="outline" size="sm" className="rounded-xl">
+                      <Plus className="h-4 w-4 mr-2" /> New Invoice
+                    </Button>
+                  </Link>
+                </CardHeader>
+                <CardContent className="p-0">
+                  {isInvoicesLoading ? (
+                    <div className="flex justify-center p-12"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
+                  ) : invoices?.length === 0 ? (
+                    <div className="text-center py-24 text-muted-foreground space-y-4">
+                      <Receipt className="h-12 w-12 mx-auto opacity-10" />
+                      <p className="text-sm font-medium">No billing records found for this project.</p>
+                      <Link href="/invoices">
+                        <Button variant="link" size="sm">Generate first invoice</Button>
+                      </Link>
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead className="bg-slate-50/30 border-b">
+                          <tr>
+                            <th className="px-8 py-4 text-left font-bold text-[10px] uppercase text-muted-foreground">Invoice #</th>
+                            <th className="px-8 py-4 text-left font-bold text-[10px] uppercase text-muted-foreground">Amount</th>
+                            <th className="px-8 py-4 text-left font-bold text-[10px] uppercase text-muted-foreground">Status</th>
+                            <th className="px-8 py-4 text-right"></th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y">
+                          {invoices?.map((inv) => (
+                            <tr key={inv.id} className="hover:bg-slate-50 transition-colors group">
+                              <td className="px-8 py-5 font-mono font-bold text-primary">{inv.invoice_number}</td>
+                              <td className="px-8 py-5 font-bold">₹{inv.total?.toLocaleString()}</td>
+                              <td className="px-8 py-5">
+                                <Badge variant={inv.payment_status === 'paid' ? 'default' : 'secondary'} className="text-[9px] uppercase font-bold">
+                                  {inv.payment_status}
+                                </Badge>
+                              </td>
+                              <td className="px-8 py-5 text-right">
+                                <div className="flex justify-end gap-2">
+                                  <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"><Download className="h-4 w-4" /></Button>
+                                  <Link href={`/invoices/${inv.id}`}>
+                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-primary opacity-0 group-hover:opacity-100 transition-opacity">
+                                      <ExternalLink className="h-4 w-4" />
+                                    </Button>
+                                  </Link>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+
+            <div className="space-y-6">
+              <Card className="border-none shadow-sm bg-primary text-white rounded-[2rem]">
+                <CardHeader>
+                  <CardTitle className="text-lg">Commercial Health</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-bold text-white/60 uppercase">Total Billed</p>
+                    <h4 className="text-2xl font-bold">₹{totalBilled.toLocaleString()}</h4>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-bold text-white/60 uppercase">Outstanding</p>
+                    <h4 className="text-2xl font-bold text-rose-300">₹{totalOutstanding.toLocaleString()}</h4>
+                  </div>
+                  <div className="pt-4 border-t border-white/10">
+                    <div className="flex justify-between text-[10px] font-bold uppercase text-white/60 mb-2">
+                      <span>Collection Rate</span>
+                      <span>{totalBilled > 0 ? Math.round(((totalBilled - totalOutstanding) / totalBilled) * 100) : 0}%</span>
+                    </div>
+                    <Progress value={totalBilled > 0 ? ((totalBilled - totalOutstanding) / totalBilled) * 100 : 0} className="h-1 bg-white/10" />
                   </div>
                 </CardContent>
               </Card>
