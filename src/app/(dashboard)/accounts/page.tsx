@@ -37,7 +37,8 @@ import {
   Lock,
   Cpu,
   Trash2,
-  X
+  X,
+  Filter
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -89,6 +90,9 @@ export default function AccountsPage() {
   const [isAddAccountOpen, setIsAddOpen] = useState(false);
   const [isLogExpenseOpen, setIsLogExpenseOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Filtering
+  const [projectFilter, setProjectFilter] = useState<string>("all");
 
   // Deletion State
   const [accountToDelete, setAccountToDelete] = useState<any>(null);
@@ -199,6 +203,13 @@ export default function AccountsPage() {
       .filter(e => isSameMonth(new Date(e.date), now))
       .reduce((sum, e) => sum + (parseFloat(e.amount) || 0), 0);
   }, [expenses]);
+
+  const filteredExpenses = useMemo(() => {
+    if (!expenses) return [];
+    if (projectFilter === 'all') return expenses;
+    if (projectFilter === 'overhead') return expenses.filter(e => !e.project_id || e.project_id === 'none');
+    return expenses.filter(e => e.project_id === projectFilter);
+  }, [expenses, projectFilter]);
 
   const gstStats = useMemo(() => {
     if (!invoices) return { output: 0, periods: [] };
@@ -612,9 +623,26 @@ export default function AccountsPage() {
                       <CardTitle className="text-lg md:text-xl font-bold">Operational Ledger</CardTitle>
                       <CardDescription className="text-xs">Payroll, rent, and recurring production costs.</CardDescription>
                     </div>
-                    <Button variant="outline" size="sm" className="rounded-xl h-9 w-full sm:w-auto font-bold gap-2">
-                      <Download className="h-4 w-4" /> Export CSV
-                    </Button>
+                    <div className="flex items-center gap-3">
+                      <div className="relative">
+                        <Filter className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                        <Select value={projectFilter} onValueChange={setProjectFilter}>
+                          <SelectTrigger className="pl-9 w-[180px] rounded-xl h-9 text-xs font-bold bg-white">
+                            <SelectValue placeholder="All Projects" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">All Movements</SelectItem>
+                            <SelectItem value="overhead">General Overhead</SelectItem>
+                            {projects?.map(p => (
+                              <SelectItem key={p.id} value={p.id}>{p.project_name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <Button variant="outline" size="sm" className="rounded-xl h-9 w-full sm:w-auto font-bold gap-2">
+                        <Download className="h-4 w-4" /> Export CSV
+                      </Button>
+                    </div>
                   </div>
                 </CardHeader>
                 <CardContent className="p-0">
@@ -632,12 +660,12 @@ export default function AccountsPage() {
                         </tr>
                       </thead>
                       <tbody className="divide-y">
-                        {expenses?.length === 0 ? (
+                        {filteredExpenses?.length === 0 ? (
                           <tr>
-                            <td colSpan={7} className="px-8 py-16 text-center text-muted-foreground italic text-xs">No running costs registered.</td>
+                            <td colSpan={7} className="px-8 py-16 text-center text-muted-foreground italic text-xs">No movements found for this filter.</td>
                           </tr>
                         ) : (
-                          expenses?.map((ex) => {
+                          filteredExpenses?.map((ex) => {
                             const linkedProject = projects?.find(p => p.id === ex.project_id);
                             return (
                               <tr key={ex.id} className="hover:bg-slate-50/50 transition-colors group">
@@ -652,7 +680,7 @@ export default function AccountsPage() {
                                       {linkedProject.project_name}
                                     </Badge>
                                   ) : (
-                                    <span className="text-[10px] text-muted-foreground">-</span>
+                                    <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-widest">Overhead</span>
                                   )}
                                 </td>
                                 <td className="px-6 md:px-8 py-5 font-black text-rose-600 text-xs whitespace-nowrap">₹{ex.amount?.toLocaleString()}</td>

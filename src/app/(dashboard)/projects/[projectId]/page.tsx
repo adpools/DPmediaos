@@ -87,6 +87,16 @@ export default function ProjectWorkspacePage({ params }: { params: Promise<{ pro
   const [isAddAssetOpen, setIsAddAssetOpen] = useState(false);
   const [newAsset, setNewAsset] = useState({ name: "", category: "Equipment", status: "available" });
 
+  // Add Expense Dialog State
+  const [isLogExpenseOpen, setIsLogExpenseOpen] = useState(false);
+  const [newExpense, setNewExpense] = useState({
+    category: "Production",
+    description: "",
+    amount: "",
+    date: new Date().toISOString().split('T')[0],
+    status: "Paid"
+  });
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [taskToDelete, setTaskToDelete] = useState<any>(null);
   const [assetToDelete, setAssetToDelete] = useState<any>(null);
@@ -282,6 +292,30 @@ export default function ProjectWorkspacePage({ params }: { params: Promise<{ pro
     }
   };
 
+  const handleLogExpense = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!companyId || !newExpense.description || !newExpense.amount) return;
+
+    setIsSubmitting(true);
+    const expensesRef = collection(db, 'companies', companyId, 'expenses');
+    
+    addDocumentNonBlocking(expensesRef, {
+      company_id: companyId,
+      category: newExpense.category,
+      description: newExpense.description,
+      amount: parseFloat(newExpense.amount) || 0,
+      date: newExpense.date,
+      status: newExpense.status,
+      project_id: projectId,
+      created_at: serverTimestamp(),
+    });
+
+    toast({ title: "Expense Recorded", description: `${newExpense.category} cost has been added to project ledger.` });
+    setNewExpense({ category: "Production", description: "", amount: "", date: new Date().toISOString().split('T')[0], status: "Paid" });
+    setIsLogExpenseOpen(false);
+    setIsSubmitting(false);
+  };
+
   if (isTenantLoading || isProjectLoading || isTasksLoading || isAssetsLoading || isShootDaysLoading || isInvoicesLoading || isProjectExpensesLoading) {
     return (
       <div className="flex items-center justify-center h-[80vh]">
@@ -349,8 +383,8 @@ export default function ProjectWorkspacePage({ params }: { params: Promise<{ pro
               <span className="text-sm font-bold text-primary">{project.progress}%</span>
             </div>
           </div>
-          <Button className="rounded-xl gap-2 shadow-lg shadow-primary/20" onClick={() => activeTab === 'assets' ? setIsAddAssetOpen(true) : setIsAddTaskOpen(true)}>
-            <Plus className="h-4 w-4" /> {activeTab === 'assets' ? 'Register Item' : 'Add Objective'}
+          <Button className="rounded-xl gap-2 shadow-lg shadow-primary/20" onClick={() => activeTab === 'assets' ? setIsAddAssetOpen(true) : (activeTab === 'finances' ? setIsLogExpenseOpen(true) : setIsAddTaskOpen(true))}>
+            <Plus className="h-4 w-4" /> {activeTab === 'assets' ? 'Register Item' : (activeTab === 'finances' ? 'Log Project Cost' : 'Add Objective')}
           </Button>
         </div>
       </div>
@@ -776,11 +810,9 @@ export default function ProjectWorkspacePage({ params }: { params: Promise<{ pro
                     </div>
                     <CardDescription>All direct costs attributed to this project.</CardDescription>
                   </div>
-                  <Link href="/accounts">
-                    <Button variant="outline" size="sm" className="rounded-xl">
-                      <Plus className="h-4 w-4 mr-2" /> Log Project Cost
-                    </Button>
-                  </Link>
+                  <Button variant="outline" size="sm" className="rounded-xl" onClick={() => setIsLogExpenseOpen(true)}>
+                    <Plus className="h-4 w-4 mr-2" /> Log Project Cost
+                  </Button>
                 </CardHeader>
                 <CardContent className="p-0">
                   {isProjectExpensesLoading ? (
@@ -989,6 +1021,69 @@ export default function ProjectWorkspacePage({ params }: { params: Promise<{ pro
               <Button type="submit" disabled={isSubmitting} className="w-full rounded-xl h-11 font-bold">
                 {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                 Add to Project
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Local Log Project Expense Dialog */}
+      <Dialog open={isLogExpenseOpen} onOpenChange={setIsLogExpenseOpen}>
+        <DialogContent className="sm:max-w-[425px] rounded-[2.5rem] p-8 max-h-[90vh] overflow-y-auto custom-scrollbar">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-2xl font-bold">
+              <Receipt className="h-6 w-6 text-accent" />
+              Log Project Cost
+            </DialogTitle>
+            <DialogDescription>
+              Record direct production costs for this workspace.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleLogExpense} className="space-y-5 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Category</Label>
+                <Select value={newExpense.category} onValueChange={(val) => setNewExpense({...newExpense, category: val})}>
+                  <SelectTrigger className="rounded-xl h-11"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {['Salary', 'Rent', 'Utilities', 'Production', 'Marketing', 'Other'].map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Amount (₹)</Label>
+                <Input 
+                  type="number"
+                  placeholder="5000" 
+                  value={newExpense.amount}
+                  onChange={(e) => setNewExpense({...newExpense, amount: e.target.value})}
+                  required
+                  className="rounded-xl h-11"
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Description</Label>
+              <Input 
+                placeholder="e.g. Equipment Rental Day 1" 
+                value={newExpense.description}
+                onChange={(e) => setNewExpense({...newExpense, description: e.target.value})}
+                required
+                className="rounded-xl h-11"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Date</Label>
+              <Input 
+                type="date"
+                value={newExpense.date}
+                onChange={(e) => setNewExpense({...newExpense, date: e.target.value})}
+                className="rounded-xl h-11"
+              />
+            </div>
+            <DialogFooter className="pt-4">
+              <Button type="submit" disabled={isSubmitting} className="w-full bg-accent hover:bg-accent/90 rounded-xl h-12 font-bold shadow-lg shadow-accent/20">
+                {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Commit to Project Ledger"}
               </Button>
             </DialogFooter>
           </form>
