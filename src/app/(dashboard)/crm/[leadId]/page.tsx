@@ -1,4 +1,3 @@
-
 "use client";
 
 import { use, useState, useEffect } from "react";
@@ -235,9 +234,26 @@ export default function LeadDetailPage({ params }: { params: Promise<{ leadId: s
                           )}
                         </div>
                         {isCompleted && (
-                          <p className="text-[10px] text-muted-foreground font-medium italic">
-                            Stage reached successfully in current workflow.
-                          </p>
+                          <div className="space-y-3">
+                            <p className="text-[10px] text-muted-foreground font-medium italic leading-relaxed">
+                              Stage reached successfully in current workflow.
+                            </p>
+                            {/* CREATE PROPOSAL BUTTON FOR MEETING STAGE */}
+                            {s.id === 'meeting' && (
+                              <div className="animate-in fade-in slide-in-from-left-2 duration-500">
+                                <Link href={`/proposals?source=crm&leadId=${leadId}&companyName=${encodeURIComponent(lead.company_name)}&vertical=${encodeURIComponent(lead.service_vertical || '')}&industry=${encodeURIComponent(lead.industry || '')}`}>
+                                  <Button 
+                                    size="sm" 
+                                    variant="outline" 
+                                    className="h-8 text-[9px] font-black uppercase tracking-widest gap-2 rounded-xl border-primary/20 hover:bg-primary/5 hover:border-primary/40 transition-all shadow-sm"
+                                  >
+                                    <Sparkles className="h-3 w-3 text-accent" /> 
+                                    Create AI Proposal
+                                  </Button>
+                                </Link>
+                              </div>
+                            )}
+                          </div>
                         )}
                       </div>
                     </div>

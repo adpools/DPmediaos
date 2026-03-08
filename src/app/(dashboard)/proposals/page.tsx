@@ -34,7 +34,7 @@ import {
   Lightbulb,
   CheckCircle2,
   TrendingUp,
-  Image as ImageIcon,
+  ImageIcon,
   Trash2,
   X
 } from "lucide-react";
@@ -112,17 +112,19 @@ function ProposalsContent() {
 
   useEffect(() => {
     const source = searchParams.get('source');
-    if (source === 'research') {
-      const projectName = searchParams.get('projectName') || '';
+    if (source === 'research' || source === 'crm') {
+      const projectName = searchParams.get('projectName') || searchParams.get('companyName') || '';
       const industry = searchParams.get('industry') || '';
-      const services = searchParams.get('services') || '';
+      const services = searchParams.get('services') || searchParams.get('vertical') || '';
       const context = searchParams.get('context') || '';
+      const location = searchParams.get('location') || '';
 
       setAIInputs(prev => ({
         ...prev,
-        service_vertical: services || projectName,
+        service_vertical: services,
         client_type: industry,
-        project_description: context || `A dedicated campaign focused on ${industry} market expansion.`
+        location: location,
+        project_description: context || (source === 'crm' ? `Strategic production blueprint for ${projectName}'s ${services} project in the ${industry} industry.` : `A dedicated campaign focused on ${industry} market expansion.`)
       }));
 
       setIsAddOpen(true);
