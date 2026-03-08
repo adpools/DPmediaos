@@ -1066,13 +1066,14 @@ export default function ProjectWorkspacePage({ params }: { params: Promise<{ pro
               <div className="space-y-2">
                 <Label>Sub-Item</Label>
                 <Select 
+                  key={newExpense.category}
                   value={newExpense.sub_category} 
                   onValueChange={(val) => setNewExpense({...newExpense, sub_category: val})}
                 >
                   <SelectTrigger className="rounded-xl h-11">
                     <div className="flex items-center gap-2">
                       <ListTree className="h-3 w-3 text-muted-foreground" />
-                      <SelectValue />
+                      <SelectValue placeholder="Select Item" />
                     </div>
                   </SelectTrigger>
                   <SelectContent>
