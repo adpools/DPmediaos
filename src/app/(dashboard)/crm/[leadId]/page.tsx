@@ -38,7 +38,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
-import { VERTICALS } from "../../clients/page";
+import { CONTENT_VERTICALS } from "../../clients/page";
 
 export default function LeadDetailPage({ params }: { params: Promise<{ leadId: string }> }) {
   const { leadId } = use(params);
@@ -67,7 +67,7 @@ export default function LeadDetailPage({ params }: { params: Promise<{ leadId: s
     if (lead && isEditOpen) {
       setEditForm({
         company_name: lead.company_name || "",
-        service_vertical: lead.service_vertical || "High-Premium Brand Film",
+        service_vertical: lead.service_vertical || "Advertising & Brand Films",
         industry: lead.industry || "",
         deal_value: lead.deal_value?.toString() || ""
       });
@@ -166,7 +166,7 @@ export default function LeadDetailPage({ params }: { params: Promise<{ leadId: s
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-8">
-          {/* Status Tracker */}
+          {/* Status Tracker - Vertical Redesign */}
           <Card className="border-none shadow-sm rounded-[2rem] bg-white overflow-hidden">
             <CardHeader className="bg-slate-50/50 pb-6 border-b">
               <div className="flex items-center justify-between">
@@ -415,8 +415,8 @@ export default function LeadDetailPage({ params }: { params: Promise<{ leadId: s
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {VERTICALS.map(v => (
-                    <SelectItem key={v} value={v}>{v}</SelectItem>
+                  {CONTENT_VERTICALS.map(v => (
+                    <SelectItem key={v.id} value={v.name}>{v.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>

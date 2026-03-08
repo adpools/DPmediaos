@@ -35,7 +35,7 @@ import {
   AlertDialogHeader, 
   AlertDialogTitle, 
 } from "@/components/ui/alert-dialog";
-import { VERTICALS } from "../clients/page";
+import { CONTENT_VERTICALS } from "../clients/page";
 
 export default function CRMPage() {
   const { profile, isLoading: isTenantLoading, companyId } = useTenant();
@@ -47,7 +47,7 @@ export default function CRMPage() {
   // Quick Add State
   const [newLead, setNewLead] = useState({
     company_name: "",
-    service_vertical: "High-Premium Brand Film",
+    service_vertical: "Advertising & Brand Films",
     industry: "",
     deal_value: "",
     stage: "lead"
@@ -115,7 +115,7 @@ export default function CRMPage() {
       description: `${newLead.company_name} has been added to your pipeline.`,
     });
 
-    setNewLead({ company_name: "", service_vertical: "High-Premium Brand Film", industry: "", deal_value: "", stage: "lead" });
+    setNewLead({ company_name: "", service_vertical: "Advertising & Brand Films", industry: "", deal_value: "", stage: "lead" });
     setIsAddOpen(false);
     setIsSubmitting(false);
   };
@@ -218,8 +218,8 @@ export default function CRMPage() {
                       <SelectValue placeholder="Select vertical" />
                     </SelectTrigger>
                     <SelectContent>
-                      {VERTICALS.map(v => (
-                        <SelectItem key={v} value={v}>{v}</SelectItem>
+                      {CONTENT_VERTICALS.map(v => (
+                        <SelectItem key={v.id} value={v.name}>{v.name}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
