@@ -197,34 +197,39 @@ export default function ClientsPage() {
     });
   };
 
-  const handleOnboardClient = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleOnboardClient = async () => {
     if (!companyId || !newClient.company_name) return;
 
     setIsSubmitting(true);
     const leadsRef = collection(db, 'companies', companyId, 'leads');
     
-    // Aggregate all selected services into a single string for legacy compatibility or a specific field
+    // Aggregate all selected services
     const primaryVertical = activeVertical?.name || "General Production";
     const allServices = Object.values(selectedServices).flat();
 
-    addDocumentNonBlocking(leadsRef, {
-      company_id: companyId,
-      ...newClient,
-      service_vertical: primaryVertical,
-      scope: allServices,
-      deal_value: parseFloat(newClient.deal_value) || 0,
-      stage: 'lead',
-      created_at: serverTimestamp(),
-    });
+    try {
+      await addDocumentNonBlocking(leadsRef, {
+        company_id: companyId,
+        ...newClient,
+        service_vertical: primaryVertical,
+        scope: allServices,
+        deal_value: parseFloat(newClient.deal_value) || 0,
+        stage: 'lead',
+        created_at: serverTimestamp(),
+      });
 
-    toast({ 
-      title: "Client Onboarded", 
-      description: `${newClient.company_name} has been added with ${allServices.length} planned services.` 
-    });
+      toast({ 
+        title: "Client Onboarded", 
+        description: `${newClient.company_name} has been added with ${allServices.length} planned services.` 
+      });
 
-    resetOnboarding();
-    setIsSubmitting(false);
+      resetOnboarding();
+    } catch (error) {
+      console.error("Onboarding failed:", error);
+      toast({ variant: "destructive", title: "Registration Error", description: "Failed to save client profile." });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const resetOnboarding = () => {
@@ -390,9 +395,9 @@ export default function ClientsPage() {
 
       {/* ONBOARD CLIENT DIALOG - INTEGRATED SERVICE BUILDER */}
       <Dialog open={isOnboardOpen} onOpenChange={(open) => !open && resetOnboarding()}>
-        <DialogContent className="sm:max-w-[1000px] rounded-[3rem] p-0 overflow-hidden border-none shadow-2xl h-[90vh]">
+        <DialogContent className="sm:max-w-[1000px] rounded-[3rem] p-0 overflow-hidden border-none shadow-2xl h-[90vh] max-h-[900px]">
           <div className="flex flex-col h-full bg-white">
-            <div className="p-8 border-b bg-primary/5 flex items-center justify-between">
+            <div className="p-8 border-b bg-primary/5 flex items-center justify-between shrink-0">
               <div className="flex items-center gap-4">
                 <div className="h-12 w-12 bg-primary rounded-2xl flex items-center justify-center text-white shadow-lg">
                   <Sparkles className="h-6 w-6" />
@@ -410,7 +415,7 @@ export default function ClientsPage() {
 
             <div className="flex-1 flex overflow-hidden">
               {onboardStep === 'info' ? (
-                <div className="flex-1 p-10 space-y-8 animate-in fade-in slide-in-from-left-4 duration-300">
+                <div className="flex-1 p-10 space-y-8 animate-in fade-in slide-in-from-left-4 duration-300 overflow-y-auto">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div className="space-y-2">
                       <Label htmlFor="companyName" className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Company Identity</Label>
@@ -468,8 +473,8 @@ export default function ClientsPage() {
                 </div>
               ) : (
                 <div className="flex-1 flex overflow-hidden animate-in fade-in slide-in-from-right-4 duration-300">
-                  <div className="flex-1 flex flex-col p-8 bg-slate-50/50">
-                    <div className="mb-6">
+                  <div className="flex-1 flex flex-col p-8 bg-slate-50/50 overflow-hidden">
+                    <div className="mb-6 shrink-0">
                       <h3 className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-4">Select Content Vertical</h3>
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                         {CONTENT_VERTICALS.map((vertical) => (
@@ -528,8 +533,8 @@ export default function ClientsPage() {
                     </div>
                   </div>
 
-                  <aside className="w-80 border-l bg-white flex flex-col">
-                    <div className="p-6 border-b bg-slate-50/50">
+                  <aside className="w-80 border-l bg-white flex flex-col shrink-0">
+                    <div className="p-6 border-b bg-slate-50/50 shrink-0">
                       <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Scope Synthesis</h4>
                       <p className="text-xs font-bold text-slate-700">Project Brief Summary</p>
                     </div>
@@ -562,7 +567,7 @@ export default function ClientsPage() {
                         )}
                       </div>
                     </ScrollArea>
-                    <div className="p-6 border-t bg-slate-50/50">
+                    <div className="p-6 border-t bg-slate-50/50 shrink-0">
                       <div className="flex justify-between items-center mb-4">
                         <span className="text-[9px] font-black uppercase text-slate-400">Total Selection</span>
                         <Badge className="bg-primary text-white font-black h-5 text-[10px] px-2">{totalServicesCount}</Badge>
@@ -573,7 +578,7 @@ export default function ClientsPage() {
               )}
             </div>
 
-            <div className="p-8 border-t bg-white flex items-center justify-between">
+            <div className="p-8 border-t bg-white flex items-center justify-between shrink-0">
               {onboardStep === 'info' ? (
                 <>
                   <Button variant="ghost" onClick={() => setIsOnboardOpen(false)} className="rounded-xl font-bold text-slate-400">Cancel</Button>
@@ -592,7 +597,7 @@ export default function ClientsPage() {
                   </Button>
                   <Button 
                     onClick={handleOnboardClient} 
-                    disabled={isSubmitting || totalServicesCount === 0}
+                    disabled={isSubmitting}
                     className="rounded-2xl h-12 px-10 font-black uppercase text-xs tracking-widest gap-2 shadow-xl shadow-primary/20"
                   >
                     {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}

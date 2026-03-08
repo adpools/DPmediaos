@@ -357,7 +357,6 @@ export default function CRMPage() {
         </div>
       </div>
 
-      {/* STABLE ARCHIVE DIALOG */}
       <AlertDialog open={!!leadToArchive} onOpenChange={(open) => !open && setLeadToArchive(null)}>
         <AlertDialogContent className="rounded-[2rem]">
           <AlertDialogHeader>
