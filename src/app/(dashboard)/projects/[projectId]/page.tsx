@@ -54,6 +54,17 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 export default function ProjectWorkspacePage({ params }: { params: Promise<{ projectId: string }> }) {
   const { projectId } = use(params);
@@ -100,17 +111,6 @@ export default function ProjectWorkspacePage({ params }: { params: Promise<{ pro
   }, [db, companyId, projectId]);
 
   const { data: assets, isLoading: isAssetsLoading } = useCollection(assetsQuery);
-
-  // 4. Fetch Production Days (Call Sheets)
-  const shootDaysQuery = useMemoFirebase(() => {
-    if (!db || !companyId || !projectId) return null;
-    return query(
-      collection(db, 'companies', companyId, 'projects', projectId, 'production_days'),
-      orderBy('date', 'asc')
-    );
-  }, [db, companyId, projectId]);
-
-  const { data: shootDays } = useCollection(shootDaysQuery);
 
   const handleToggleTask = (taskId: string, currentStatus: string) => {
     if (!db || !companyId || !projectId) return;
@@ -414,9 +414,27 @@ export default function ProjectWorkspacePage({ params }: { params: Promise<{ pro
                                     Mark as {task.status === 'done' ? 'Pending' : 'Completed'}
                                   </DropdownMenuItem>
                                   <DropdownMenuSeparator />
-                                  <DropdownMenuItem className="cursor-pointer gap-2 py-2 text-rose-500 focus:text-rose-600 focus:bg-rose-50" onClick={() => handleDeleteTask(task.id)}>
-                                    <Trash2 className="h-4 w-4" /> Delete Objective
-                                  </DropdownMenuItem>
+                                  <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                      <DropdownMenuItem className="cursor-pointer gap-2 py-2 text-rose-500 focus:text-rose-600 focus:bg-rose-50" onSelect={(e) => e.preventDefault()}>
+                                        <Trash2 className="h-4 w-4" /> Delete Objective
+                                      </DropdownMenuItem>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent className="rounded-[2rem]">
+                                      <AlertDialogHeader>
+                                        <AlertDialogTitle>Remove Objective?</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                          This will permanently remove "{task.title}" from this production phase.
+                                        </AlertDialogDescription>
+                                      </AlertDialogHeader>
+                                      <AlertDialogFooter>
+                                        <AlertDialogCancel className="rounded-xl">Cancel</AlertDialogCancel>
+                                        <AlertDialogAction onClick={() => handleDeleteTask(task.id)} className="bg-rose-500 hover:bg-rose-600 rounded-xl">
+                                          Confirm Delete
+                                        </AlertDialogAction>
+                                      </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                  </AlertDialog>
                                 </DropdownMenuContent>
                               </DropdownMenu>
                             </div>
@@ -550,9 +568,27 @@ export default function ProjectWorkspacePage({ params }: { params: Promise<{ pro
                                   <Target className="h-4 w-4 text-rose-500" /> Maintenance
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator />
-                                <DropdownMenuItem className="cursor-pointer gap-2 py-2 text-rose-500 focus:text-rose-600 focus:bg-rose-50" onClick={() => handleDeleteAsset(asset.id)}>
-                                  <Trash2 className="h-4 w-4" /> Remove Tracking
-                                </DropdownMenuItem>
+                                <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                    <DropdownMenuItem className="cursor-pointer gap-2 py-2 text-rose-500 focus:text-rose-600 focus:bg-rose-50" onSelect={(e) => e.preventDefault()}>
+                                      <Trash2 className="h-4 w-4" /> Remove Tracking
+                                    </DropdownMenuItem>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent className="rounded-[2rem]">
+                                    <AlertDialogHeader>
+                                      <AlertDialogTitle>Delete Asset Record?</AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                        This will permanently remove "{asset.name}" from your project inventory.
+                                      </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                      <AlertDialogCancel className="rounded-xl">Cancel</AlertDialogCancel>
+                                      <AlertDialogAction onClick={() => handleDeleteAsset(asset.id)} className="bg-rose-500 hover:bg-rose-600 rounded-xl">
+                                        Confirm Delete
+                                      </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
                               </DropdownMenuContent>
                             </DropdownMenu>
                           </div>

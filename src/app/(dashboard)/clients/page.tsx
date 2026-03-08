@@ -4,14 +4,14 @@
 import { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Building2, Search, Filter, MoreHorizontal, Plus, Briefcase, Mail, Phone, Loader2, ExternalLink, Zap, Trash2 } from "lucide-react";
+import { Building2, Search, Filter, MoreHorizontal, Plus, Briefcase, Mail, Phone, Loader2, ExternalLink, Zap, Trash2, Archive } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { useTenant } from "@/hooks/use-tenant";
 import { useCollection, useMemoFirebase } from "@/firebase";
-import { collection, query, orderBy, doc } from "firebase/firestore";
+import { collection, query, orderBy, doc, getDocs, where } from "firebase/firestore";
 import { useFirestore } from "@/firebase";
-import { deleteDocumentNonBlocking } from "@/firebase/non-blocking-updates";
+import { addDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { toast } from "@/hooks/use-toast";
 import Link from "next/link";
 import Image from "next/image";
@@ -60,11 +60,43 @@ export default function ClientsPage() {
     );
   }, [leads, searchQuery]);
 
-  const handleDeleteClient = (clientId: string) => {
-    if (!db || !companyId || !clientId) return;
-    const clientRef = doc(db, 'companies', companyId, 'leads', clientId);
+  const handleArchiveClient = async (client: any) => {
+    if (!db || !companyId || !client.id) return;
+
+    // 1. Move Client to Archive
+    const archiveRef = collection(db, 'companies', companyId, 'archives');
+    addDocumentNonBlocking(archiveRef, {
+      ...client,
+      archive_type: 'client',
+      archived_at: new Date().toISOString()
+    });
+
+    // 2. Cascade: Archive Projects
+    try {
+      const projectsRef = collection(db, 'companies', companyId, 'projects');
+      const q = query(projectsRef, where('client_name', '==', client.company_name));
+      const snapshot = await getDocs(q);
+      
+      snapshot.docs.forEach(projectDoc => {
+        addDocumentNonBlocking(archiveRef, {
+          ...projectDoc.data(),
+          archive_type: 'project',
+          archived_at: new Date().toISOString()
+        });
+        deleteDocumentNonBlocking(doc(db, 'companies', companyId, 'projects', projectDoc.id));
+      });
+    } catch (e) {
+      console.error("Cascade archive failed", e);
+    }
+
+    // 3. Delete Original Client
+    const clientRef = doc(db, 'companies', companyId, 'leads', client.id);
     deleteDocumentNonBlocking(clientRef);
-    toast({ title: "Partner Removed", description: "The client has been deleted from your directory." });
+    
+    toast({ 
+      title: "Client Archived", 
+      description: `"${client.company_name}" and associated projects moved to archives.` 
+    });
   };
 
   if (isTenantLoading || isLeadsLoading) {
@@ -179,23 +211,23 @@ export default function ClientsPage() {
                               className="gap-2 text-rose-500 focus:text-rose-600 focus:bg-rose-50 cursor-pointer" 
                               onSelect={(e) => e.preventDefault()}
                             >
-                              <Trash2 className="h-3.5 w-3.5" /> Remove Partner
+                              <Archive className="h-3.5 w-3.5" /> Archive Client
                             </DropdownMenuItem>
                           </AlertDialogTrigger>
                           <AlertDialogContent className="rounded-[2rem]">
                             <AlertDialogHeader>
-                              <AlertDialogTitle>Delete Client Record?</AlertDialogTitle>
+                              <AlertDialogTitle>Archive Client Record?</AlertDialogTitle>
                               <AlertDialogDescription>
-                                This will remove "{client.company_name}" from your directory. Associated projects will remain but will no longer be linked to this CRM profile.
+                                This will move "{client.company_name}" and ALL associated projects to the archives. They will no longer appear in active lists but remain accessible in the ledger.
                               </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>
                               <AlertDialogCancel className="rounded-xl">Cancel</AlertDialogCancel>
                               <AlertDialogAction 
-                                onClick={() => handleDeleteClient(client.id)}
+                                onClick={() => handleArchiveClient(client)}
                                 className="bg-rose-500 hover:bg-rose-600 rounded-xl"
                               >
-                                Confirm Delete
+                                Confirm Archive
                               </AlertDialogAction>
                             </AlertDialogFooter>
                           </AlertDialogContent>

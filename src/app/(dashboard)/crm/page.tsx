@@ -4,7 +4,7 @@
 import { useState, useMemo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, MoreHorizontal, Building2, Calendar, Search, Loader2, IndianRupee, Sparkles, ExternalLink, ArrowRight, Database, Zap, Trash2 } from "lucide-react";
+import { Plus, MoreHorizontal, Building2, Calendar, Search, Loader2, IndianRupee, Sparkles, ExternalLink, ArrowRight, Database, Zap, Trash2, Archive } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { useTenant } from "@/hooks/use-tenant";
@@ -119,11 +119,19 @@ export default function CRMPage() {
     setIsSubmitting(false);
   };
 
-  const handleDeleteLead = (leadId: string) => {
-    if (!db || !companyId || !leadId) return;
-    const leadRef = doc(db, 'companies', companyId, 'leads', leadId);
+  const handleArchiveLead = (lead: any) => {
+    if (!db || !companyId || !lead.id) return;
+    
+    const archiveRef = collection(db, 'companies', companyId, 'archives');
+    addDocumentNonBlocking(archiveRef, {
+      ...lead,
+      archive_type: 'lead',
+      archived_at: new Date().toISOString()
+    });
+
+    const leadRef = doc(db, 'companies', companyId, 'leads', lead.id);
     deleteDocumentNonBlocking(leadRef);
-    toast({ title: "Opportunity Removed", description: "The lead has been deleted from your pipeline." });
+    toast({ title: "Opportunity Archived", description: "The lead has been moved to archives." });
   };
 
   if (isTenantLoading || isLeadsLoading) {
@@ -301,20 +309,20 @@ export default function CRMPage() {
                             <AlertDialog>
                               <AlertDialogTrigger asChild>
                                 <DropdownMenuItem className="flex items-center gap-2 text-rose-500 focus:text-rose-600 focus:bg-rose-50" onSelect={(e) => e.preventDefault()}>
-                                  <Trash2 className="h-3.5 w-3.5" /> Delete Opportunity
+                                  <Archive className="h-3.5 w-3.5" /> Archive Lead
                                 </DropdownMenuItem>
                               </AlertDialogTrigger>
                               <AlertDialogContent className="rounded-[2rem]">
                                 <AlertDialogHeader>
-                                  <AlertDialogTitle>Remove from Pipeline?</AlertDialogTitle>
+                                  <AlertDialogTitle>Archive Lead Record?</AlertDialogTitle>
                                   <AlertDialogDescription>
-                                    This will delete the lead "{lead.company_name}" permanently.
+                                    This will move the lead "{lead.company_name}" to the archives. It will no longer appear in the active sales pipeline.
                                   </AlertDialogDescription>
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>
                                   <AlertDialogCancel className="rounded-xl">Cancel</AlertDialogCancel>
-                                  <AlertDialogAction onClick={() => handleDeleteLead(lead.id)} className="bg-rose-500 hover:bg-rose-600 rounded-xl">
-                                    Confirm Delete
+                                  <AlertDialogAction onClick={() => handleArchiveLead(lead)} className="bg-rose-500 hover:bg-rose-600 rounded-xl">
+                                    Confirm Archive
                                   </AlertDialogAction>
                                 </AlertDialogFooter>
                               </AlertDialogContent>
