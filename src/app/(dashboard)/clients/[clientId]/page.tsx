@@ -1,7 +1,7 @@
 "use client";
 
-import { use, useMemo } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { use, useMemo, useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { 
   Briefcase, 
@@ -30,17 +30,31 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useTenant } from "@/hooks/use-tenant";
 import { useDoc, useCollection, useMemoFirebase, useFirestore } from "@/firebase";
-import { doc, query, collection, where, orderBy } from "firebase/firestore";
+import { doc, query, collection, where, orderBy, serverTimestamp } from "firebase/firestore";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { addDocumentNonBlocking } from "@/firebase/non-blocking-updates";
+import { toast } from "@/hooks/use-toast";
 
 export default function ClientPortfolioPage({ params }: { params: Promise<{ clientId: string }> }) {
   const { clientId } = use(params);
   const { companyId, isLoading: isTenantLoading } = useTenant();
   const db = useFirestore();
   const router = useRouter();
+
+  // Create Project State
+  const [isCreateProjectOpen, setIsCreateProjectOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [newProject, setNewProject] = useState({
+    name: "",
+    budget: "",
+    deadline: ""
+  });
 
   // 1. Fetch Client (Lead) Info
   const clientRef = useMemoFirebase(() => {
@@ -116,6 +130,46 @@ export default function ClientPortfolioPage({ params }: { params: Promise<{ clie
     return { revenue, burn, profit };
   }, [projectAnalytics]);
 
+  // --- ACTIONS ---
+
+  const handleCreateProject = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!companyId || !client || !newProject.name) return;
+
+    setIsSubmitting(true);
+    const projectsRef = collection(db!, 'companies', companyId, 'projects');
+    const projectRefCode = `PROJ-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+    const colors = ['card-pink', 'card-purple'];
+    const randomColor = colors[Math.floor(Math.random() * colors.length)];
+
+    try {
+      addDocumentNonBlocking(projectsRef, {
+        company_id: companyId,
+        project_name: newProject.name,
+        client_name: client.company_name,
+        project_ref: projectRefCode,
+        budget: parseFloat(newProject.budget) || 0,
+        deadline: newProject.deadline,
+        status: 'in_progress',
+        progress: 0,
+        color: randomColor,
+        created_at: serverTimestamp(),
+      });
+
+      toast({ 
+        title: "Production Launched", 
+        description: `"${newProject.name}" has been initialized for this client.` 
+      });
+
+      setNewProject({ name: "", budget: "", deadline: "" });
+      setIsCreateProjectOpen(false);
+    } catch (error) {
+      toast({ variant: "destructive", title: "Launch Failed", description: "Could not initialize production workspace." });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   if (isTenantLoading || isClientLoading) {
     return (
       <div className="flex items-center justify-center h-[80vh]">
@@ -157,11 +211,9 @@ export default function ClientPortfolioPage({ params }: { params: Promise<{ clie
               <Briefcase className="h-4 w-4" /> Sales Pipeline
             </Button>
           </Link>
-          <Link href={`/projects?client=${encodeURIComponent(client.company_name)}`}>
-            <Button className="rounded-xl shadow-lg shadow-primary/20 font-bold text-xs h-10 gap-2">
-              <Plus className="h-4 w-4" /> Launch Production
-            </Button>
-          </Link>
+          <Button onClick={() => setIsCreateProjectOpen(true)} className="rounded-xl shadow-lg shadow-primary/20 font-bold text-xs h-10 gap-2">
+            <Plus className="h-4 w-4" /> Launch Production
+          </Button>
         </div>
       </div>
 
@@ -398,6 +450,63 @@ export default function ClientPortfolioPage({ params }: { params: Promise<{ clie
           </Tabs>
         </main>
       </div>
+
+      {/* Launch Production Dialog */}
+      <Dialog open={isCreateProjectOpen} onOpenChange={setIsCreateProjectOpen}>
+        <DialogContent className="sm:max-w-[425px] rounded-[2.5rem]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-2xl font-bold">
+              <Sparkles className="h-6 w-6 text-accent" />
+              Launch Production
+            </DialogTitle>
+            <DialogDescription>
+              Initialize a new production workspace for {client.company_name}.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleCreateProject} className="space-y-5 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="projectName">Project Title</Label>
+              <Input 
+                id="projectName" 
+                placeholder="e.g. Autumn Brand Film" 
+                value={newProject.name}
+                onChange={(e) => setNewProject({...newProject, name: e.target.value})}
+                required
+                className="rounded-xl h-11"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="budget">Budget (₹)</Label>
+                <Input 
+                  id="budget" 
+                  type="number"
+                  placeholder="50000" 
+                  value={newProject.budget}
+                  onChange={(e) => setNewProject({...newProject, budget: e.target.value})}
+                  className="rounded-xl h-11"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="deadline">Target Deadline</Label>
+                <Input 
+                  id="deadline" 
+                  type="date"
+                  value={newProject.deadline}
+                  onChange={(e) => setNewProject({...newProject, deadline: e.target.value})}
+                  className="rounded-xl h-11"
+                />
+              </div>
+            </div>
+            <DialogFooter className="pt-4">
+              <Button type="submit" disabled={isSubmitting} className="w-full rounded-xl h-12 font-bold shadow-lg shadow-primary/20">
+                {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                Launch Workspace
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
