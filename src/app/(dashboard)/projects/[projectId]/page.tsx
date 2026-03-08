@@ -36,7 +36,8 @@ import {
   PieChart as PieChartIcon,
   ArrowUpRight,
   TrendingDown,
-  Info
+  Info,
+  ListTree
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -72,7 +73,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
-import { PRODUCTION_EXPENSE_CATEGORIES } from "../../accounts/page";
+import { PRODUCTION_CATEGORIES_MAP } from "../../accounts/page";
 
 export default function ProjectWorkspacePage({ params }: { params: Promise<{ projectId: string }> }) {
   const { projectId } = use(params);
@@ -92,6 +93,7 @@ export default function ProjectWorkspacePage({ params }: { params: Promise<{ pro
   const [isLogExpenseOpen, setIsLogExpenseOpen] = useState(false);
   const [newExpense, setNewExpense] = useState({
     category: "Talent & Crew",
+    sub_category: "Director",
     description: "",
     amount: "",
     date: new Date().toISOString().split('T')[0],
@@ -303,6 +305,7 @@ export default function ProjectWorkspacePage({ params }: { params: Promise<{ pro
     addDocumentNonBlocking(expensesRef, {
       company_id: companyId,
       category: newExpense.category,
+      sub_category: newExpense.sub_category,
       description: newExpense.description,
       amount: parseFloat(newExpense.amount) || 0,
       date: newExpense.date,
@@ -312,7 +315,7 @@ export default function ProjectWorkspacePage({ params }: { params: Promise<{ pro
     });
 
     toast({ title: "Expense Recorded", description: `${newExpense.category} cost has been added to project ledger.` });
-    setNewExpense({ category: "Talent & Crew", description: "", amount: "", date: new Date().toISOString().split('T')[0], status: "Paid" });
+    setNewExpense({ category: "Talent & Crew", sub_category: "Director", description: "", amount: "", date: new Date().toISOString().split('T')[0], status: "Paid" });
     setIsLogExpenseOpen(false);
     setIsSubmitting(false);
   };
@@ -838,7 +841,10 @@ export default function ProjectWorkspacePage({ params }: { params: Promise<{ pro
                           {projectExpenses?.map((ex) => (
                             <tr key={ex.id} className="hover:bg-slate-50 transition-colors">
                               <td className="px-8 py-5 text-xs text-muted-foreground">{ex.date}</td>
-                              <td className="px-8 py-5 font-bold text-slate-700">{ex.description}</td>
+                              <td className="px-8 py-5 flex flex-col gap-0.5">
+                                <span className="font-bold text-slate-700">{ex.description}</span>
+                                <span className="text-[9px] text-muted-foreground font-medium uppercase">{ex.sub_category}</span>
+                              </td>
                               <td className="px-8 py-5">
                                 <Badge variant="secondary" className="text-[8px] font-bold uppercase">{ex.category}</Badge>
                               </td>
@@ -1044,13 +1050,38 @@ export default function ProjectWorkspacePage({ params }: { params: Promise<{ pro
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Category</Label>
-                <Select value={newExpense.category} onValueChange={(val) => setNewExpense({...newExpense, category: val})}>
+                <Select 
+                  value={newExpense.category} 
+                  onValueChange={(val) => {
+                    const subs = PRODUCTION_CATEGORIES_MAP[val] || [];
+                    setNewExpense({...newExpense, category: val, sub_category: subs[0] || ""});
+                  }}
+                >
                   <SelectTrigger className="rounded-xl h-11"><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {PRODUCTION_EXPENSE_CATEGORIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                    {Object.keys(PRODUCTION_CATEGORIES_MAP).map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
+              <div className="space-y-2">
+                <Label>Sub-Item</Label>
+                <Select 
+                  value={newExpense.sub_category} 
+                  onValueChange={(val) => setNewExpense({...newExpense, sub_category: val})}
+                >
+                  <SelectTrigger className="rounded-xl h-11">
+                    <div className="flex items-center gap-2">
+                      <ListTree className="h-3 w-3 text-muted-foreground" />
+                      <SelectValue />
+                    </div>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(PRODUCTION_CATEGORIES_MAP[newExpense.category] || []).map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Amount (₹)</Label>
                 <Input 
@@ -1061,6 +1092,16 @@ export default function ProjectWorkspacePage({ params }: { params: Promise<{ pro
                   required
                   className="rounded-xl h-11"
                 />
+              </div>
+              <div className="space-y-2">
+                <Label>Status</Label>
+                <Select value={newExpense.status} onValueChange={(val) => setNewExpense({...newExpense, status: val})}>
+                  <SelectTrigger className="rounded-xl h-11"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Paid">Paid</SelectItem>
+                    <SelectItem value="Pending">Pending</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
             <div className="space-y-2">

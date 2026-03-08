@@ -38,7 +38,8 @@ import {
   Cpu,
   Trash2,
   X,
-  Filter
+  Filter,
+  ListTree
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -83,18 +84,38 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-export const PRODUCTION_EXPENSE_CATEGORIES = [
-  "Talent & Crew",
-  "Equipment Rental",
-  "Location & Studio",
-  "Post-Production",
-  "Logistics & Travel",
-  "Catering & Craft",
-  "Marketing & PR",
-  "General Overhead",
-  "Software & Tools",
-  "Other"
-];
+export const PRODUCTION_CATEGORIES_MAP: Record<string, string[]> = {
+  "Talent & Crew": [
+    "Lead Actor", "Supporting Actor", "Director", "DOP", "Editor", 
+    "Gaffer", "Makeup Artist", "Stylist", "Production Manager", "Runner"
+  ],
+  "Equipment Rental": [
+    "Camera Body", "Lenses", "Lighting Kit", "Grip Gear", "Sound Recorder", 
+    "Drone", "Monitor", "Data Storage"
+  ],
+  "Location & Studio": [
+    "Studio Floor", "Outdoor Permit", "Private Property", "Set Design", "Location Scouting"
+  ],
+  "Post-Production": [
+    "Assembly Edit", "Color Grading", "Sound Mix", "VFX/CGI", "Music Licensing", "Subtitles"
+  ],
+  "Logistics & Travel": [
+    "Airfare", "Local Transport", "Accommodation", "Shipping/Freight"
+  ],
+  "Catering & Craft": [
+    "On-set Meals", "Snacks/Coffee", "Crew Dinner"
+  ],
+  "Marketing & PR": [
+    "Social Media Ads", "PR Distribution", "Printing/Posters", "Event Launch"
+  ],
+  "General Overhead": [
+    "Office Rent", "Electricity/Net", "Software Subscriptions", "Legal/CA Fees"
+  ],
+  "Software & Tools": [
+    "Adobe CC", "DaVinci Resolve", "Project Mgmt Tools", "Cloud Storage"
+  ],
+  "Other": ["Misc", "Contingency"]
+};
 
 export default function AccountsPage() {
   const { companyId, isLoading: isTenantLoading, company, profile } = useTenant();
@@ -139,7 +160,8 @@ export default function AccountsPage() {
   });
 
   const [newExpense, setNewExpense] = useState({
-    category: "Crew & Talent",
+    category: "Talent & Crew",
+    sub_category: "Director",
     description: "",
     amount: "",
     date: new Date().toISOString().split('T')[0],
@@ -305,6 +327,7 @@ export default function AccountsPage() {
     addDocumentNonBlocking(expensesRef, {
       company_id: companyId,
       category: newExpense.category,
+      sub_category: newExpense.sub_category,
       description: newExpense.description,
       amount: parseFloat(newExpense.amount) || 0,
       date: newExpense.date,
@@ -314,7 +337,7 @@ export default function AccountsPage() {
     });
 
     toast({ title: "Expense Recorded", description: `${newExpense.category} cost has been added to ledger.` });
-    setNewExpense({ category: "Talent & Crew", description: "", amount: "", date: new Date().toISOString().split('T')[0], account_id: "", project_id: "none", status: "Paid" });
+    setNewExpense({ category: "Talent & Crew", sub_category: "Director", description: "", amount: "", date: new Date().toISOString().split('T')[0], account_id: "", project_id: "none", status: "Paid" });
     setIsLogExpenseOpen(false);
     setIsSubmitting(false);
   };
@@ -609,7 +632,7 @@ export default function AccountsPage() {
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className="text-xs md:text-sm font-bold truncate">{ex.description}</p>
-                            <p className="text-[9px] text-muted-foreground font-bold uppercase">{ex.category}</p>
+                            <p className="text-[9px] text-muted-foreground font-bold uppercase">{ex.category} • {ex.sub_category}</p>
                           </div>
                           <div className="text-right shrink-0">
                             <p className="text-xs md:text-sm font-bold text-rose-600">-₹{ex.amount?.toLocaleString()}</p>
@@ -684,7 +707,10 @@ export default function AccountsPage() {
                               <tr key={ex.id} className="hover:bg-slate-50/50 transition-colors group">
                                 <td className="px-6 md:px-8 py-5 text-slate-500 font-medium text-xs whitespace-nowrap">{format(new Date(ex.date), 'MMM dd, yyyy')}</td>
                                 <td className="px-6 md:px-8 py-5">
-                                  <Badge variant="secondary" className="text-[8px] md:text-[9px] uppercase font-bold py-0">{ex.category}</Badge>
+                                  <div className="flex flex-col gap-1">
+                                    <Badge variant="secondary" className="text-[8px] md:text-[9px] uppercase font-bold py-0 w-fit">{ex.category}</Badge>
+                                    <span className="text-[9px] text-muted-foreground font-medium uppercase tracking-tighter">{ex.sub_category}</span>
+                                  </div>
                                 </td>
                                 <td className="px-6 md:px-8 py-5 font-bold text-slate-700 text-xs">{ex.description}</td>
                                 <td className="px-6 md:px-8 py-5">
@@ -731,7 +757,7 @@ export default function AccountsPage() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-5">
-                  {PRODUCTION_EXPENSE_CATEGORIES.slice(0, 5).map(cat => {
+                  {Object.keys(PRODUCTION_CATEGORIES_MAP).slice(0, 5).map(cat => {
                     const catTotal = expenses?.filter(e => e.category === cat).reduce((sum, e) => sum + (e.amount || 0), 0) || 0;
                     const perc = totalExpensesMonth > 0 ? (catTotal / totalExpensesMonth) * 100 : 0;
                     return (
@@ -990,13 +1016,38 @@ export default function AccountsPage() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Category</Label>
-                <Select value={newExpense.category} onValueChange={(val) => setNewExpense({...newExpense, category: val})}>
+                <Select 
+                  value={newExpense.category} 
+                  onValueChange={(val) => {
+                    const subs = PRODUCTION_CATEGORIES_MAP[val] || [];
+                    setNewExpense({...newExpense, category: val, sub_category: subs[0] || ""});
+                  }}
+                >
                   <SelectTrigger className="rounded-xl h-11"><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {PRODUCTION_EXPENSE_CATEGORIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                    {Object.keys(PRODUCTION_CATEGORIES_MAP).map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
+              <div className="space-y-2">
+                <Label>Sub-Item</Label>
+                <Select 
+                  value={newExpense.sub_category} 
+                  onValueChange={(val) => setNewExpense({...newExpense, sub_category: val})}
+                >
+                  <SelectTrigger className="rounded-xl h-11">
+                    <div className="flex items-center gap-2">
+                      <ListTree className="h-3 w-3 text-muted-foreground" />
+                      <SelectValue />
+                    </div>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(PRODUCTION_CATEGORIES_MAP[newExpense.category] || []).map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Amount (₹)</Label>
                 <Input 
@@ -1007,6 +1058,16 @@ export default function AccountsPage() {
                   required
                   className="rounded-xl h-11"
                 />
+              </div>
+              <div className="space-y-2">
+                <Label>Status</Label>
+                <Select value={newExpense.status} onValueChange={(val) => setNewExpense({...newExpense, status: val})}>
+                  <SelectTrigger className="rounded-xl h-11"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Paid">Paid</SelectItem>
+                    <SelectItem value="Pending">Pending</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
             <div className="space-y-2">
