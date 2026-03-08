@@ -20,7 +20,8 @@ import {
   List,
   Target,
   CheckCircle2,
-  ListTree
+  ListTree,
+  X
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -77,6 +78,7 @@ export default function CRMPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [leadToArchive, setLeadToArchive] = useState<any>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [isManualEntry, setIsManualEntry] = useState(false);
 
   // Quick Add State
   const [newLead, setNewLead] = useState({
@@ -129,6 +131,12 @@ export default function CRMPage() {
   }, [leads, searchQuery]);
 
   const handleSelectExistingClient = (clientId: string) => {
+    if (clientId === "NEW_COMPANY") {
+      setIsManualEntry(true);
+      setNewLead({ ...newLead, company_name: "" });
+      return;
+    }
+
     const client = uniqueClients.find(c => c.id === clientId);
     if (client) {
       setNewLead({
@@ -136,9 +144,10 @@ export default function CRMPage() {
         company_name: client.name,
         industry: client.industry || "",
       });
+      setIsManualEntry(false);
       toast({
         title: "Client Linked",
-        description: `Adding a new deal for ${client.name}.`,
+        description: `New lead assigned to ${client.name}.`,
       });
     }
   };
@@ -165,6 +174,7 @@ export default function CRMPage() {
     setNewLead({ company_name: "", service_vertical: "", sub_vertical: "", industry: "", deal_value: "", stage: "lead" });
     setIsAddOpen(false);
     setIsSubmitting(false);
+    setIsManualEntry(false);
   };
 
   const handleMarkAsWon = (lead: any) => {
@@ -214,6 +224,14 @@ export default function CRMPage() {
     CONTENT_VERTICALS.find(v => v.name === newLead.service_vertical), 
   [newLead.service_vertical]);
 
+  const resetDialog = (open: boolean) => {
+    setIsAddOpen(open);
+    if (!open) {
+      setIsManualEntry(false);
+      setNewLead({ company_name: "", service_vertical: "", sub_vertical: "", industry: "", deal_value: "", stage: "lead" });
+    }
+  };
+
   if (isTenantLoading || isLeadsLoading) {
     return (
       <div className="flex items-center justify-center h-[80vh]">
@@ -240,7 +258,7 @@ export default function CRMPage() {
             />
           </div>
           
-          <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
+          <Dialog open={isAddOpen} onOpenChange={resetDialog}>
             <DialogTrigger asChild>
               <Button className="gap-2 rounded-xl shadow-xl shadow-primary/30 h-10 px-6 font-bold">
                 <Plus className="h-4 w-4" /> Add Lead
@@ -253,42 +271,54 @@ export default function CRMPage() {
                   Create Lead
                 </DialogTitle>
                 <DialogDescription>
-                  Enter details for a new deal. Link to an existing client or register a new one.
+                  Initialize a new production opportunity. Select an existing company or enter a new one.
                 </DialogDescription>
               </DialogHeader>
               <form onSubmit={handleAddLead} className="space-y-5 py-4">
-                <div className="space-y-2 p-4 bg-indigo-50 rounded-2xl border border-indigo-100">
-                  <Label className="text-[10px] font-black uppercase text-indigo-600 tracking-widest flex items-center gap-2 mb-2">
-                    <Database className="h-3 w-3" /> Client Company
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black uppercase text-slate-500 tracking-widest flex items-center justify-between">
+                    <span>Client Company</span>
+                    {isManualEntry && (
+                      <button 
+                        type="button" 
+                        onClick={() => setIsManualEntry(false)} 
+                        className="text-primary hover:underline flex items-center gap-1"
+                      >
+                        <List className="h-3 w-3" /> Pick Existing
+                      </button>
+                    )}
                   </Label>
-                  <Select onValueChange={handleSelectExistingClient}>
-                    <SelectTrigger className="rounded-xl h-9 bg-white shadow-none text-xs border-indigo-100">
-                      <SelectValue placeholder="Select from your directory..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {uniqueClients.length === 0 ? (
-                        <div className="p-4 text-center text-xs text-muted-foreground">No existing clients found.</div>
-                      ) : (
-                        uniqueClients.map((client) => (
+                  
+                  {!isManualEntry ? (
+                    <Select onValueChange={handleSelectExistingClient}>
+                      <SelectTrigger className="rounded-xl h-11 bg-white shadow-none">
+                        <SelectValue placeholder="Select or search client..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {uniqueClients.map((client) => (
                           <SelectItem key={client.id} value={client.id} className="text-xs">
                             {client.name}
                           </SelectItem>
-                        ))
-                      )}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="companyName">Company Name</Label>
-                  <Input 
-                    id="companyName" 
-                    placeholder="e.g. RedBull Media" 
-                    value={newLead.company_name}
-                    onChange={(e) => setNewLead({...newLead, company_name: e.target.value})}
-                    required
-                    className="rounded-xl h-11"
-                  />
+                        ))}
+                        <SelectSeparator />
+                        <SelectItem value="NEW_COMPANY" className="text-primary font-bold">
+                          <Plus className="h-3 w-3 inline mr-2" /> Enter New Company...
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <div className="relative">
+                      <Building2 className="absolute left-3 top-3.5 h-4 w-4 text-muted-foreground" />
+                      <Input 
+                        placeholder="New Company Name" 
+                        value={newLead.company_name}
+                        onChange={(e) => setNewLead({...newLead, company_name: e.target.value})}
+                        required
+                        className="rounded-xl h-11 pl-10"
+                        autoFocus
+                      />
+                    </div>
+                  )}
                 </div>
                 
                 <div className="grid grid-cols-1 gap-4">
@@ -356,7 +386,7 @@ export default function CRMPage() {
                   </div>
                 </div>
                 <DialogFooter className="pt-4">
-                  <Button type="submit" disabled={isSubmitting} className="w-full rounded-xl h-12 font-bold shadow-lg shadow-primary/20">
+                  <Button type="submit" disabled={isSubmitting || !newLead.company_name} className="w-full rounded-xl h-12 font-bold shadow-lg shadow-primary/20">
                     {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                     Create Lead
                   </Button>
