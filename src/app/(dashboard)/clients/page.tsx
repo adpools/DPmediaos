@@ -213,7 +213,7 @@ export default function ClientsPage() {
 
     try {
       if (createdLeadId) {
-        // Update existing lead with newly architected scope
+        // Update existing profile
         const leadDocRef = doc(db!, 'companies', companyId, 'leads', createdLeadId);
         updateDocumentNonBlocking(leadDocRef, {
           ...newClient,
@@ -222,14 +222,15 @@ export default function ClientsPage() {
           updatedAt: serverTimestamp(),
         });
       } else {
-        // Create new lead
+        // Create new client profile
+        // Using stage: 'client' ensures they stay in the Directory but OUT of the Sales Pipeline
         const res = await addDocumentNonBlocking(leadsRef, {
           company_id: companyId,
           ...newClient,
           service_vertical: primaryVertical,
           scope: allServices,
           deal_value: 0,
-          stage: 'lead',
+          stage: 'client', 
           created_at: serverTimestamp(),
         });
         
@@ -238,11 +239,11 @@ export default function ClientsPage() {
 
       if (shouldAdvance) {
         setOnboardStep('services');
-        toast({ title: "Lead Created", description: "Identity registered. Architecting scope..." });
+        toast({ title: "Client Registered", description: "Identity captured. Configuring specific service scope..." });
       } else {
         toast({ 
           title: "Client Onboarded", 
-          description: `${newClient.company_name} has been added successfully.` 
+          description: `${newClient.company_name} has been added to your directory.` 
         });
         resetOnboarding();
       }
@@ -369,7 +370,7 @@ export default function ClientsPage() {
                   </div>
                   <div className="flex items-center gap-3 text-xs text-muted-foreground">
                     <Briefcase className="h-3.5 w-3.5" />
-                    <span>Stage: <span className="font-bold text-primary uppercase text-[10px]">{client.stage}</span></span>
+                    <span>Liaison: <span className="font-bold text-slate-700">{client.contact_person || 'Not assigned'}</span></span>
                   </div>
                 </div>
 
@@ -396,7 +397,7 @@ export default function ClientsPage() {
                         </DropdownMenuItem>
                         <DropdownMenuItem asChild>
                           <Link href={`/crm/${client.id}`} className="cursor-pointer gap-2">
-                            <Briefcase className="h-3.5 w-3.5" /> CRM Opportunity
+                            <Briefcase className="h-3.5 w-3.5" /> Sales Opportunity
                           </Link>
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
@@ -427,7 +428,7 @@ export default function ClientsPage() {
                 </div>
                 <div>
                   <DialogTitle className="text-2xl font-black">Strategic Client Onboarding</DialogTitle>
-                  <DialogDescription>Register partner and create a sales lead.</DialogDescription>
+                  <DialogDescription>Register partner identity and coordinate service vertical.</DialogDescription>
                 </div>
               </div>
               <div className="flex items-center gap-2">
@@ -583,12 +584,12 @@ export default function ClientsPage() {
                   <aside className="w-80 border-l bg-white flex flex-col shrink-0 min-h-0 overflow-hidden">
                     <div className="p-6 border-b bg-slate-50/50 shrink-0">
                       <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Scope Synthesis</h4>
-                      <p className="text-xs font-bold text-slate-700">Project Brief Summary</p>
+                      <p className="text-xs font-bold text-slate-700">Client Profile Summary</p>
                     </div>
                     <div className="flex-1 overflow-y-auto p-6 custom-scrollbar min-h-0">
                       <div className="space-y-6">
                         {totalServicesCount === 0 ? (
-                          <div className="text-center py-12 text-[10px] font-bold text-slate-300 uppercase tracking-widest">No services selected</div>
+                          <div className="text-center py-12 text-[10px] font-bold text-slate-300 uppercase tracking-widest">No primary services defined</div>
                         ) : (
                           Object.entries(selectedServices).map(([vId, services]) => {
                             const v = CONTENT_VERTICALS.find(x => x.id === vId);
@@ -616,7 +617,7 @@ export default function ClientsPage() {
                     </div>
                     <div className="p-6 border-t bg-slate-50/50 shrink-0">
                       <div className="flex justify-between items-center">
-                        <span className="text-[9px] font-black uppercase text-slate-400">Total Selection</span>
+                        <span className="text-[9px] font-black uppercase text-slate-400">Services Registry</span>
                         <Badge className="bg-primary text-white font-black h-5 text-[10px] px-2">{totalServicesCount}</Badge>
                       </div>
                     </div>
@@ -651,7 +652,7 @@ export default function ClientsPage() {
                     disabled={isSubmitting}
                     className="rounded-2xl h-12 px-10 font-black uppercase text-xs tracking-widest gap-2 shadow-xl shadow-primary/20"
                   >
-                    {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+                    {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <CheckCircle2 className="h-4 w-4" />}
                     Finalize Onboarding
                   </Button>
                 </>
