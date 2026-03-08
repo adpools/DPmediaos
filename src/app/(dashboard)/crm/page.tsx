@@ -120,9 +120,9 @@ export default function CRMPage() {
 
   const filteredLeads = useMemo(() => {
     if (!allLeads) return [];
-    // Only show active pipeline items (not standard directory clients)
+    // Movement Logic: Only show active pipeline items (exclude official partners and closed/won deals)
     return allLeads.filter(l => 
-      l.stage !== 'client' && (
+      !['client', 'won'].includes(l.stage || '') && (
         l.company_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         l.service_vertical?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         l.sub_vertical?.toLowerCase().includes(searchQuery.toLowerCase())
@@ -175,9 +175,11 @@ export default function CRMPage() {
   const handleMarkAsWon = (lead: any) => {
     if (!db || !companyId || !lead) return;
 
+    // 1. Update Lead Status (this will also remove it from the filteredLeads board)
     const leadRef = doc(db, 'companies', companyId, 'leads', lead.id);
     updateDocumentNonBlocking(leadRef, { stage: 'won', updatedAt: serverTimestamp() });
 
+    // 2. Create Project Workspace
     const projectsRef = collection(db, 'companies', companyId!, 'projects');
     const projectRefCode = `PROJ-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
     
@@ -195,7 +197,7 @@ export default function CRMPage() {
 
     toast({ 
       title: "Success! Deal Converted", 
-      description: `"${lead.company_name}" project has been initialized in your production queue.` 
+      description: `"${lead.company_name}" has moved from the pipeline to an active production workspace.` 
     });
   };
 
@@ -346,7 +348,9 @@ export default function CRMPage() {
                         <SelectValue placeholder="Select stage" />
                       </SelectTrigger>
                       <SelectContent>
-                        {PIPELINE_STAGES.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                        {PIPELINE_STAGES.filter(s => s.id !== 'won').map(s => (
+                          <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
@@ -366,7 +370,7 @@ export default function CRMPage() {
       <div className="flex-1 min-h-0 relative">
         <div className="absolute inset-0 overflow-x-auto overflow-y-hidden custom-scrollbar pb-6">
           <div className="flex h-full gap-6 w-max min-w-full">
-            {PIPELINE_STAGES.map((stage) => {
+            {PIPELINE_STAGES.filter(s => s.id !== 'won').map((stage) => {
               const leadsInStage = filteredLeads.filter(l => l.stage === stage.id);
               const totalValue = leadsInStage.reduce((sum, l) => sum + (l.deal_value || 0), 0);
 
@@ -407,14 +411,12 @@ export default function CRMPage() {
                                     <Target className="h-3.5 w-3.5" /> Open Pipeline
                                   </Link>
                                 </DropdownMenuItem>
-                                {lead.stage !== 'won' && (
-                                  <DropdownMenuItem 
-                                    className="rounded-lg m-1 py-2 cursor-pointer text-emerald-600 font-bold"
-                                    onClick={() => handleMarkAsWon(lead)}
-                                  >
-                                    <CheckCircle2 className="h-3.5 w-3.5 mr-2" /> Mark as Won & Launch
-                                  </DropdownMenuItem>
-                                )}
+                                <DropdownMenuItem 
+                                  className="rounded-lg m-1 py-2 cursor-pointer text-emerald-600 font-bold"
+                                  onClick={() => handleMarkAsWon(lead)}
+                                >
+                                  <CheckCircle2 className="h-3.5 w-3.5 mr-2" /> Mark as Won & Launch
+                                </DropdownMenuItem>
                                 <DropdownMenuItem asChild className="rounded-lg m-1 py-2 cursor-pointer">
                                   <Link href={`/clients/${lead.id}`} className="flex items-center gap-2 text-slate-500">
                                     <Building2 className="h-3.5 w-3.5" /> View Portfolio

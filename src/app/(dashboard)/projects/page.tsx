@@ -54,7 +54,7 @@ import { useTenant } from "@/hooks/use-tenant";
 import { useCollection, useMemoFirebase } from "@/firebase";
 import { collection, query, orderBy, serverTimestamp, doc } from "firebase/firestore";
 import { useFirestore } from "@/firebase";
-import { addDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase/non-blocking-updates";
+import { addDocumentNonBlocking, deleteDocumentNonBlocking, updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { 
@@ -81,6 +81,7 @@ export default function ProjectsPage() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [projectToArchive, setProjectToArchive] = useState<any>(null);
+  const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null);
 
   // Form State
   const [newProject, setNewProject] = useState({
@@ -128,6 +129,7 @@ export default function ProjectsPage() {
   const handleLeadImport = (leadId: string) => {
     const lead = leads?.find(l => l.id === leadId);
     if (lead) {
+      setSelectedLeadId(leadId); // Track lead ID for automatic 'Won' transition
       setNewProject({
         ...newProject,
         client_name: lead.company_name || "",
@@ -158,6 +160,16 @@ export default function ProjectsPage() {
     const colors = ['card-pink', 'card-purple'];
     const randomColor = colors[Math.floor(Math.random() * colors.length)];
 
+    // 1. Trigger lead status update to 'won' if imported
+    if (selectedLeadId) {
+      const leadRef = doc(db, 'companies', companyId, 'leads', selectedLeadId);
+      updateDocumentNonBlocking(leadRef, { 
+        stage: 'won', 
+        updatedAt: serverTimestamp() 
+      });
+    }
+
+    // 2. Create Project
     addDocumentNonBlocking(projectsRef, {
       company_id: companyId,
       project_name: newProject.project_name,
@@ -172,10 +184,11 @@ export default function ProjectsPage() {
 
     toast({
       title: "Project Created",
-      description: `${newProject.project_name} has been added to your production queue.`,
+      description: `${newProject.project_name} has been added to your production queue and moved from the pipeline.`,
     });
 
     setNewProject({ project_name: "", client_name: "", budget: "", deadline: "" });
+    setSelectedLeadId(null);
     setIsCreateOpen(false);
     setIsSubmitting(false);
   };
@@ -252,10 +265,10 @@ export default function ProjectsPage() {
                       <SelectValue placeholder="Select active lead to fetch data..." />
                     </SelectTrigger>
                     <SelectContent>
-                      {leads?.length === 0 ? (
-                        <div className="p-4 text-center text-xs text-muted-foreground">No active leads found.</div>
+                      {leads?.filter(l => l.stage !== 'won' && l.stage !== 'client').length === 0 ? (
+                        <div className="p-4 text-center text-xs text-muted-foreground">No active leads found in pipeline.</div>
                       ) : (
-                        leads?.map((lead) => (
+                        leads?.filter(l => l.stage !== 'won' && l.stage !== 'client').map((lead) => (
                           <SelectItem key={lead.id} value={lead.id} className="text-xs">
                             {lead.company_name} (₹{lead.deal_value?.toLocaleString()})
                           </SelectItem>
@@ -292,7 +305,7 @@ export default function ProjectsPage() {
                           No clients found. Add them in the CRM first.
                         </div>
                       ) : (
-                        leads?.map((lead) => (
+                        leads?.filter(l => l.stage === 'client').map((lead) => (
                           <SelectItem key={lead.id} value={lead.company_name}>
                             {lead.company_name}
                           </SelectItem>
