@@ -173,6 +173,23 @@ export default function ProjectWorkspacePage({ params }: { params: Promise<{ pro
 
   // --- DERIVED CALCULATIONS ---
 
+  /**
+   * REFINED PROGRESS CALCULATION: Total Production Velocity
+   * Aggregates progress across Pre-Prod, Production, Post-Prod, and Release.
+   */
+  const liveProgress = useMemo(() => {
+    if (!tasks || tasks.length === 0) return project?.progress || 0;
+    
+    // Only include objectives from core production phases
+    const corePhases = ['pre-prod', 'production', 'post-prod', 'release'];
+    const productionTasks = tasks.filter(t => corePhases.includes(t.phase));
+    
+    if (productionTasks.length === 0) return 0;
+    
+    const completedCount = productionTasks.filter(t => t.status === 'done').length;
+    return Math.round((completedCount / productionTasks.length) * 100);
+  }, [tasks, project?.progress]);
+
   const totalBilled = useMemo(() => {
     return invoices?.reduce((sum, inv) => sum + (inv.total || 0), 0) || 0;
   }, [invoices]);
@@ -204,11 +221,9 @@ export default function ProjectWorkspacePage({ params }: { params: Promise<{ pro
       updatedAt: serverTimestamp() 
     });
 
-    if (project && tasks && projectRef) {
-      const completed = tasks.filter(t => t.id === taskId ? newStatus === 'done' : t.status === 'done').length;
-      const total = tasks.length;
-      const newProgress = total > 0 ? Math.round((completed / total) * 100) : 0;
-      updateDocumentNonBlocking(projectRef, { progress: newProgress });
+    // Update Project Document with Syncing Progress
+    if (projectRef) {
+      updateDocumentNonBlocking(projectRef, { progress: liveProgress });
     }
   };
 
@@ -225,6 +240,11 @@ export default function ProjectWorkspacePage({ params }: { params: Promise<{ pro
     deleteDocumentNonBlocking(taskRef);
     toast({ title: "Objective Removed", description: "The task has been deleted from the roadmap." });
     setTaskToDelete(null);
+    
+    // Sync total progress after deletion
+    if (projectRef) {
+      updateDocumentNonBlocking(projectRef, { progress: liveProgress });
+    }
   };
 
   const handleConfirmDeleteAsset = () => {
@@ -236,7 +256,7 @@ export default function ProjectWorkspacePage({ params }: { params: Promise<{ pro
   };
 
   const handleConfirmDeleteExpense = () => {
-    if (!db || !companyId || !expenseToDelete) return;
+    if (!db || !companyId || !projectId || !expenseToDelete) return;
     const expenseRef = doc(db, 'companies', companyId, 'expenses', expenseToDelete.id);
     deleteDocumentNonBlocking(expenseRef);
     toast({ title: "Expense Purged", description: "Record removed from project ledger." });
@@ -391,13 +411,13 @@ export default function ProjectWorkspacePage({ params }: { params: Promise<{ pro
 
         <div className="flex items-center gap-6">
           <div className="text-right hidden sm:block">
-            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1">Total Production Velocity</p>
+            <p className="text-[10px] font-black uppercase text-primary/60 tracking-[0.2em] mb-1.5">Total Production Velocity</p>
             <div className="flex items-center gap-3">
-              <Progress value={project.progress} className="w-32 h-1.5" />
-              <span className="text-sm font-bold text-primary">{project.progress}%</span>
+              <Progress value={liveProgress} className="w-40 h-2 bg-primary/10" />
+              <span className="text-sm font-black text-primary">{liveProgress}%</span>
             </div>
           </div>
-          <Button className="rounded-xl gap-2 shadow-lg shadow-primary/20" onClick={() => activeTab === 'assets' ? setIsAddAssetOpen(true) : (activeTab === 'finances' ? setIsLogExpenseOpen(true) : setIsAddTaskOpen(true))}>
+          <Button className="rounded-xl gap-2 shadow-lg shadow-primary/20 h-11" onClick={() => activeTab === 'assets' ? setIsAddAssetOpen(true) : (activeTab === 'finances' ? setIsLogExpenseOpen(true) : setIsAddTaskOpen(true))}>
             <Plus className="h-4 w-4" /> {activeTab === 'assets' ? 'Register Item' : (activeTab === 'finances' ? 'Log Project Cost' : 'Add Objective')}
           </Button>
         </div>
