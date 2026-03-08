@@ -170,14 +170,30 @@ export default function ClientsPage() {
 
   const filteredLeads = useMemo(() => {
     if (!leads) return [];
-    // Only show leads that are specifically at 'client' stage or 'won'
-    return leads.filter(l => 
+    
+    // 1. Filter leads by stage and search query
+    const matching = leads.filter(l => 
       (l.stage === 'client' || l.stage === 'won') && (
         l.company_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         l.industry?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         l.service_vertical?.toLowerCase().includes(searchQuery.toLowerCase())
       )
     );
+
+    // 2. Deduplicate by company_name
+    // We prefer the record with stage: 'client' as it's the official profile
+    const unique = new Map();
+    matching.forEach(l => {
+      const companyName = l.company_name?.trim();
+      if (!companyName) return;
+
+      const existing = unique.get(companyName);
+      if (!existing || (l.stage === 'client' && existing.stage !== 'client')) {
+        unique.set(companyName, l);
+      }
+    });
+
+    return Array.from(unique.values());
   }, [leads, searchQuery]);
 
   const activeVertical = useMemo(() => 
@@ -226,7 +242,6 @@ export default function ClientsPage() {
         });
       } else {
         // Create new client profile
-        // Using stage: 'client' ensures they stay in the Directory but OUT of the Sales Pipeline
         const res = await addDocumentNonBlocking(leadsRef, {
           company_id: companyId,
           ...newClient,
@@ -559,7 +574,7 @@ export default function ClientsPage() {
                                   className={cn(
                                     "flex items-center gap-3 p-4 rounded-xl border transition-all cursor-pointer bg-white",
                                     isSelected 
-                                      ? "bg-primary/5 border-primary/20" 
+                                      ? "bg-primary/5 border-primary/20 shadow-sm" 
                                       : "border-slate-100 hover:border-slate-200"
                                   )}
                                   onClick={() => toggleService(activeVertical.id, service)}
