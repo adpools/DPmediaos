@@ -129,7 +129,7 @@ export default function ClientsPage() {
           </div>
           <Link href="/crm">
             <Button className="gap-2 rounded-xl shadow-lg shadow-primary/20">
-              <Plus className="h-4 w-4" /> Register Client
+              <Plus className="h-4 w-4" /> Onboard Client
             </Button>
           </Link>
         </div>
