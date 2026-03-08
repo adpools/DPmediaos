@@ -37,7 +37,8 @@ import {
   ArrowUpRight,
   TrendingDown,
   Info,
-  ListTree
+  ListTree,
+  Filter
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -103,6 +104,7 @@ export default function ProjectWorkspacePage({ params }: { params: Promise<{ pro
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [taskToDelete, setTaskToDelete] = useState<any>(null);
   const [assetToDelete, setAssetToDelete] = useState<any>(null);
+  const [expenseToDelete, setExpenseToDelete] = useState<any>(null);
 
   // 1. Fetch Project Details
   const projectRef = useMemoFirebase(() => {
@@ -231,6 +233,14 @@ export default function ProjectWorkspacePage({ params }: { params: Promise<{ pro
     deleteDocumentNonBlocking(assetRef);
     toast({ title: "Asset Removed", description: "Item has been removed from tracking." });
     setAssetToDelete(null);
+  };
+
+  const handleConfirmDeleteExpense = () => {
+    if (!db || !companyId || !expenseToDelete) return;
+    const expenseRef = doc(db, 'companies', companyId, 'expenses', expenseToDelete.id);
+    deleteDocumentNonBlocking(expenseRef);
+    toast({ title: "Expense Purged", description: "Record removed from project ledger." });
+    setExpenseToDelete(null);
   };
 
   const handleSeedPhase = (phase: string) => {
@@ -404,6 +414,15 @@ export default function ProjectWorkspacePage({ params }: { params: Promise<{ pro
             <h4 className="text-2xl font-bold">₹{project.budget?.toLocaleString() || '0'}</h4>
           </CardContent>
         </Card>
+        <Card className="border-none shadow-sm bg-white rounded-2xl border-l-4 border-l-rose-500">
+          <CardContent className="p-6">
+            <div className="flex items-center gap-3 text-rose-500 mb-2">
+              <TrendingDown className="h-4 w-4" />
+              <span className="text-[10px] font-bold uppercase tracking-wider">Current Burn</span>
+            </div>
+            <h4 className="text-2xl font-bold">₹{totalExpenses.toLocaleString()}</h4>
+          </CardContent>
+        </Card>
         <Card className="border-none shadow-sm bg-white rounded-2xl">
           <CardContent className="p-6">
             <div className="flex items-center gap-3 text-muted-foreground mb-2">
@@ -420,15 +439,6 @@ export default function ProjectWorkspacePage({ params }: { params: Promise<{ pro
               <span className="text-[10px] font-bold uppercase tracking-wider">Objectives Met</span>
             </div>
             <h4 className="text-2xl font-bold">{tasks?.filter(t => t.status === 'done').length || 0}/{tasks?.length || 0}</h4>
-          </CardContent>
-        </Card>
-        <Card className="border-none shadow-sm bg-white rounded-2xl">
-          <CardContent className="p-6">
-            <div className="flex items-center gap-3 text-muted-foreground mb-2">
-              <Package className="h-4 w-4" />
-              <span className="text-[10px] font-bold uppercase tracking-wider">Assets Tracked</span>
-            </div>
-            <h4 className="text-2xl font-bold">{assets?.length || 0}</h4>
           </CardContent>
         </Card>
       </div>
@@ -738,18 +748,89 @@ export default function ProjectWorkspacePage({ params }: { params: Promise<{ pro
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="lg:col-span-2 space-y-6">
+              {/* Project Operational Ledger */}
+              <Card className="border-none shadow-soft rounded-[2.5rem] overflow-hidden bg-white">
+                <CardHeader className="bg-slate-50/50 border-b px-8 py-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="flex items-center gap-2 mb-1">
+                        <div className="p-1.5 bg-rose-50 rounded-lg text-rose-500"><TrendingDown className="h-4 w-4" /></div>
+                        <CardTitle className="text-xl">Operational Ledger (Project)</CardTitle>
+                      </div>
+                      <CardDescription>Direct production costs and technician fees.</CardDescription>
+                    </div>
+                    <Button variant="outline" size="sm" className="rounded-xl font-bold h-9 gap-2" onClick={() => setIsLogExpenseOpen(true)}>
+                      <Plus className="h-4 w-4" /> Log Project Cost
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent className="p-0">
+                  <div className="overflow-x-auto custom-scrollbar">
+                    <table className="w-full text-sm min-w-[600px]">
+                      <thead>
+                        <tr className="border-b bg-slate-50/30">
+                          <th className="px-8 py-4 text-left font-bold text-[10px] uppercase tracking-widest text-muted-foreground">Date</th>
+                          <th className="px-8 py-4 text-left font-bold text-[10px] uppercase tracking-widest text-muted-foreground">Category</th>
+                          <th className="px-8 py-4 text-left font-bold text-[10px] uppercase tracking-widest text-muted-foreground">Description</th>
+                          <th className="px-8 py-4 text-left font-bold text-[10px] uppercase tracking-widest text-muted-foreground">Amount</th>
+                          <th className="px-8 py-4 text-left font-bold text-[10px] uppercase tracking-widest text-muted-foreground">Status</th>
+                          <th className="px-8 py-4 text-right"></th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y">
+                        {isProjectExpensesLoading ? (
+                          <tr><td colSpan={6} className="text-center py-12"><Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" /></td></tr>
+                        ) : projectExpenses?.length === 0 ? (
+                          <tr><td colSpan={6} className="px-8 py-16 text-center text-muted-foreground italic text-xs">No project costs recorded.</td></tr>
+                        ) : (
+                          projectExpenses?.map((ex) => (
+                            <tr key={ex.id} className="hover:bg-slate-50/50 transition-colors group">
+                              <td className="px-8 py-5 text-slate-500 font-medium text-xs">{ex.date}</td>
+                              <td className="px-8 py-5">
+                                <div className="flex flex-col gap-1">
+                                  <Badge variant="secondary" className="text-[8px] uppercase font-bold py-0 w-fit">{ex.category}</Badge>
+                                  <span className="text-[9px] text-muted-foreground font-medium uppercase tracking-tighter">{ex.sub_category}</span>
+                                </div>
+                              </td>
+                              <td className="px-8 py-5 font-bold text-slate-700 text-xs">{ex.description}</td>
+                              <td className="px-8 py-5 font-black text-rose-600 text-xs">₹{ex.amount?.toLocaleString()}</td>
+                              <td className="px-8 py-5">
+                                <Badge variant={ex.status === 'Paid' ? 'default' : 'outline'} className="text-[8px] md:text-[9px] uppercase font-bold py-0">
+                                  {ex.status}
+                                </Badge>
+                              </td>
+                              <td className="px-8 py-5 text-right">
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon" 
+                                  className="h-8 w-8 text-rose-500 hover:bg-rose-50 opacity-0 group-hover:opacity-100 transition-opacity"
+                                  onClick={() => setExpenseToDelete(ex)}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Project Invoices Table */}
               <Card className="border-none shadow-sm rounded-[2rem] overflow-hidden bg-white">
                 <CardHeader className="bg-slate-50/50 flex flex-row items-center justify-between border-b px-8 py-6">
                   <div>
                     <div className="flex items-center gap-2 mb-1">
                       <div className="p-1.5 bg-primary/10 rounded-lg text-primary"><Receipt className="h-4 w-4" /></div>
-                      <CardTitle className="text-xl">Project Billing Ledger</CardTitle>
+                      <CardTitle className="text-xl">Billing Ledger</CardTitle>
                     </div>
-                    <CardDescription>Consolidated invoices and payment history for this workspace.</CardDescription>
+                    <CardDescription>Client invoices generated for this workspace.</CardDescription>
                   </div>
                   <Link href="/invoices">
-                    <Button variant="outline" size="sm" className="rounded-xl">
-                      <Plus className="h-4 w-4 mr-2" /> New Invoice
+                    <Button variant="outline" size="sm" className="rounded-xl h-9 font-bold gap-2">
+                      <Plus className="h-4 w-4" /> New Invoice
                     </Button>
                   </Link>
                 </CardHeader>
@@ -760,18 +841,15 @@ export default function ProjectWorkspacePage({ params }: { params: Promise<{ pro
                     <div className="text-center py-24 text-muted-foreground space-y-4">
                       <Receipt className="h-12 w-12 mx-auto opacity-10" />
                       <p className="text-sm font-medium">No billing records found for this project.</p>
-                      <Link href="/invoices">
-                        <Button variant="link" size="sm">Generate first invoice</Button>
-                      </Link>
                     </div>
                   ) : (
                     <div className="overflow-x-auto">
                       <table className="w-full text-sm">
                         <thead className="bg-slate-50/30 border-b">
                           <tr>
-                            <th className="px-8 py-4 text-left font-bold text-[10px] uppercase text-muted-foreground">Invoice #</th>
-                            <th className="px-8 py-4 text-left font-bold text-[10px] uppercase text-muted-foreground">Amount</th>
-                            <th className="px-8 py-4 text-left font-bold text-[10px] uppercase text-muted-foreground">Status</th>
+                            <th className="px-8 py-4 text-left font-bold text-[10px] uppercase text-muted-foreground tracking-widest">Invoice #</th>
+                            <th className="px-8 py-4 text-left font-bold text-[10px] uppercase text-muted-foreground tracking-widest">Amount</th>
+                            <th className="px-8 py-4 text-left font-bold text-[10px] uppercase text-muted-foreground tracking-widest">Status</th>
                             <th className="px-8 py-4 text-right"></th>
                           </tr>
                         </thead>
@@ -779,7 +857,7 @@ export default function ProjectWorkspacePage({ params }: { params: Promise<{ pro
                           {invoices?.map((inv) => (
                             <tr key={inv.id} className="hover:bg-slate-50 transition-colors group">
                               <td className="px-8 py-5 font-mono font-bold text-primary">{inv.invoice_number}</td>
-                              <td className="px-8 py-5 font-bold">₹{inv.total?.toLocaleString()}</td>
+                              <td className="px-8 py-5 font-bold text-xs">₹{inv.total?.toLocaleString()}</td>
                               <td className="px-8 py-5">
                                 <Badge variant={inv.payment_status === 'paid' ? 'default' : 'secondary'} className="text-[9px] uppercase font-bold">
                                   {inv.payment_status}
@@ -795,60 +873,6 @@ export default function ProjectWorkspacePage({ params }: { params: Promise<{ pro
                                   </Link>
                                 </div>
                               </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-
-              {/* Project Specific Expense Log */}
-              <Card className="border-none shadow-sm rounded-[2rem] overflow-hidden bg-white">
-                <CardHeader className="bg-slate-50/50 flex flex-row items-center justify-between border-b px-8 py-6">
-                  <div>
-                    <div className="flex items-center gap-2 mb-1">
-                      <div className="p-1.5 bg-rose-50 rounded-lg text-rose-500"><TrendingDown className="h-4 w-4" /></div>
-                      <CardTitle className="text-xl">Production Expense Log</CardTitle>
-                    </div>
-                    <CardDescription>All direct costs attributed to this project.</CardDescription>
-                  </div>
-                  <Button variant="outline" size="sm" className="rounded-xl" onClick={() => setIsLogExpenseOpen(true)}>
-                    <Plus className="h-4 w-4 mr-2" /> Log Project Cost
-                  </Button>
-                </CardHeader>
-                <CardContent className="p-0">
-                  {isProjectExpensesLoading ? (
-                    <div className="flex justify-center p-12"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
-                  ) : projectExpenses?.length === 0 ? (
-                    <div className="text-center py-24 text-muted-foreground space-y-4">
-                      <Info className="h-12 w-12 mx-auto opacity-10" />
-                      <p className="text-sm font-medium">No expenses tagged to this project yet.</p>
-                    </div>
-                  ) : (
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-sm">
-                        <thead className="bg-slate-50/30 border-b">
-                          <tr>
-                            <th className="px-8 py-4 text-left font-bold text-[10px] uppercase text-muted-foreground">Date</th>
-                            <th className="px-8 py-4 text-left font-bold text-[10px] uppercase text-muted-foreground">Description</th>
-                            <th className="px-8 py-4 text-left font-bold text-[10px] uppercase text-muted-foreground">Category</th>
-                            <th className="px-8 py-4 text-right font-bold text-[10px] uppercase text-muted-foreground">Amount</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y">
-                          {projectExpenses?.map((ex) => (
-                            <tr key={ex.id} className="hover:bg-slate-50 transition-colors">
-                              <td className="px-8 py-5 text-xs text-muted-foreground">{ex.date}</td>
-                              <td className="px-8 py-5 flex flex-col gap-0.5">
-                                <span className="font-bold text-slate-700">{ex.description}</span>
-                                <span className="text-[9px] text-muted-foreground font-medium uppercase">{ex.sub_category}</span>
-                              </td>
-                              <td className="px-8 py-5">
-                                <Badge variant="secondary" className="text-[8px] font-bold uppercase">{ex.category}</Badge>
-                              </td>
-                              <td className="px-8 py-5 text-right font-black text-rose-600">₹{ex.amount?.toLocaleString()}</td>
                             </tr>
                           ))}
                         </tbody>
@@ -885,9 +909,9 @@ export default function ProjectWorkspacePage({ params }: { params: Promise<{ pro
 
               <Card className="border-none shadow-sm bg-white rounded-[2rem] p-8 text-center">
                 <PieChartIcon className="h-12 w-12 text-primary/20 mx-auto mb-4" />
-                <h4 className="font-bold text-lg mb-2">P&L Breakdown</h4>
+                <h4 className="font-bold text-lg mb-2">P&L Status</h4>
                 <p className="text-xs text-muted-foreground leading-relaxed">
-                  Your project is currently operating at a <span className={cn("font-bold", netProfit >= 0 ? "text-emerald-600" : "text-rose-600")}>
+                  Your project is operating at a <span className={cn("font-bold", netProfit >= 0 ? "text-emerald-600" : "text-rose-600")}>
                     {netProfit >= 0 ? "PROFIT" : "LOSS"}
                   </span> of ₹{Math.abs(netProfit).toLocaleString()} with a {profitMargin.toFixed(1)}% margin.
                 </p>
@@ -903,7 +927,7 @@ export default function ProjectWorkspacePage({ params }: { params: Promise<{ pro
           <AlertDialogHeader>
             <AlertDialogTitle>Remove Objective?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently remove "{taskToDelete?.title}" from this production phase. This action cannot be undone.
+              This will permanently remove "{taskToDelete?.title}" from this production phase.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -920,13 +944,30 @@ export default function ProjectWorkspacePage({ params }: { params: Promise<{ pro
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Asset Record?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently remove "{assetToDelete?.name}" from your project inventory. This action cannot be undone.
+              This will permanently remove "{assetToDelete?.name}" from your project inventory.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel className="rounded-xl">Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={handleConfirmDeleteAsset} className="bg-rose-500 hover:bg-rose-600 rounded-xl">
               Confirm Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={!!expenseToDelete} onOpenChange={(open) => !open && setExpenseToDelete(null)}>
+        <AlertDialogContent className="rounded-[2rem]">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Purge Expense Record?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently remove this cost entry from the project ledger.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="rounded-xl">Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmDeleteExpense} className="bg-rose-500 hover:bg-rose-600 rounded-xl">
+              Confirm Purge
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -1034,7 +1075,7 @@ export default function ProjectWorkspacePage({ params }: { params: Promise<{ pro
         </DialogContent>
       </Dialog>
 
-      {/* Local Log Project Expense Dialog */}
+      {/* Log Project Cost Dialog */}
       <Dialog open={isLogExpenseOpen} onOpenChange={setIsLogExpenseOpen}>
         <DialogContent className="sm:max-w-[425px] rounded-[2.5rem] p-8 max-h-[90vh] overflow-y-auto custom-scrollbar">
           <DialogHeader>
