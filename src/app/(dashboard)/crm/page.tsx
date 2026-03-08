@@ -43,6 +43,7 @@ export default function CRMPage() {
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [leadToArchive, setLeadToArchive] = useState<any>(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
   // Quick Add State
   const [newLead, setNewLead] = useState({
@@ -80,6 +81,14 @@ export default function CRMPage() {
     }
     return unique.sort((a, b) => a.name.localeCompare(b.name));
   }, [leads]);
+
+  const filteredLeads = useMemo(() => {
+    if (!leads) return [];
+    return leads.filter(l => 
+      l.company_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      l.service_vertical?.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [leads, searchQuery]);
 
   const handleSelectExistingClient = (clientId: string) => {
     const client = uniqueClients.find(c => c.id === clientId);
@@ -145,38 +154,44 @@ export default function CRMPage() {
   }
 
   return (
-    <div className="space-y-8 h-full flex flex-col overflow-hidden">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 shrink-0">
+    <div className="space-y-8 flex flex-col min-h-0 h-full">
+      {/* Header Section */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 shrink-0 bg-background/95 backdrop-blur-sm z-10 py-2">
         <div>
           <h1 className="text-3xl font-bold text-primary">Sales Pipeline</h1>
-          <p className="text-muted-foreground">Track opportunities and manage client relations.</p>
+          <p className="text-muted-foreground text-sm">Track opportunities and manage client relations.</p>
         </div>
-        <div className="flex items-center gap-3">
-          <div className="relative w-64">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Find a lead..." className="pl-9 h-10 rounded-xl" />
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+          <div className="relative w-full sm:w-64">
+            <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input 
+              placeholder="Find a lead..." 
+              className="pl-9 h-10 rounded-xl"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
           </div>
           
           <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
             <DialogTrigger asChild>
-              <Button className="gap-2 rounded-xl shadow-lg shadow-primary/20">
+              <Button className="gap-2 rounded-xl shadow-xl shadow-primary/30 h-10 px-6">
                 <Plus className="h-4 w-4" /> Add Lead
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px] rounded-[2rem]">
+            <DialogContent className="sm:max-w-[425px] rounded-[2rem] p-8 max-h-[90vh] overflow-y-auto custom-scrollbar">
               <DialogHeader>
-                <DialogTitle className="flex items-center gap-2">
-                  <Sparkles className="h-5 w-5 text-accent" />
+                <DialogTitle className="flex items-center gap-2 text-2xl font-bold">
+                  <Sparkles className="h-6 w-6 text-accent" />
                   Capture Opportunity
                 </DialogTitle>
                 <DialogDescription>
-                  Enter details for a new deal. You can link to an existing client or enter a new one.
+                  Enter details for a new deal. Link to an existing client or register a new one.
                 </DialogDescription>
               </DialogHeader>
-              <form onSubmit={handleAddLead} className="space-y-4 py-4">
+              <form onSubmit={handleAddLead} className="space-y-5 py-4">
                 <div className="space-y-2 p-4 bg-indigo-50 rounded-2xl border border-indigo-100">
                   <Label className="text-[10px] font-black uppercase text-indigo-600 tracking-widest flex items-center gap-2">
-                    <Database className="h-3 w-3" /> Link to Existing Client
+                    <Database className="h-3 w-3" /> Link to Existing Partner
                   </Label>
                   <Select onValueChange={handleSelectExistingClient}>
                     <SelectTrigger className="rounded-xl h-9 bg-white shadow-none text-xs border-indigo-100">
@@ -204,7 +219,7 @@ export default function CRMPage() {
                     value={newLead.company_name}
                     onChange={(e) => setNewLead({...newLead, company_name: e.target.value})}
                     required
-                    className="rounded-xl"
+                    className="rounded-xl h-11"
                   />
                 </div>
                 
@@ -214,7 +229,7 @@ export default function CRMPage() {
                     value={newLead.service_vertical} 
                     onValueChange={(val) => setNewLead({...newLead, service_vertical: val})}
                   >
-                    <SelectTrigger className="rounded-xl">
+                    <SelectTrigger className="rounded-xl h-11">
                       <SelectValue placeholder="Select vertical" />
                     </SelectTrigger>
                     <SelectContent>
@@ -234,13 +249,13 @@ export default function CRMPage() {
                       placeholder="25000" 
                       value={newLead.deal_value}
                       onChange={(e) => setNewLead({...newLead, deal_value: e.target.value})}
-                      className="rounded-xl"
+                      className="rounded-xl h-11"
                     />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="stage">Initial Stage</Label>
                     <Select onValueChange={(val) => setNewLead({...newLead, stage: val})} value={newLead.stage}>
-                      <SelectTrigger className="rounded-xl">
+                      <SelectTrigger className="rounded-xl h-11">
                         <SelectValue placeholder="Select stage" />
                       </SelectTrigger>
                       <SelectContent>
@@ -250,9 +265,9 @@ export default function CRMPage() {
                   </div>
                 </div>
                 <DialogFooter className="pt-4">
-                  <Button type="submit" disabled={isSubmitting} className="w-full rounded-xl h-11 font-bold">
+                  <Button type="submit" disabled={isSubmitting} className="w-full rounded-xl h-12 font-bold shadow-lg shadow-primary/20">
                     {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                    Register Lead
+                    Register Opportunity
                   </Button>
                 </DialogFooter>
               </form>
@@ -261,78 +276,83 @@ export default function CRMPage() {
         </div>
       </div>
 
+      {/* Board View */}
       <div className="flex-1 min-h-0 w-full overflow-hidden flex flex-col">
-        <div className="flex gap-6 overflow-x-auto pb-6 h-full w-full custom-scrollbar px-1">
+        <div className="flex gap-6 overflow-x-auto pb-8 h-full w-full custom-scrollbar px-1">
           {PIPELINE_STAGES.map((stage) => {
-            const leadsInStage = leads?.filter(l => l.stage === stage.id) || [];
+            const leadsInStage = filteredLeads.filter(l => l.stage === stage.id);
             const totalValue = leadsInStage.reduce((sum, l) => sum + (l.deal_value || 0), 0);
 
             return (
               <div key={stage.id} className="flex flex-col gap-4 min-w-[320px] w-[320px] shrink-0 h-full">
-                <div className="flex items-center justify-between px-3 shrink-0">
+                {/* Stage Header */}
+                <div className="flex items-center justify-between px-3 shrink-0 py-2">
                   <div className="flex items-center gap-2">
-                    <h3 className="font-bold text-sm uppercase tracking-wider">{stage.name}</h3>
-                    <Badge variant="secondary" className="h-5 px-1.5 text-[10px] font-bold bg-white">{leadsInStage.length}</Badge>
+                    <div className={cn("h-2.5 w-2.5 rounded-full", stage.color || 'bg-slate-200')} />
+                    <h3 className="font-bold text-xs uppercase tracking-widest text-slate-600">{stage.name}</h3>
+                    <Badge variant="secondary" className="h-5 px-1.5 text-[9px] font-black bg-white border border-slate-100 shadow-sm">{leadsInStage.length}</Badge>
                   </div>
-                  <span className="text-[11px] font-bold text-muted-foreground">
+                  <span className="text-[10px] font-bold text-muted-foreground bg-slate-100/50 px-2 py-0.5 rounded-full">
                     ₹{(totalValue / 100000).toFixed(1)}L
                   </span>
                 </div>
 
-                <div className="flex flex-col gap-4 overflow-y-auto pr-2 pb-4 h-full">
+                {/* Column Content */}
+                <div className="flex flex-col gap-4 overflow-y-auto pr-2 pb-10 h-full custom-scrollbar min-h-0">
                   {leadsInStage.map((lead) => (
-                    <Card key={lead.id} className="cursor-pointer hover:ring-2 hover:ring-primary/10 transition-all border-none shadow-sm group shrink-0">
+                    <Card key={lead.id} className="cursor-pointer hover:ring-2 hover:ring-primary/10 transition-all border-none shadow-soft group shrink-0 bg-white rounded-2xl">
                       <CardContent className="p-5 space-y-4">
                         <div className="flex items-start justify-between gap-2">
                           <Link href={`/crm/${lead.id}`} className="flex-1">
-                            <span className="text-sm font-bold leading-tight group-hover:text-primary transition-colors block">{lead.company_name}</span>
+                            <span className="text-sm font-bold leading-tight group-hover:text-primary transition-colors block line-clamp-2">{lead.company_name}</span>
                           </Link>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0">
-                                <MoreHorizontal className="h-4 w-4" />
+                              <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0 rounded-lg hover:bg-slate-50">
+                                <MoreHorizontal className="h-4 w-4 text-slate-400" />
                               </Button>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="rounded-xl">
-                              <DropdownMenuItem asChild>
+                            <DropdownMenuContent align="end" className="rounded-xl w-52 shadow-2xl border-slate-100">
+                              <DropdownMenuLabel className="text-[10px] font-black uppercase text-slate-400 px-3 py-2 tracking-widest">Opportunity Actions</DropdownMenuLabel>
+                              <DropdownMenuItem asChild className="rounded-lg m-1 py-2 cursor-pointer">
                                 <Link href={`/crm/${lead.id}`} className="flex items-center gap-2">
-                                  <ExternalLink className="h-3.5 w-3.5" /> Open Detailed View
+                                  <ExternalLink className="h-3.5 w-3.5" /> Open Pipeline View
                                 </Link>
                               </DropdownMenuItem>
-                              <DropdownMenuItem asChild>
-                                <Link href={`/clients/${lead.id}`} className="flex items-center gap-2 text-muted-foreground">
-                                  <Building2 className="h-3.5 w-3.5" /> View Production History
+                              <DropdownMenuItem asChild className="rounded-lg m-1 py-2 cursor-pointer">
+                                <Link href={`/clients/${lead.id}`} className="flex items-center gap-2 text-slate-500">
+                                  <Building2 className="h-3.5 w-3.5" /> View Portfolio
                                 </Link>
                               </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem className="flex items-center gap-2 text-rose-500 focus:text-rose-600 focus:bg-rose-50" onClick={() => setLeadToArchive(lead)}>
-                                <Archive className="h-3.5 w-3.5" /> Archive Lead
+                              <DropdownMenuSeparator className="bg-slate-50" />
+                              <DropdownMenuItem className="rounded-lg m-1 py-2 cursor-pointer text-rose-500 focus:text-rose-600 focus:bg-rose-50" onClick={() => setLeadToArchive(lead)}>
+                                <Archive className="h-3.5 w-3.5" /> Archive Record
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </div>
                         
                         <div className="space-y-2">
-                          <div className="flex items-center gap-2 text-[11px] text-muted-foreground font-medium">
+                          <div className="flex items-center gap-2 text-[10px] text-muted-foreground font-bold uppercase tracking-tighter">
                             <Zap className="h-3.5 w-3.5 text-accent" />
-                            <span>{lead.service_vertical || 'General Production'}</span>
+                            <span className="truncate">{lead.service_vertical || 'General Production'}</span>
                           </div>
                           {lead.scope && lead.scope.length > 0 && (
-                            <div className="flex items-center gap-2 text-[10px] text-primary/60 font-bold">
+                            <div className="flex items-center gap-2 text-[9px] text-primary/60 font-black uppercase tracking-widest">
                               <List className="h-3 w-3" />
-                              <span>{lead.scope.length} Services Architected</span>
+                              <span>{lead.scope.length} Briefed</span>
                             </div>
                           )}
                         </div>
 
-                        <div className="flex items-center justify-between pt-3 border-t">
-                          <div className="flex items-center gap-1 text-primary font-bold text-sm">
+                        <div className="flex items-center justify-between pt-4 border-t border-slate-50">
+                          <div className="flex items-center gap-1 text-primary font-black text-xs bg-primary/5 px-2 py-1 rounded-lg">
                             <IndianRupee className="h-3 w-3" />
                             <span>{(lead.deal_value || 0).toLocaleString()}</span>
                           </div>
                           <Link href={`/crm/${lead.id}`}>
-                            <Button variant="ghost" size="icon" className="h-6 w-6 rounded-full group-hover:bg-primary/5">
-                              <ArrowRight className="h-3.5 w-3.5 text-muted-foreground group-hover:text-primary transition-colors" />
+                            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-primary/10 group/btn transition-colors">
+                              <ArrowRight className="h-4 w-4 text-slate-300 group-hover/btn:text-primary" />
                             </Button>
                           </Link>
                         </div>
@@ -340,15 +360,19 @@ export default function CRMPage() {
                     </Card>
                   ))}
                   
+                  {/* Quick Add Placeholder */}
                   <Button 
                     variant="ghost" 
-                    className="w-full border-2 border-dashed border-slate-200 h-24 hover:bg-white hover:border-primary/20 transition-all rounded-2xl group shrink-0"
+                    className="w-full border-2 border-dashed border-slate-100 h-20 hover:bg-white hover:border-primary/20 hover:shadow-sm transition-all rounded-2xl group shrink-0"
                     onClick={() => {
                       setNewLead({...newLead, stage: stage.id});
                       setIsAddOpen(true);
                     }}
                   >
-                    <Plus className="h-5 w-5 text-muted-foreground/40 group-hover:text-primary transition-colors" />
+                    <div className="flex flex-col items-center gap-1 text-slate-300 group-hover:text-primary">
+                      <Plus className="h-5 w-5" />
+                      <span className="text-[9px] font-black uppercase tracking-[0.2em]">Quick Add</span>
+                    </div>
                   </Button>
                 </div>
               </div>
@@ -357,40 +381,26 @@ export default function CRMPage() {
         </div>
       </div>
 
+      {/* Archive Confirmation */}
       <AlertDialog open={!!leadToArchive} onOpenChange={(open) => !open && setLeadToArchive(null)}>
-        <AlertDialogContent className="rounded-[2rem]">
+        <AlertDialogContent className="rounded-[2rem] p-8">
           <AlertDialogHeader>
-            <AlertDialogTitle>Archive Lead Record?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will move the lead "{leadToArchive?.company_name}" to the archives. It will no longer appear in the active sales pipeline but remains accessible in the ledger.
+            <div className="h-12 w-12 bg-rose-50 rounded-2xl flex items-center justify-center text-rose-500 mb-4">
+              <Archive className="h-6 w-6" />
+            </div>
+            <AlertDialogTitle className="text-2xl font-bold">Archive Lead Record?</AlertDialogTitle>
+            <AlertDialogDescription className="text-slate-500 font-medium">
+              This will move "{leadToArchive?.company_name}" to your archives. It will no longer appear in the active sales pipeline but remains accessible in your history.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel className="rounded-xl">Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleConfirmArchive} className="bg-rose-500 hover:bg-rose-600 rounded-xl">
+          <AlertDialogFooter className="pt-6">
+            <AlertDialogCancel className="rounded-xl h-11 font-bold">Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmArchive} className="bg-rose-500 hover:bg-rose-600 rounded-xl h-11 font-bold px-8">
               Confirm Archive
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
-      <style jsx global>{`
-        .custom-scrollbar::-webkit-scrollbar {
-          height: 12px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-track {
-          background: #f1f5f9;
-          border-radius: 10px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: #94a3b8;
-          border-radius: 10px;
-          border: 3px solid #f1f5f9;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: #64748b;
-        }
-      `}</style>
     </div>
   );
 }
