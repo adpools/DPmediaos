@@ -1,3 +1,4 @@
+
 "use client";
 
 import { use, useState, useEffect } from "react";
@@ -19,12 +20,13 @@ import {
   ChevronRight,
   MapPin,
   Zap,
-  Edit3
+  Edit3,
+  FileText
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useTenant } from "@/hooks/use-tenant";
-import { useDoc, useMemoFirebase, useFirestore } from "@/firebase";
-import { doc, serverTimestamp } from "firebase/firestore";
+import { useDoc, useCollection, useMemoFirebase, useFirestore } from "@/firebase";
+import { doc, serverTimestamp, query, collection, where, orderBy } from "firebase/firestore";
 import { updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -60,6 +62,18 @@ export default function LeadDetailPage({ params }: { params: Promise<{ leadId: s
   }, [db, companyId, leadId]);
 
   const { data: lead, isLoading: isLeadLoading } = useDoc(leadRef);
+
+  // 2. Fetch Proposals linked to this lead
+  const proposalsQuery = useMemoFirebase(() => {
+    if (!db || !companyId || !leadId) return null;
+    return query(
+      collection(db, 'companies', companyId, 'proposals'),
+      where('lead_id', '==', leadId),
+      orderBy('created_at', 'desc')
+    );
+  }, [db, companyId, leadId]);
+
+  const { data: proposals, isLoading: isProposalsLoading } = useCollection(proposalsQuery);
 
   // Sync edit form with lead data when opened
   useEffect(() => {
@@ -165,7 +179,7 @@ export default function LeadDetailPage({ params }: { params: Promise<{ leadId: s
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-8">
-          {/* Status Tracker - Vertical Redesign */}
+          {/* Status Tracker */}
           <Card className="border-none shadow-sm rounded-[2rem] bg-white overflow-hidden">
             <CardHeader className="bg-slate-50/50 pb-6 border-b">
               <div className="flex items-center justify-between">
@@ -202,7 +216,6 @@ export default function LeadDetailPage({ params }: { params: Promise<{ leadId: s
                   
                   return (
                     <div key={s.id} className="flex gap-6 relative group">
-                      {/* Vertical Connector Line */}
                       {!isLast && (
                         <div className={cn(
                           "absolute left-[15px] top-8 w-0.5 h-[calc(100%+8px)] z-0",
@@ -210,7 +223,6 @@ export default function LeadDetailPage({ params }: { params: Promise<{ leadId: s
                         )} />
                       )}
                       
-                      {/* Stage Indicator */}
                       <div className={cn(
                         "relative z-10 h-8 w-8 rounded-full flex items-center justify-center shrink-0 transition-all duration-500",
                         isCompleted 
@@ -220,7 +232,6 @@ export default function LeadDetailPage({ params }: { params: Promise<{ leadId: s
                         {isCompleted ? <CheckCircle2 className="h-4 w-4" /> : <Clock className="h-4 w-4" />}
                       </div>
                       
-                      {/* Stage Info */}
                       <div className="flex flex-col gap-1 pt-1.5 flex-1">
                         <div className="flex items-center justify-between">
                           <span className={cn(
@@ -236,9 +247,8 @@ export default function LeadDetailPage({ params }: { params: Promise<{ leadId: s
                         {isCompleted && (
                           <div className="space-y-3">
                             <p className="text-[10px] text-muted-foreground font-medium italic leading-relaxed">
-                              Stage reached successfully in current workflow.
+                              Stage reached successfully.
                             </p>
-                            {/* CREATE PROPOSAL BUTTON FOR MEETING STAGE */}
                             {s.id === 'meeting' && (
                               <div className="animate-in fade-in slide-in-from-left-2 duration-500">
                                 <Link href={`/proposals?source=crm&leadId=${leadId}&companyName=${encodeURIComponent(lead.company_name)}&vertical=${encodeURIComponent(lead.service_vertical || '')}&industry=${encodeURIComponent(lead.industry || '')}`}>
@@ -263,73 +273,71 @@ export default function LeadDetailPage({ params }: { params: Promise<{ leadId: s
             </CardContent>
           </Card>
 
-          {/* Billing & Address Section */}
+          {/* Drafted Proposals Section */}
+          <Card className="border-none shadow-sm rounded-[2rem] bg-white overflow-hidden">
+            <CardHeader className="bg-indigo-50/30">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <FileText className="h-5 w-5 text-primary" /> Drafted Strategy Blueprints
+              </CardTitle>
+              <CardDescription>AI-generated proposals linked to this opportunity.</CardDescription>
+            </CardHeader>
+            <CardContent className="p-0">
+              {isProposalsLoading ? (
+                <div className="p-8 flex justify-center"><Loader2 className="h-6 w-6 animate-spin" /></div>
+              ) : proposals?.length === 0 ? (
+                <div className="p-12 text-center text-muted-foreground italic text-xs">
+                  No blueprints generated yet. Reach the "Meeting" stage to launch the AI Architect.
+                </div>
+              ) : (
+                <div className="divide-y">
+                  {proposals?.map(prop => (
+                    <div key={prop.id} className="p-6 flex items-center justify-between hover:bg-slate-50 transition-colors group">
+                      <div className="flex items-center gap-4">
+                        <div className="h-10 w-10 bg-primary/5 rounded-xl flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-colors">
+                          <FileText className="h-5 w-5" />
+                        </div>
+                        <div>
+                          <p className="font-bold text-sm">{prop.title}</p>
+                          <p className="text-[10px] text-muted-foreground font-medium uppercase">{prop.proposal_number} • {prop.status}</p>
+                        </div>
+                      </div>
+                      <Link href={`/proposals`}>
+                        <Button variant="ghost" size="sm" className="rounded-xl h-8 text-[10px] font-bold uppercase tracking-wider gap-2">
+                          Manage <ExternalLink className="h-3 w-3" />
+                        </Button>
+                      </Link>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Billing Context */}
           <Card className="border-none shadow-sm rounded-[2rem] bg-white">
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
-                <MapPin className="h-5 w-5 text-primary" /> Billing Address
+                <MapPin className="h-5 w-5 text-primary" /> Billing Context
               </CardTitle>
-              <CardDescription>Essential for professional invoicing and GST compliance.</CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleUpdateAddress} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="gstin" className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">GSTIN (Optional)</Label>
-                  <Input 
-                    id="gstin" 
-                    name="gstin" 
-                    placeholder="e.g. 32AAQCM8450P1ZQ" 
-                    defaultValue={lead.gstin} 
-                    className="rounded-xl font-mono text-sm"
-                  />
+                  <Input id="gstin" name="gstin" placeholder="e.g. 32AAQCM8450P1ZQ" defaultValue={lead.gstin} className="rounded-xl font-mono text-sm" />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="billing_address" className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Detailed Billing Address</Label>
-                  <Textarea 
-                    id="billing_address" 
-                    name="billing_address" 
-                    placeholder="Company Address, Street, City, State, ZIP..." 
-                    defaultValue={lead.billing_address}
-                    className="rounded-xl min-h-[120px] text-sm leading-relaxed"
-                  />
+                  <Textarea id="billing_address" name="billing_address" placeholder="Address..." defaultValue={lead.billing_address} className="rounded-xl min-h-[100px] text-sm" />
                 </div>
-                <Button type="submit" className="rounded-xl font-bold px-8">
-                  Save Billing Context
-                </Button>
+                <Button type="submit" className="rounded-xl font-bold px-8">Save Context</Button>
               </form>
-            </CardContent>
-          </Card>
-
-          {/* AI Sales Insights */}
-          <Card className="border-none shadow-sm rounded-[2rem] bg-gradient-to-br from-primary to-indigo-900 text-white overflow-hidden">
-            <CardContent className="p-10 space-y-6">
-              <div className="flex items-center gap-3">
-                <Sparkles className="h-8 w-8 text-accent" />
-                <div>
-                  <h3 className="text-2xl font-bold">AI Strategy Insights</h3>
-                  <p className="text-white/60 text-sm">Predictive pitch angles for {lead.industry || 'Media'}</p>
-                </div>
-              </div>
-              <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6 border border-white/10 space-y-4">
-                <p className="text-sm leading-relaxed font-medium">
-                  "Focus on <span className="text-accent font-bold">visual storytelling</span> and <span className="text-accent font-bold">rapid turnaround</span> times. This client has a history of performance-driven campaigns."
-                </p>
-                <div className="flex gap-2">
-                  <Badge className="bg-accent text-white border-none">High Potential</Badge>
-                  <Badge className="bg-white/20 text-white border-none">Video First</Badge>
-                </div>
-              </div>
-              <Link href="/research">
-                <Button className="w-full bg-white text-primary hover:bg-white/90 rounded-xl font-bold h-11">
-                  Run Full Market Analysis <ChevronRight className="h-4 w-4 ml-2" />
-                </Button>
-              </Link>
             </CardContent>
           </Card>
         </div>
 
         <div className="space-y-8">
-          {/* Deal Value Card */}
+          {/* Commercials Card */}
           <Card className="border-none shadow-sm rounded-[2rem] bg-white">
             <CardHeader>
               <CardTitle className="text-base uppercase tracking-widest text-muted-foreground font-bold">Commercials</CardTitle>
@@ -358,14 +366,14 @@ export default function LeadDetailPage({ params }: { params: Promise<{ leadId: s
             </CardContent>
           </Card>
 
-          {/* Opportunity Context */}
+          {/* Deal Context */}
           <Card className="border-none shadow-sm rounded-[2rem] bg-white">
             <CardHeader>
               <CardTitle className="text-lg">Deal Context</CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="flex items-center gap-4">
-                <div className="h-12 w-12 rounded-2xl bg-accent/5 flex items-center justify-center text-accent text-xl font-bold">
+                <div className="h-12 w-12 rounded-2xl bg-accent/5 flex items-center justify-center text-accent">
                   <Zap className="h-6 w-6" />
                 </div>
                 <div>
@@ -392,7 +400,7 @@ export default function LeadDetailPage({ params }: { params: Promise<{ leadId: s
                 className="w-full rounded-xl h-10 text-xs font-bold uppercase tracking-wider"
                 onClick={() => setIsEditOpen(true)}
               >
-                Update Vertical
+                Update Context
               </Button>
             </CardContent>
           </Card>
@@ -407,26 +415,15 @@ export default function LeadDetailPage({ params }: { params: Promise<{ leadId: s
               <Sparkles className="h-5 w-5 text-accent" />
               Edit Opportunity
             </DialogTitle>
-            <DialogDescription>
-              Modify the core parameters of this sales lead.
-            </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSaveDetails} className="space-y-4 py-4">
             <div className="space-y-2">
               <Label>Company Name</Label>
-              <Input 
-                value={editForm.company_name}
-                onChange={(e) => setEditForm({...editForm, company_name: e.target.value})}
-                required
-                className="rounded-xl"
-              />
+              <Input value={editForm.company_name} onChange={(e) => setEditForm({...editForm, company_name: e.target.value})} required className="rounded-xl" />
             </div>
             <div className="space-y-2">
               <Label>Service Vertical</Label>
-              <Select 
-                value={editForm.service_vertical} 
-                onValueChange={(val) => setEditForm({...editForm, service_vertical: val})}
-              >
+              <Select value={editForm.service_vertical} onValueChange={(val) => setEditForm({...editForm, service_vertical: val})}>
                 <SelectTrigger className="rounded-xl">
                   <SelectValue />
                 </SelectTrigger>
@@ -440,27 +437,15 @@ export default function LeadDetailPage({ params }: { params: Promise<{ leadId: s
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Industry</Label>
-                <Input 
-                  value={editForm.industry}
-                  onChange={(e) => setEditForm({...editForm, industry: e.target.value})}
-                  className="rounded-xl"
-                  placeholder="e.g. Real Estate"
-                />
+                <Input value={editForm.industry} onChange={(e) => setEditForm({...editForm, industry: e.target.value})} className="rounded-xl" />
               </div>
               <div className="space-y-2">
                 <Label>Deal Value (₹)</Label>
-                <Input 
-                  type="number"
-                  value={editForm.deal_value}
-                  onChange={(e) => setEditForm({...editForm, deal_value: e.target.value})}
-                  className="rounded-xl"
-                />
+                <Input type="number" value={editForm.deal_value} onChange={(e) => setEditForm({...editForm, deal_value: e.target.value})} className="rounded-xl" />
               </div>
             </div>
             <DialogFooter className="pt-4">
-              <Button type="submit" className="w-full rounded-xl h-11 font-bold">
-                Save Lead Context
-              </Button>
+              <Button type="submit" className="w-full rounded-xl h-11 font-bold">Save Record</Button>
             </DialogFooter>
           </form>
         </DialogContent>

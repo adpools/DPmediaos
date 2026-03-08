@@ -154,6 +154,7 @@
       "properties": {
         "id": { "type": "string" },
         "company_id": { "type": "string" },
+        "lead_id": { "type": "string" },
         "title": { "type": "string" },
         "client_name": { "type": "string" },
         "proposal_number": { "type": "string" },

@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, Suspense } from "react";
@@ -104,11 +105,11 @@ function ProposalsContent() {
     project_description: "",
     project_duration: "6 Months",
     target_market: "",
-    budget: ""
+    budget: "",
+    leadId: "" // Persistent track for CRM linkage
   });
 
   const [generatedDraft, setGeneratedDraft] = useState<GenerateProposalContentOutput | null>(null);
-  const marketImage = PlaceHolderImages.find(img => img.id === 'market-analysis');
 
   useEffect(() => {
     const source = searchParams.get('source');
@@ -118,12 +119,14 @@ function ProposalsContent() {
       const services = searchParams.get('services') || searchParams.get('vertical') || '';
       const context = searchParams.get('context') || '';
       const location = searchParams.get('location') || '';
+      const leadId = searchParams.get('leadId') || '';
 
       setAIInputs(prev => ({
         ...prev,
         service_vertical: services,
         client_type: industry,
         location: location,
+        leadId: leadId,
         project_description: context || (source === 'crm' ? `Strategic production blueprint for ${projectName}'s ${services} project in the ${industry} industry.` : `A dedicated campaign focused on ${industry} market expansion.`)
       }));
 
@@ -180,6 +183,7 @@ function ProposalsContent() {
     
     addDocumentNonBlocking(proposalsRef, {
       company_id: companyId,
+      lead_id: aiInputs.leadId || "",
       title: generatedDraft.proposal_title,
       client_name: generatedDraft.client,
       proposal_number: `PROP-${Date.now().toString().slice(-6)}`,
@@ -192,6 +196,8 @@ function ProposalsContent() {
     setGenerationStep('input');
     setIsAddOpen(false);
     setIsSubmitting(false);
+    
+    toast({ title: "Proposal Saved", description: "Blueprint committed to your ledger." });
   };
 
   const handleConfirmDelete = () => {
@@ -240,13 +246,13 @@ function ProposalsContent() {
     <div className="space-y-8 max-w-7xl mx-auto">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-primary">AI Proposal Architect</h1>
+          <h1 className="text-3xl font-bold text-primary">Proposals</h1>
           <p className="text-muted-foreground text-sm">Automated synthesis of premium production blueprints.</p>
         </div>
         <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
           <DialogTrigger asChild>
             <Button className="gap-2 rounded-xl shadow-lg shadow-primary/20">
-              <Plus className="h-4 w-4" /> New Intelligence Proposal
+              <Plus className="h-4 w-4" /> Launch AI Architect
             </Button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-[800px] rounded-[3rem] p-0 overflow-hidden border-none shadow-2xl h-[90vh] flex flex-col">
@@ -268,12 +274,12 @@ function ProposalsContent() {
                   <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 flex flex-col">
                     <div className="space-y-2 p-5 bg-indigo-500/10 rounded-3xl border border-indigo-500/20 shrink-0">
                       <Label className="text-[10px] font-black uppercase text-indigo-400 tracking-widest flex items-center gap-2 mb-2">
-                        <Database className="h-3 w-3" /> Smart Import from CRM
+                        <Database className="h-3 w-3" /> Smart Import Context
                       </Label>
                       <Select onValueChange={(val) => {
                         const lead = leads?.find(l => l.id === val);
-                        if (lead) setAIInputs(prev => ({ ...prev, service_vertical: lead.service_vertical || "", client_type: lead.industry || "", location: lead.billing_address || "", budget: lead.deal_value ? `₹${lead.deal_value.toLocaleString()}` : "" }));
-                      }}>
+                        if (lead) setAIInputs(prev => ({ ...prev, leadId: lead.id, service_vertical: lead.service_vertical || "", client_type: lead.industry || "", location: lead.billing_address || "", budget: lead.deal_value ? `₹${lead.deal_value.toLocaleString()}` : "" }));
+                      }} value={aiInputs.leadId}>
                         <SelectTrigger className="bg-white/5 border-white/10 rounded-xl h-10 text-xs text-slate-300">
                           <SelectValue placeholder="Select active lead to fetch data..." />
                         </SelectTrigger>
@@ -358,7 +364,10 @@ function ProposalsContent() {
                     </div>
                     <div>
                       <h3 className="font-bold text-xl group-hover:text-primary transition-colors">{prop.title}</h3>
-                      <p className="text-xs text-muted-foreground font-medium mt-1">{prop.proposal_number} • Client: {prop.client_name}</p>
+                      <p className="text-xs text-muted-foreground font-medium mt-1">
+                        {prop.proposal_number} • Client: {prop.client_name}
+                        {prop.lead_id && <Badge className="ml-3 bg-indigo-50 text-indigo-600 border-none text-[8px] font-black uppercase">CRM Linked</Badge>}
+                      </p>
                     </div>
                   </div>
                 </div>
