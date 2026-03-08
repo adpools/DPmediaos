@@ -35,18 +35,7 @@ import {
   AlertDialogHeader, 
   AlertDialogTitle, 
 } from "@/components/ui/alert-dialog";
-
-const VERTICALS = [
-  'High-Premium Brand Film',
-  'Social-First Ads (UGC)',
-  'Product Cinematography',
-  '3D Animation & VFX',
-  'Virtual Production (XR)',
-  'Explainer & Educational',
-  'Corporate Identity',
-  'Event Aftermovie',
-  'Documentary Style'
-];
+import { VERTICALS } from "../clients/page";
 
 export default function CRMPage() {
   const { profile, isLoading: isTenantLoading, companyId } = useTenant();

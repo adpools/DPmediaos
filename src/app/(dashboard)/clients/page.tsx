@@ -44,7 +44,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-const INDUSTRIES = [
+export const INDUSTRIES = [
   'Luxury & Lifestyle',
   'E-commerce & D2C',
   'Tech & SaaS',
@@ -58,12 +58,12 @@ const INDUSTRIES = [
   'Other'
 ];
 
-const VERTICALS = [
+export const VERTICALS = [
   'High-Premium Brand Film',
-  'Social-First Ads (UGC)',
-  'Product Cinematography',
+  'Social-First Ads (UGC Style)',
   '3D Animation & VFX',
   'Virtual Production (XR)',
+  'Product Cinematography',
   'Explainer & Educational',
   'Corporate Identity',
   'Event Aftermovie',

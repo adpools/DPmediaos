@@ -38,18 +38,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
-
-const VERTICALS = [
-  'High-Premium Brand Film',
-  'Social-First Ads (UGC)',
-  'Product Cinematography',
-  '3D Animation & VFX',
-  'Virtual Production (XR)',
-  'Explainer & Educational',
-  'Corporate Identity',
-  'Event Aftermovie',
-  'Documentary Style'
-];
+import { VERTICALS } from "../../clients/page";
 
 export default function LeadDetailPage({ params }: { params: Promise<{ leadId: string }> }) {
   const { leadId } = use(params);
