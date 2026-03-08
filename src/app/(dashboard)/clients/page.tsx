@@ -46,7 +46,6 @@ import Link from "next/link";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -203,7 +202,6 @@ export default function ClientsPage() {
     setIsSubmitting(true);
     const leadsRef = collection(db, 'companies', companyId, 'leads');
     
-    // Aggregate all selected services
     const primaryVertical = activeVertical?.name || "General Production";
     const allServices = Object.values(selectedServices).flat();
 
@@ -393,11 +391,10 @@ export default function ClientsPage() {
         )}
       </div>
 
-      {/* ONBOARD CLIENT DIALOG - INTEGRATED SERVICE BUILDER */}
       <Dialog open={isOnboardOpen} onOpenChange={(open) => !open && resetOnboarding()}>
-        <DialogContent className="sm:max-w-[1000px] rounded-[3rem] p-0 overflow-hidden border-none shadow-2xl h-[90vh] max-h-[900px]">
-          <div className="flex flex-col h-full bg-white">
-            {/* Header */}
+        <DialogContent className="sm:max-w-[1000px] rounded-[3rem] p-0 overflow-hidden border-none shadow-2xl h-[90vh] max-h-[900px] flex flex-col">
+          <div className="flex flex-col flex-1 bg-white min-h-0">
+            {/* Header - Fixed Height */}
             <div className="p-8 border-b bg-primary/5 flex items-center justify-between shrink-0">
               <div className="flex items-center gap-4">
                 <div className="h-12 w-12 bg-primary rounded-2xl flex items-center justify-center text-white shadow-lg">
@@ -414,7 +411,7 @@ export default function ClientsPage() {
               </div>
             </div>
 
-            {/* Content Area - Constrained for robust scrolling */}
+            {/* Content Area - Scrollable */}
             <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
               {onboardStep === 'info' ? (
                 <div className="flex-1 p-10 space-y-8 animate-in fade-in slide-in-from-left-4 duration-300 overflow-y-auto custom-scrollbar">
@@ -469,44 +466,42 @@ export default function ClientsPage() {
                       <Briefcase className="h-5 w-5" />
                     </div>
                     <p className="text-xs text-muted-foreground leading-relaxed">
-                      All new clients are automatically added to your <strong>Sales Pipeline</strong> at the "Lead" stage for tracking.
+                      All new clients are automatically added to your <strong>Sales Pipeline</strong> at the "Lead" stage.
                     </p>
                   </div>
                 </div>
               ) : (
-                <div className="flex-1 flex overflow-hidden min-h-0 animate-in fade-in slide-in-from-right-4 duration-300">
+                <div className="flex-1 flex min-h-0 overflow-hidden animate-in fade-in slide-in-from-right-4 duration-300">
                   <div className="flex-1 flex flex-col p-8 bg-slate-50/50 min-h-0 overflow-hidden">
-                    {/* Vertical Selector - Compact & Scrollable */}
-                    <div className="mb-6 shrink-0 flex flex-col">
-                      <h3 className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-4">Select Content Vertical</h3>
+                    <div className="mb-6 shrink-0">
+                      <h3 className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-4">01. Select Content Vertical</h3>
                       <div className="overflow-x-auto pb-4 custom-scrollbar">
                         <div className="flex gap-3">
                           {CONTENT_VERTICALS.map((vertical) => (
                             <Card 
                               key={vertical.id}
                               className={cn(
-                                "cursor-pointer transition-all duration-300 border-2 rounded-2xl group shrink-0 w-44",
+                                "cursor-pointer transition-all duration-300 border-2 rounded-2xl group shrink-0 w-40 h-32 flex items-center justify-center text-center p-4",
                                 selectedVerticalId === vertical.id 
                                   ? "border-primary shadow-lg ring-4 ring-primary/5 bg-white" 
                                   : "border-transparent hover:border-slate-200 bg-white"
                               )}
                               onClick={() => setSelectedVerticalId(vertical.id)}
                             >
-                              <CardContent className="p-4 flex flex-col items-center text-center gap-2">
+                              <div className="flex flex-col items-center gap-2">
                                 <div className={cn("h-8 w-8 rounded-lg flex items-center justify-center text-white", vertical.color)}>
                                   <vertical.icon className="h-4 w-4" />
                                 </div>
                                 <span className="text-[9px] font-black leading-tight uppercase tracking-tight">{vertical.name}</span>
-                              </CardContent>
+                              </div>
                             </Card>
                           ))}
                         </div>
                       </div>
                     </div>
 
-                    {/* Services Configurator - Robust Scroll Fix */}
-                    <div className="flex-1 min-h-0 flex flex-col">
-                      <h3 className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-4">Configure Production Services</h3>
+                    <div className="flex-1 flex flex-col min-h-0">
+                      <h3 className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-4">02. Configure Production Services</h3>
                       {activeVertical ? (
                         <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pb-4">
@@ -516,10 +511,10 @@ export default function ClientsPage() {
                                 <div 
                                   key={service}
                                   className={cn(
-                                    "flex items-center gap-3 p-4 rounded-xl border transition-all cursor-pointer group",
+                                    "flex items-center gap-3 p-4 rounded-xl border transition-all cursor-pointer bg-white",
                                     isSelected 
                                       ? "bg-primary/5 border-primary/20" 
-                                      : "bg-white border-slate-100 hover:border-slate-200"
+                                      : "border-slate-100 hover:border-slate-200"
                                   )}
                                   onClick={() => toggleService(activeVertical.id, service)}
                                 >
@@ -537,13 +532,12 @@ export default function ClientsPage() {
                       ) : (
                         <div className="flex-1 flex flex-col items-center justify-center border-2 border-dashed rounded-3xl text-muted-foreground opacity-40 bg-white/50">
                           <Zap className="h-10 w-10 mb-2" />
-                          <p className="text-[10px] font-black uppercase tracking-widest">Select a vertical above to see options</p>
+                          <p className="text-[10px] font-black uppercase tracking-widest">Select a vertical above to begin architecture</p>
                         </div>
                       )}
                     </div>
                   </div>
 
-                  {/* Sidebar Summary - Robust Scroll Fix */}
                   <aside className="w-80 border-l bg-white flex flex-col shrink-0 min-h-0 overflow-hidden">
                     <div className="p-6 border-b bg-slate-50/50 shrink-0">
                       <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Scope Synthesis</h4>
@@ -564,7 +558,7 @@ export default function ClientsPage() {
                                 </div>
                                 <div className="space-y-1 pl-3">
                                   {services.map(s => (
-                                    <div key={s} className="flex items-center justify-between text-[10px] font-bold text-slate-600 group">
+                                    <div key={s} className="flex items-center justify-between text-[10px] font-bold text-slate-600">
                                       <span className="flex-1 pr-2">• {s}</span>
                                       <button onClick={(e) => { e.stopPropagation(); toggleService(vId, s); }} className="text-rose-400 hover:text-rose-600">
                                         <X className="h-3 w-3" />
@@ -579,7 +573,7 @@ export default function ClientsPage() {
                       </div>
                     </div>
                     <div className="p-6 border-t bg-slate-50/50 shrink-0">
-                      <div className="flex justify-between items-center mb-4">
+                      <div className="flex justify-between items-center">
                         <span className="text-[9px] font-black uppercase text-slate-400">Total Selection</span>
                         <Badge className="bg-primary text-white font-black h-5 text-[10px] px-2">{totalServicesCount}</Badge>
                       </div>
@@ -589,7 +583,7 @@ export default function ClientsPage() {
               )}
             </div>
 
-            {/* Footer */}
+            {/* Footer - Fixed Height */}
             <div className="p-8 border-t bg-white flex items-center justify-between shrink-0">
               {onboardStep === 'info' ? (
                 <>
@@ -622,7 +616,6 @@ export default function ClientsPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Archive Confirmation */}
       <AlertDialog open={!!clientToArchive} onOpenChange={(open) => !open && setClientToArchive(null)}>
         <AlertDialogContent className="rounded-[2rem]">
           <AlertDialogHeader>

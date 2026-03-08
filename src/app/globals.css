@@ -47,16 +47,16 @@
   }
 }
 
-/* Global Custom Scrollbar Utility */
 @layer utilities {
   .custom-scrollbar::-webkit-scrollbar {
-    @apply w-2 h-2;
+    width: 10px;
+    height: 10px;
   }
   .custom-scrollbar::-webkit-scrollbar-track {
-    @apply bg-transparent;
+    @apply bg-slate-100 rounded-full;
   }
   .custom-scrollbar::-webkit-scrollbar-thumb {
-    @apply bg-slate-300 rounded-full border-2 border-transparent bg-clip-padding;
+    @apply bg-slate-300 rounded-full border-2 border-slate-100 bg-clip-padding;
   }
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
     @apply bg-slate-400;
