@@ -1,4 +1,3 @@
-
 "use client";
 
 import * as React from "react";
@@ -114,13 +113,13 @@ export function AppSidebar() {
 
   return (
     <Sidebar collapsible="icon" className="border-none bg-white">
-      <SidebarHeader className="p-6">
+      <SidebarHeader className="p-4">
         <div className="flex items-center gap-3">
-          <div className="h-10 w-10 shrink-0 overflow-hidden rounded-xl border bg-slate-50 flex items-center justify-center">
+          <div className="h-8 w-8 shrink-0 overflow-hidden rounded-lg border bg-slate-50 flex items-center justify-center">
             <Image 
               src={logoUrl}
-              width={40}
-              height={40}
+              width={32}
+              height={32}
               alt="Marzelz Logo"
               className="object-contain"
               data-ai-hint="minimalist logo"
@@ -128,14 +127,14 @@ export function AppSidebar() {
           </div>
           {state !== "collapsed" && (
             <div className="flex flex-col">
-              <span className="text-sm font-black tracking-tight text-primary uppercase">Marzelz</span>
-              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest leading-none">Lifestyle</span>
+              <span className="text-xs font-black tracking-tight text-primary uppercase leading-none">Marzelz</span>
+              <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest leading-none mt-0.5">Lifestyle</span>
             </div>
           )}
         </div>
       </SidebarHeader>
 
-      <SidebarContent className="px-4">
+      <SidebarContent className="px-3">
         {navGroups.map((group) => {
           // Filter items based on core status, module enablement, and user permissions
           const visibleItems = group.items.filter(item => 
@@ -145,9 +144,9 @@ export function AppSidebar() {
           if (visibleItems.length === 0) return null;
 
           return (
-            <SidebarGroup key={group.label} className="py-2">
-              <div className="mb-2 px-2">
-                <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground/50">{group.label}</span>
+            <SidebarGroup key={group.label} className="py-1">
+              <div className="mb-1 px-2">
+                <span className="text-[9px] font-black uppercase tracking-[0.15em] text-muted-foreground/40 leading-none">{group.label}</span>
               </div>
               <SidebarMenu>
                 {visibleItems.map((item) => (
@@ -156,11 +155,11 @@ export function AppSidebar() {
                       asChild
                       isActive={pathname === item.url}
                       tooltip={item.title}
-                      className="rounded-xl h-10 px-3 hover:bg-accent/5 data-[active=true]:bg-primary/5 data-[active=true]:text-primary"
+                      className="rounded-lg h-7 px-2 hover:bg-accent/5 data-[active=true]:bg-primary/5 data-[active=true]:text-primary"
                     >
-                      <Link href={item.url} className="flex items-center gap-3">
-                        <item.icon className={cn("h-4 w-4", pathname === item.url ? "text-primary" : "text-slate-500")} />
-                        <span className="font-semibold text-xs flex-1">{item.title}</span>
+                      <Link href={item.url} className="flex items-center gap-2.5">
+                        <item.icon className={cn("h-3.5 w-3.5", pathname === item.url ? "text-primary" : "text-slate-500")} />
+                        <span className="font-bold text-[11px] flex-1 leading-none">{item.title}</span>
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
@@ -170,9 +169,9 @@ export function AppSidebar() {
           );
         })}
 
-        <SidebarGroup className="mt-4 pt-4 border-t border-slate-50">
-          <div className="mb-2 px-2">
-            <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground/50">System</span>
+        <SidebarGroup className="mt-2 pt-2 border-t border-slate-50">
+          <div className="mb-1 px-2">
+            <span className="text-[9px] font-black uppercase tracking-[0.15em] text-muted-foreground/40 leading-none">System</span>
           </div>
           <SidebarMenu>
             <SidebarMenuItem>
@@ -180,11 +179,11 @@ export function AppSidebar() {
                 asChild
                 isActive={pathname?.startsWith('/settings') && !pathname?.includes('/rbac')}
                 tooltip="Account Center"
-                className="rounded-xl h-10 px-3 hover:bg-accent/5 data-[active=true]:bg-primary/5 data-[active=true]:text-primary"
+                className="rounded-lg h-7 px-2 hover:bg-accent/5 data-[active=true]:bg-primary/5 data-[active=true]:text-primary"
               >
-                <Link href="/settings" className="flex items-center gap-3">
-                  <UserCircle className="h-4 w-4 text-slate-500" />
-                  <span className="font-semibold text-xs flex-1">Account Center</span>
+                <Link href="/settings" className="flex items-center gap-2.5">
+                  <UserCircle className="h-3.5 w-3.5 text-slate-500" />
+                  <span className="font-bold text-[11px] flex-1 leading-none">Account Center</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
@@ -195,11 +194,11 @@ export function AppSidebar() {
                   asChild
                   isActive={pathname === '/settings/rbac'}
                   tooltip="Access Control"
-                  className="rounded-xl h-10 px-3 hover:bg-accent/5 data-[active=true]:bg-primary/5 data-[active=true]:text-primary"
+                  className="rounded-lg h-7 px-2 hover:bg-accent/5 data-[active=true]:bg-primary/5 data-[active=true]:text-primary"
                 >
-                  <Link href="/settings/rbac" className="flex items-center gap-3">
-                    <ShieldCheck className="h-4 w-4 text-slate-500" />
-                    <span className="font-semibold text-xs flex-1">Access Control</span>
+                  <Link href="/settings/rbac" className="flex items-center gap-2.5">
+                    <ShieldCheck className="h-3.5 w-3.5 text-slate-500" />
+                    <span className="font-bold text-[11px] flex-1 leading-none">Access Control</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -209,11 +208,11 @@ export function AppSidebar() {
               <SidebarMenuButton
                 onClick={handleLogout}
                 tooltip="Logout"
-                className="rounded-xl h-10 px-3 hover:bg-rose-50 text-rose-500"
+                className="rounded-lg h-7 px-2 hover:bg-rose-50 text-rose-500"
               >
-                <div className="flex items-center gap-3">
-                  <LogOut className="h-4 w-4" />
-                  <span className="font-semibold text-xs flex-1">Logout</span>
+                <div className="flex items-center gap-2.5">
+                  <LogOut className="h-3.5 w-3.5" />
+                  <span className="font-bold text-[11px] flex-1 leading-none">Logout</span>
                 </div>
               </SidebarMenuButton>
             </SidebarMenuItem>
@@ -221,27 +220,27 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="p-4 mt-auto border-t bg-slate-50/50 space-y-4">
+      <SidebarFooter className="p-3 mt-auto border-t bg-slate-50/50 space-y-3">
         <div className={cn(
-          "flex items-center gap-3 p-2 rounded-xl hover:bg-white hover:shadow-sm transition-all cursor-pointer",
+          "flex items-center gap-2.5 p-1.5 rounded-lg hover:bg-white hover:shadow-sm transition-all cursor-pointer",
           state === "collapsed" ? "justify-center" : ""
         )}>
-          <Avatar className="h-9 w-9 ring-2 ring-white shrink-0 shadow-sm">
+          <Avatar className="h-7 w-7 ring-2 ring-white shrink-0 shadow-sm">
             <AvatarImage src={profile?.avatar} />
-            <AvatarFallback className="bg-primary/5 text-primary text-[10px] font-bold">
+            <AvatarFallback className="bg-primary/5 text-primary text-[9px] font-bold">
               {profile?.fullName?.substring(0, 2).toUpperCase() || 'U'}
             </AvatarFallback>
           </Avatar>
           {state !== "collapsed" && (
             <div className="flex flex-col min-w-0">
-              <span className="text-xs font-bold font-headline truncate text-slate-800">{profile?.fullName}</span>
-              <span className="text-[9px] text-muted-foreground font-black uppercase tracking-widest truncate">{company?.name || 'Workspace'}</span>
+              <span className="text-[11px] font-bold font-headline truncate text-slate-800 leading-none">{profile?.fullName}</span>
+              <span className="text-[8px] text-muted-foreground font-black uppercase tracking-widest truncate leading-none mt-1">{company?.name || 'Workspace'}</span>
             </div>
           )}
         </div>
         <div className="flex justify-center w-full">
-          <Button size="icon" className="h-10 w-10 md:h-12 md:w-12 rounded-2xl bg-accent hover:bg-accent/90 shadow-lg shadow-accent/30 shrink-0">
-            <Plus className="h-5 w-5 md:h-6 md:w-6" />
+          <Button size="icon" className="h-8 w-8 md:h-9 md:w-9 rounded-xl bg-accent hover:bg-accent/90 shadow-md shadow-accent/20 shrink-0">
+            <Plus className="h-4 w-4 md:h-5 md:w-5" />
           </Button>
         </div>
       </SidebarFooter>
