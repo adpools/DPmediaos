@@ -30,8 +30,8 @@ import { collection, query, where, limit, orderBy, doc, serverTimestamp } from "
 import { updateDocumentNonBlocking, setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import Link from "next/link";
 import { 
-  BarChart, 
-  Bar, 
+  AreaChart, 
+  Area, 
   ResponsiveContainer, 
   XAxis, 
   Tooltip as RechartsTooltip,
@@ -149,8 +149,8 @@ export default function DashboardPage() {
     const inProgress = allProjects?.filter(p => p.status === 'in_progress').length || 0;
     const completed = allProjects?.filter(p => p.status === 'completed').length || 0;
     return [
-      { name: 'Active', value: inProgress, color: '#FF71A4' },
-      { name: 'Done', value: completed, color: '#B199FF' }
+      { name: 'Active', value: inProgress, color: 'hsl(var(--primary))' },
+      { name: 'Done', value: completed, color: 'hsl(var(--accent))' }
     ];
   }, [allProjects]);
 
@@ -230,56 +230,88 @@ export default function DashboardPage() {
 
       {/* Analytics Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
-        <Card className="lg:col-span-2 border-none shadow-sm rounded-[2rem] bg-white">
+        <Card className="lg:col-span-2 border-none shadow-sm rounded-[2rem] bg-white overflow-hidden">
           <CardHeader className="flex flex-row items-center justify-between space-y-0">
             <div>
-              <CardTitle className="text-lg md:text-xl">Revenue Velocity</CardTitle>
-              <CardDescription className="text-xs">Monthly billing trends</CardDescription>
+              <CardTitle className="text-lg md:text-xl font-bold">Revenue Velocity</CardTitle>
+              <CardDescription className="text-xs">Real-time monthly billing trends</CardDescription>
             </div>
             <Link href="/reports">
-              <Button variant="ghost" size="sm" className="text-primary font-bold text-xs">Audit</Button>
+              <Button variant="ghost" size="sm" className="text-primary font-bold text-xs gap-2">
+                Audit Intelligence <ArrowUpRight className="h-3 w-3" />
+              </Button>
             </Link>
           </CardHeader>
-          <CardContent className="h-[200px] md:h-[250px] pt-4">
+          <CardContent className="h-[200px] md:h-[250px] pt-4 pr-0">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={revenueChartData}>
-                <XAxis dataKey="month" axisLine={false} tickLine={false} style={{ fontSize: '10px', fontWeight: 'bold' }} />
-                <RechartsTooltip 
-                  cursor={{ fill: '#f8fafc' }}
-                  contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 30px rgba(0,0,0,0.1)' }}
-                  formatter={(v: any) => `₹${v.toLocaleString()}`}
+              <AreaChart data={revenueChartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <XAxis 
+                  dataKey="month" 
+                  axisLine={false} 
+                  tickLine={false} 
+                  style={{ fontSize: '10px', fontWeight: 'bold', fill: 'hsl(var(--muted-foreground))' }} 
+                  dy={10}
                 />
-                <Bar dataKey="revenue" fill="#B199FF" radius={[6, 6, 0, 0]} barSize={30} />
-              </BarChart>
+                <RechartsTooltip 
+                  contentStyle={{ 
+                    borderRadius: '16px', 
+                    border: 'none', 
+                    boxShadow: '0 20px 50px rgba(0,0,0,0.1)',
+                    fontSize: '12px',
+                    fontWeight: 'bold',
+                    padding: '12px'
+                  }}
+                  formatter={(v: any) => [`₹${v.toLocaleString()}`, 'Revenue']}
+                />
+                <Area 
+                  type="monotone" 
+                  dataKey="revenue" 
+                  stroke="hsl(var(--primary))" 
+                  strokeWidth={4}
+                  fillOpacity={1} 
+                  fill="url(#colorRevenue)" 
+                  animationDuration={1500}
+                  activeDot={{ r: 6, strokeWidth: 0, fill: 'hsl(var(--primary))' }}
+                />
+              </AreaChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
 
         <Card className="border-none shadow-sm rounded-[2rem] bg-white">
           <CardHeader>
-            <CardTitle className="text-lg md:text-xl">Production Pulse</CardTitle>
-            <CardDescription className="text-xs">Project distribution</CardDescription>
+            <CardTitle className="text-lg md:text-xl font-bold">Production Pulse</CardTitle>
+            <CardDescription className="text-xs">Active workspace distribution</CardDescription>
           </CardHeader>
           <CardContent className="h-[200px] md:h-[250px] flex items-center justify-center">
             {stats.active === 0 && stats.revenue === 0 ? (
               <div className="text-center text-[10px] text-muted-foreground bg-slate-50 p-6 rounded-2xl border-2 border-dashed">
-                Add projects to see pulse
+                Launch projects to track pulse
               </div>
             ) : (
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
                     data={projectBreakdown}
-                    innerRadius={50}
-                    outerRadius={70}
+                    innerRadius={60}
+                    outerRadius={85}
                     paddingAngle={8}
                     dataKey="value"
+                    animationDuration={1500}
                   >
                     {projectBreakdown.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.color} />
                     ))}
                   </Pie>
-                  <RechartsTooltip />
+                  <RechartsTooltip 
+                    contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 30px rgba(0,0,0,0.1)' }}
+                  />
                 </PieChart>
               </ResponsiveContainer>
             )}
