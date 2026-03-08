@@ -83,6 +83,19 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
+export const PRODUCTION_EXPENSE_CATEGORIES = [
+  "Talent & Crew",
+  "Equipment Rental",
+  "Location & Studio",
+  "Post-Production",
+  "Logistics & Travel",
+  "Catering & Craft",
+  "Marketing & PR",
+  "General Overhead",
+  "Software & Tools",
+  "Other"
+];
+
 export default function AccountsPage() {
   const { companyId, isLoading: isTenantLoading, company, profile } = useTenant();
   const db = useFirestore();
@@ -126,7 +139,7 @@ export default function AccountsPage() {
   });
 
   const [newExpense, setNewExpense] = useState({
-    category: "Salary",
+    category: "Crew & Talent",
     description: "",
     amount: "",
     date: new Date().toISOString().split('T')[0],
@@ -301,7 +314,7 @@ export default function AccountsPage() {
     });
 
     toast({ title: "Expense Recorded", description: `${newExpense.category} cost has been added to ledger.` });
-    setNewExpense({ category: "Salary", description: "", amount: "", date: new Date().toISOString().split('T')[0], account_id: "", project_id: "none", status: "Paid" });
+    setNewExpense({ category: "Talent & Crew", description: "", amount: "", date: new Date().toISOString().split('T')[0], account_id: "", project_id: "none", status: "Paid" });
     setIsLogExpenseOpen(false);
     setIsSubmitting(false);
   };
@@ -718,7 +731,7 @@ export default function AccountsPage() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-5">
-                  {['Salary', 'Rent', 'Production', 'Marketing'].map(cat => {
+                  {PRODUCTION_EXPENSE_CATEGORIES.slice(0, 5).map(cat => {
                     const catTotal = expenses?.filter(e => e.category === cat).reduce((sum, e) => sum + (e.amount || 0), 0) || 0;
                     const perc = totalExpensesMonth > 0 ? (catTotal / totalExpensesMonth) * 100 : 0;
                     return (
@@ -980,7 +993,7 @@ export default function AccountsPage() {
                 <Select value={newExpense.category} onValueChange={(val) => setNewExpense({...newExpense, category: val})}>
                   <SelectTrigger className="rounded-xl h-11"><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {['Salary', 'Rent', 'Utilities', 'Production', 'Marketing', 'Other'].map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                    {PRODUCTION_EXPENSE_CATEGORIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>

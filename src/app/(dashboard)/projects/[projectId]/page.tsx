@@ -72,6 +72,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
+import { PRODUCTION_EXPENSE_CATEGORIES } from "../../accounts/page";
 
 export default function ProjectWorkspacePage({ params }: { params: Promise<{ projectId: string }> }) {
   const { projectId } = use(params);
@@ -90,7 +91,7 @@ export default function ProjectWorkspacePage({ params }: { params: Promise<{ pro
   // Add Expense Dialog State
   const [isLogExpenseOpen, setIsLogExpenseOpen] = useState(false);
   const [newExpense, setNewExpense] = useState({
-    category: "Production",
+    category: "Talent & Crew",
     description: "",
     amount: "",
     date: new Date().toISOString().split('T')[0],
@@ -311,7 +312,7 @@ export default function ProjectWorkspacePage({ params }: { params: Promise<{ pro
     });
 
     toast({ title: "Expense Recorded", description: `${newExpense.category} cost has been added to project ledger.` });
-    setNewExpense({ category: "Production", description: "", amount: "", date: new Date().toISOString().split('T')[0], status: "Paid" });
+    setNewExpense({ category: "Talent & Crew", description: "", amount: "", date: new Date().toISOString().split('T')[0], status: "Paid" });
     setIsLogExpenseOpen(false);
     setIsSubmitting(false);
   };
@@ -1046,7 +1047,7 @@ export default function ProjectWorkspacePage({ params }: { params: Promise<{ pro
                 <Select value={newExpense.category} onValueChange={(val) => setNewExpense({...newExpense, category: val})}>
                   <SelectTrigger className="rounded-xl h-11"><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {['Salary', 'Rent', 'Utilities', 'Production', 'Marketing', 'Other'].map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                    {PRODUCTION_EXPENSE_CATEGORIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
