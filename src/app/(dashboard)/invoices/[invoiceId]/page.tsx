@@ -5,15 +5,34 @@ import { use } from "react";
 import { useDoc, useMemoFirebase, useFirestore } from "@/firebase";
 import { doc } from "firebase/firestore";
 import { useTenant } from "@/hooks/use-tenant";
-import { Loader2, ArrowLeft, Printer, Download, Mail, IndianRupee } from "lucide-react";
+import { 
+  Loader2, 
+  ArrowLeft, 
+  Printer, 
+  Download, 
+  Mail, 
+  IndianRupee, 
+  Share2, 
+  MessageSquare,
+  Copy
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { toast } from "@/hooks/use-toast";
 
 export default function InvoiceDetailPage({ params }: { params: Promise<{ invoiceId: string }> }) {
   const { invoiceId } = use(params);
-  const { companyId, company, isLoading: isTenantLoading } = useTenant();
+  const { companyId, company, profile, isLoading: isTenantLoading } = useTenant();
   const db = useFirestore();
 
   const invoiceRef = useMemoFirebase(() => {
@@ -53,19 +72,59 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ invoic
     window.print();
   };
 
+  const handleShareWhatsApp = () => {
+    const shareUrl = window.location.href;
+    const text = encodeURIComponent(`Hi, please find your invoice ${invoice.invoice_number} from ${company?.name || 'DP Media'} here: ${shareUrl}`);
+    window.open(`https://wa.me/?text=${text}`, '_blank');
+  };
+
+  const handleShareEmail = () => {
+    const shareUrl = window.location.href;
+    const subject = encodeURIComponent(`Invoice ${invoice.invoice_number} from ${company?.name || 'DP Media'}`);
+    const body = encodeURIComponent(`Hello,\n\nPlease find your invoice ${invoice.invoice_number} for the amount of ₹${invoice.total.toLocaleString()} at the link below. You can view or download the professional PDF directly.\n\nLink: ${shareUrl}\n\nBest regards,\n${profile?.fullName || 'Finance Team'}`);
+    window.location.href = `mailto:?subject=${subject}&body=${body}`;
+  };
+
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(window.location.href).then(() => {
+      toast({ title: "Link Copied", description: "Invoice access link is now on your clipboard." });
+    });
+  };
+
   return (
-    <div className="max-w-5xl mx-auto space-y-8">
+    <div className="max-w-5xl mx-auto space-y-8 pb-20">
       <div className="flex items-center justify-between no-print">
         <Link href="/invoices">
           <Button variant="ghost" className="rounded-xl gap-2">
-            <ArrowLeft className="h-4 w-4" /> Back to List
+            <ArrowLeft className="h-4 w-4" /> Back to Ledger
           </Button>
         </Link>
         <div className="flex gap-3">
-          <Button variant="outline" className="rounded-xl gap-2" onClick={handlePrint}>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" className="rounded-xl gap-2 h-10 px-6 font-bold border-primary text-primary hover:bg-primary/5">
+                <Share2 className="h-4 w-4" /> Send Invoice
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="rounded-xl w-64 p-2">
+              <DropdownMenuLabel className="text-[10px] font-black uppercase text-muted-foreground px-3 py-2 tracking-widest">Share with Client</DropdownMenuLabel>
+              <DropdownMenuItem onClick={handleShareWhatsApp} className="gap-2 py-3 cursor-pointer rounded-lg">
+                <MessageSquare className="h-4 w-4 text-emerald-500" /> Send via WhatsApp
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleShareEmail} className="gap-2 py-3 cursor-pointer rounded-lg">
+                <Mail className="h-4 w-4 text-primary" /> Send via Email
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={handleCopyLink} className="gap-2 py-3 cursor-pointer rounded-lg">
+                <Copy className="h-4 w-4 text-slate-500" /> Copy Secure Link
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          <Button variant="outline" className="rounded-xl gap-2 h-10" onClick={handlePrint}>
             <Printer className="h-4 w-4" /> Print
           </Button>
-          <Button className="rounded-xl gap-2 shadow-lg shadow-primary/20" onClick={handlePrint}>
+          <Button className="rounded-xl gap-2 shadow-lg shadow-primary/20 h-10 px-6 font-bold" onClick={handlePrint}>
             <Download className="h-4 w-4" /> Download PDF
           </Button>
         </div>

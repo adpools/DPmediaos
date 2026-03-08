@@ -4,7 +4,28 @@
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, Cloud, Search, CheckCircle2, Download, Filter, TrendingUp, Loader2, IndianRupee, FileText, Sparkles, ExternalLink, Trash2, Briefcase, Building2 } from "lucide-react";
+import { 
+  Plus, 
+  Cloud, 
+  Search, 
+  CheckCircle2, 
+  Download, 
+  Filter, 
+  TrendingUp, 
+  Loader2, 
+  IndianRupee, 
+  FileText, 
+  Sparkles, 
+  ExternalLink, 
+  Trash2, 
+  Briefcase, 
+  Building2,
+  Share2,
+  Mail,
+  MessageSquare,
+  Copy,
+  MoreVertical
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { useTenant } from "@/hooks/use-tenant";
@@ -27,9 +48,17 @@ import {
   AlertDialogHeader, 
   AlertDialogTitle, 
 } from "@/components/ui/alert-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export default function InvoicesPage() {
-  const { profile, isLoading: isTenantLoading, companyId } = useTenant();
+  const { profile, isLoading: isTenantLoading, companyId, company } = useTenant();
   const db = useFirestore();
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -146,6 +175,26 @@ export default function InvoicesPage() {
     setInvoiceToDelete(null);
   };
 
+  const handleShareWhatsApp = (inv: any) => {
+    const shareUrl = `${window.location.origin}/invoices/${inv.id}`;
+    const text = encodeURIComponent(`Hi, please find your invoice ${inv.invoice_number} from ${company?.name || 'DP Media'} here: ${shareUrl}`);
+    window.open(`https://wa.me/?text=${text}`, '_blank');
+  };
+
+  const handleShareEmail = (inv: any) => {
+    const shareUrl = `${window.location.origin}/invoices/${inv.id}`;
+    const subject = encodeURIComponent(`Invoice ${inv.invoice_number} from ${company?.name || 'DP Media'}`);
+    const body = encodeURIComponent(`Hello,\n\nPlease find your invoice ${inv.invoice_number} for the amount of ₹${inv.total.toLocaleString()} attached via the secure link below.\n\nLink: ${shareUrl}\n\nBest regards,\n${profile?.fullName || 'Finance Team'}`);
+    window.location.href = `mailto:?subject=${subject}&body=${body}`;
+  };
+
+  const handleCopyLink = (inv: any) => {
+    const shareUrl = `${window.location.origin}/invoices/${inv.id}`;
+    navigator.clipboard.writeText(shareUrl).then(() => {
+      toast({ title: "Link Copied", description: "Invoice link ready for distribution." });
+    });
+  };
+
   if (isTenantLoading || isInvoicesLoading) {
     return (
       <div className="flex items-center justify-center h-[80vh]">
@@ -160,7 +209,7 @@ export default function InvoicesPage() {
     <div className="space-y-8">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-primary">Finance & Invoices</h1>
+          <h1 className="text-3xl font-bold text-primary">Finance Hub</h1>
           <p className="text-muted-foreground">Automated invoicing and real-time financial synchronization.</p>
         </div>
         <div className="flex items-center gap-2">
@@ -403,6 +452,27 @@ export default function InvoicesPage() {
                       </td>
                       <td className="p-4 text-right">
                         <div className="flex justify-end gap-2">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <Share2 className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="rounded-xl w-56">
+                              <DropdownMenuLabel className="text-[10px] uppercase font-bold text-muted-foreground px-3 py-2">Distribute Invoice</DropdownMenuLabel>
+                              <DropdownMenuItem onClick={() => handleShareWhatsApp(inv)} className="gap-2 py-2 cursor-pointer">
+                                <MessageSquare className="h-4 w-4 text-emerald-500" /> Send via WhatsApp
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleShareEmail(inv)} className="gap-2 py-2 cursor-pointer">
+                                <Mail className="h-4 w-4 text-primary" /> Send via Email
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem onClick={() => handleCopyLink(inv)} className="gap-2 py-2 cursor-pointer">
+                                <Copy className="h-4 w-4 text-slate-500" /> Copy Access Link
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+
                           <Button 
                             variant="ghost" 
                             size="icon" 
@@ -411,9 +481,6 @@ export default function InvoicesPage() {
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
-                          <Link href={`/invoices/${inv.id}`}>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"><Download className="h-4 w-4" /></Button>
-                          </Link>
                           <Link href={`/invoices/${inv.id}`}>
                             <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity text-primary">
                               <ExternalLink className="h-4 w-4" />
