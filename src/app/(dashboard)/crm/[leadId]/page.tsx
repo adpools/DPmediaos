@@ -153,7 +153,7 @@ export default function LeadDetailPage({ params }: { params: Promise<{ leadId: s
       updatedAt: serverTimestamp()
     });
     
-    toast({ title: "Details Updated", description: "Opportunity record has been synced." });
+    toast({ title: "Details Updated", description: "Lead record has been synced." });
     setIsEditOpen(false);
   };
 
@@ -172,7 +172,7 @@ export default function LeadDetailPage({ params }: { params: Promise<{ leadId: s
   if (!lead) {
     return (
       <div className="text-center py-20">
-        <h2 className="text-2xl font-bold">Opportunity not found</h2>
+        <h2 className="text-2xl font-bold">Lead not found</h2>
         <Button variant="link" onClick={() => router.push("/crm")}>Back to Pipeline</Button>
       </div>
     );
@@ -190,7 +190,7 @@ export default function LeadDetailPage({ params }: { params: Promise<{ leadId: s
         <div>
           <h1 className="text-3xl font-bold text-primary">{lead.company_name}</h1>
           <p className="text-muted-foreground flex items-center gap-2">
-            Opportunity ID: <span className="font-mono text-[10px] bg-slate-100 px-2 py-0.5 rounded uppercase">{leadId.slice(0,8)}</span>
+            Lead ID: <span className="font-mono text-[10px] bg-slate-100 px-2 py-0.5 rounded uppercase">{leadId.slice(0,8)}</span>
           </p>
         </div>
         <div className="ml-auto flex items-center gap-3">
@@ -308,7 +308,7 @@ export default function LeadDetailPage({ params }: { params: Promise<{ leadId: s
               <CardTitle className="text-lg flex items-center gap-2">
                 <FileText className="h-5 w-5 text-primary" /> Drafted Proposals
               </CardTitle>
-              <CardDescription>AI-generated proposals linked to this opportunity.</CardDescription>
+              <CardDescription>AI-generated proposals linked to this lead.</CardDescription>
             </CardHeader>
             <CardContent className="p-0">
               {isProposalsLoading ? (
@@ -395,7 +395,7 @@ export default function LeadDetailPage({ params }: { params: Promise<{ leadId: s
 
           <Card className="border-none shadow-sm rounded-[2rem] bg-white">
             <CardHeader>
-              <CardTitle className="text-lg">Deal Context</CardTitle>
+              <CardTitle className="text-lg">Lead Context</CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="flex flex-col gap-4">
@@ -451,7 +451,7 @@ export default function LeadDetailPage({ params }: { params: Promise<{ leadId: s
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Sparkles className="h-5 w-5 text-accent" />
-              Edit Opportunity
+              Edit Lead
             </DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSaveDetails} className="space-y-4 py-4">
@@ -502,7 +502,7 @@ export default function LeadDetailPage({ params }: { params: Promise<{ leadId: s
               </div>
             </div>
             <DialogFooter className="pt-4">
-              <Button type="submit" className="w-full rounded-xl h-11 font-bold">Save Record</Button>
+              <Button type="submit" className="w-full rounded-xl h-11 font-bold">Save Lead Details</Button>
             </DialogFooter>
           </form>
         </DialogContent>

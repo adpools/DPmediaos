@@ -397,7 +397,7 @@ export default function ClientsPage() {
                         </DropdownMenuItem>
                         <DropdownMenuItem asChild>
                           <Link href={`/crm/${client.id}`} className="cursor-pointer gap-2">
-                            <Briefcase className="h-3.5 w-3.5" /> Sales Opportunity
+                            <Briefcase className="h-3.5 w-3.5" /> Sales Lead
                           </Link>
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />

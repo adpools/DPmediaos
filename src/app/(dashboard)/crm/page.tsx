@@ -206,7 +206,7 @@ export default function CRMPage() {
 
     const leadRef = doc(db, 'companies', companyId, 'leads', leadToArchive.id);
     deleteDocumentNonBlocking(leadRef);
-    toast({ title: "Opportunity Archived", description: "The lead has been moved to archives." });
+    toast({ title: "Lead Archived", description: "The lead has been moved to archives." });
     setLeadToArchive(null);
   };
 
@@ -250,7 +250,7 @@ export default function CRMPage() {
               <DialogHeader>
                 <DialogTitle className="flex items-center gap-2 text-2xl font-bold">
                   <Sparkles className="h-6 w-6 text-accent" />
-                  Capture Opportunity
+                  Create Lead
                 </DialogTitle>
                 <DialogDescription>
                   Enter details for a new deal. Link to an existing client or register a new one.
@@ -358,7 +358,7 @@ export default function CRMPage() {
                 <DialogFooter className="pt-4">
                   <Button type="submit" disabled={isSubmitting} className="w-full rounded-xl h-12 font-bold shadow-lg shadow-primary/20">
                     {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                    Register Opportunity
+                    Create Lead
                   </Button>
                 </DialogFooter>
               </form>
@@ -405,7 +405,7 @@ export default function CRMPage() {
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end" className="rounded-xl w-52 shadow-2xl border-slate-100">
-                                <DropdownMenuLabel className="text-[10px] font-black uppercase text-slate-400 px-3 py-2 tracking-widest">Opportunity Actions</DropdownMenuLabel>
+                                <DropdownMenuLabel className="text-[10px] font-black uppercase text-slate-400 px-3 py-2 tracking-widest">Lead Actions</DropdownMenuLabel>
                                 <DropdownMenuItem asChild className="rounded-lg m-1 py-2 cursor-pointer">
                                   <Link href={`/crm/${lead.id}`} className="flex items-center gap-2">
                                     <Target className="h-3.5 w-3.5" /> Open Pipeline
