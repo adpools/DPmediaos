@@ -65,20 +65,20 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ invoic
           <Button variant="outline" className="rounded-xl gap-2" onClick={handlePrint}>
             <Printer className="h-4 w-4" /> Print
           </Button>
-          <Button className="rounded-xl gap-2">
+          <Button className="rounded-xl gap-2 shadow-lg shadow-primary/20" onClick={handlePrint}>
             <Download className="h-4 w-4" /> Download PDF
           </Button>
         </div>
       </div>
 
       {/* Invoice Document Layout */}
-      <div className="bg-white shadow-xl rounded-[2.5rem] p-12 md:p-16 border min-h-[1100px] flex flex-col print:shadow-none print:border-none print:rounded-none">
+      <div className="bg-white shadow-xl rounded-[2.5rem] p-12 md:p-16 border min-h-[1100px] flex flex-col print:shadow-none print:border-none print:rounded-none print:p-0">
         
         {/* Header Section */}
         <div className="flex flex-col md:flex-row justify-between gap-12 mb-16">
           <div className="space-y-6">
             <div className="flex items-center gap-4">
-              <div className="h-16 w-16 bg-primary rounded-2xl flex items-center justify-center text-white font-bold text-2xl shadow-lg">
+              <div className="h-16 w-16 bg-primary rounded-2xl flex items-center justify-center text-white font-bold text-2xl shadow-lg print:shadow-none">
                 {company?.name?.substring(0, 2).toUpperCase() || 'DP'}
               </div>
               <div>
@@ -171,7 +171,7 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ invoic
                 <span className="text-xs font-bold text-slate-400">GST @ 18%</span>
                 <span className="font-bold text-slate-600">₹{(invoice.gst_amount || 0).toLocaleString()}</span>
               </div>
-              <div className="flex justify-between items-center bg-rose-500 text-white p-4 rounded-xl shadow-lg shadow-rose-500/20">
+              <div className="flex justify-between items-center bg-rose-500 text-white p-4 rounded-xl shadow-lg shadow-rose-500/20 print:shadow-none">
                 <span className="text-sm font-black uppercase tracking-tighter">Grand Total Including GST</span>
                 <span className="text-xl font-black">₹{(invoice.total || 0).toLocaleString()}</span>
               </div>
@@ -238,11 +238,13 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ invoic
       
       <style jsx global>{`
         @media print {
-          .no-print { display: none !important; }
-          body { background: white !important; }
-          main { padding: 0 !important; }
+          .no-print, [role="navigation"], header, aside, button { display: none !important; }
+          body { background: white !important; margin: 0 !important; padding: 0 !important; }
+          main { padding: 0 !important; overflow: visible !important; }
           .max-w-5xl { max-width: 100% !important; margin: 0 !important; }
           .bg-white { box-shadow: none !important; border: none !important; padding: 0 !important; }
+          .shadow-xl, .shadow-lg { box-shadow: none !important; }
+          * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
         }
       `}</style>
     </div>

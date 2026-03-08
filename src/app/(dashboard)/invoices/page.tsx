@@ -411,7 +411,9 @@ export default function InvoicesPage() {
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"><Download className="h-4 w-4" /></Button>
+                          <Link href={`/invoices/${inv.id}`}>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"><Download className="h-4 w-4" /></Button>
+                          </Link>
                           <Link href={`/invoices/${inv.id}`}>
                             <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity text-primary">
                               <ExternalLink className="h-4 w-4" />
