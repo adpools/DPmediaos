@@ -598,13 +598,16 @@ function ProposalsContent() {
                             <div className="h-8 w-8 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center"><Mail className="h-4 w-4" /></div>
                             <div className="flex flex-col"><span className="text-xs font-bold">Direct Email</span><span className="text-[10px] text-muted-foreground">Professional Handshake</span></div>
                           </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem className="gap-3 cursor-pointer py-3 text-rose-500 focus:text-rose-600 focus:bg-rose-50" onClick={() => setProposalToDelete(prop)}>
-                            <div className="h-8 w-8 bg-rose-50 text-rose-600 rounded-lg flex items-center justify-center"><Trash2 className="h-4 w-4" /></div>
-                            <div className="flex flex-col"><span className="text-xs font-bold">Delete</span><span className="text-[10px] text-muted-foreground">Remove permanently</span></div>
-                          </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
+                      <Button 
+                        variant="outline" 
+                        size="icon" 
+                        className="h-11 w-11 rounded-xl text-rose-500 hover:text-rose-600 hover:bg-rose-50" 
+                        onClick={() => setProposalToDelete(prop)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                       <Button variant="outline" size="icon" className="h-11 w-11 rounded-xl" onClick={() => handleDownloadPDF(prop)}>
                         <FileDown className="h-4 w-4" />
                       </Button>
