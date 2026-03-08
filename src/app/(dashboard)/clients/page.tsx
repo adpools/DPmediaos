@@ -145,8 +145,7 @@ export default function ClientsPage() {
   const [newClient, setNewClient] = useState({
     company_name: "",
     industry: "Luxury & Lifestyle",
-    email: "",
-    deal_value: ""
+    email: ""
   });
 
   const [selectedVerticalId, setSelectedVerticalId] = useState<string | null>(null);
@@ -211,7 +210,7 @@ export default function ClientsPage() {
         ...newClient,
         service_vertical: primaryVertical,
         scope: allServices,
-        deal_value: parseFloat(newClient.deal_value) || 0,
+        deal_value: 0,
         stage: 'lead',
         created_at: serverTimestamp(),
       });
@@ -231,7 +230,7 @@ export default function ClientsPage() {
   };
 
   const resetOnboarding = () => {
-    setNewClient({ company_name: "", industry: "Luxury & Lifestyle", email: "", deal_value: "" });
+    setNewClient({ company_name: "", industry: "Luxury & Lifestyle", email: "" });
     setSelectedVerticalId(null);
     setSelectedServices({});
     setOnboardStep('info');
@@ -449,25 +448,6 @@ export default function ClientsPage() {
                         className="rounded-xl h-12"
                       />
                     </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="value" className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Est. Account Value (₹) - Optional</Label>
-                      <Input 
-                        id="value" 
-                        type="number"
-                        placeholder="50000" 
-                        value={newClient.deal_value}
-                        onChange={(e) => setNewClient({...newClient, deal_value: e.target.value})}
-                        className="rounded-xl h-12"
-                      />
-                    </div>
-                  </div>
-                  <div className="bg-slate-50 p-6 rounded-[2rem] border border-slate-100 flex items-center gap-4">
-                    <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
-                      <Briefcase className="h-5 w-5" />
-                    </div>
-                    <p className="text-xs text-muted-foreground leading-relaxed">
-                      All new clients are automatically added to your <strong>Sales Pipeline</strong> at the "Lead" stage.
-                    </p>
                   </div>
                 </div>
               ) : (
