@@ -373,7 +373,7 @@ export default function MarketResearchPage() {
                           <h4 className="font-bold text-lg leading-tight group-hover:text-primary transition-colors">{pkg.name}</h4>
                           <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">{pkg.description}</p>
                           <div className="pt-2 flex items-center gap-2 text-[10px] font-black uppercase text-primary opacity-0 group-hover:opacity-100 transition-opacity">
-                            View Blueprint <ChevronRight className="h-3 w-3" />
+                            View Details <ChevronRight className="h-3 w-3" />
                           </div>
                         </CardContent>
                       </Card>

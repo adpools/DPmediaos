@@ -1,4 +1,3 @@
-
 "use client";
 
 import { use, useState, useEffect } from "react";
@@ -258,7 +257,7 @@ export default function LeadDetailPage({ params }: { params: Promise<{ leadId: s
                                     className="h-8 text-[9px] font-black uppercase tracking-widest gap-2 rounded-xl border-primary/20 hover:bg-primary/5 hover:border-primary/40 transition-all shadow-sm"
                                   >
                                     <Sparkles className="h-3 w-3 text-accent" /> 
-                                    Create AI Proposal
+                                    Create Proposal
                                   </Button>
                                 </Link>
                               </div>
@@ -277,7 +276,7 @@ export default function LeadDetailPage({ params }: { params: Promise<{ leadId: s
           <Card className="border-none shadow-sm rounded-[2rem] bg-white overflow-hidden">
             <CardHeader className="bg-indigo-50/30">
               <CardTitle className="text-lg flex items-center gap-2">
-                <FileText className="h-5 w-5 text-primary" /> Drafted Strategy Blueprints
+                <FileText className="h-5 w-5 text-primary" /> Drafted Proposals
               </CardTitle>
               <CardDescription>AI-generated proposals linked to this opportunity.</CardDescription>
             </CardHeader>
@@ -286,7 +285,7 @@ export default function LeadDetailPage({ params }: { params: Promise<{ leadId: s
                 <div className="p-8 flex justify-center"><Loader2 className="h-6 w-6 animate-spin" /></div>
               ) : proposals?.length === 0 ? (
                 <div className="p-12 text-center text-muted-foreground italic text-xs">
-                  No blueprints generated yet. Reach the "Meeting" stage to launch the AI Architect.
+                  No proposals generated yet. Reach the "Meeting" stage to launch the AI Architect.
                 </div>
               ) : (
                 <div className="divide-y">

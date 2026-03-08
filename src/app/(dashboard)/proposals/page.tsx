@@ -146,7 +146,7 @@ function ProposalsContent() {
         client_type: industry,
         location: location,
         leadId: leadId,
-        project_description: context || `Strategic production blueprint for ${projectName}'s ${services} project.`
+        project_description: context || `Strategic production proposal for ${projectName}'s ${services} project.`
       }));
 
       setIsAddOpen(true);
@@ -175,7 +175,7 @@ function ProposalsContent() {
       setGeneratedDraft(result);
       setGenerationStep('preview');
       setActiveSectionIdx(0);
-      toast({ title: "Draft Generated", description: "Strategy blueprint is ready for review." });
+      toast({ title: "Draft Generated", description: "Proposal draft is ready for review." });
     } catch (error) {
       toast({ variant: "destructive", title: "Generation Failed" });
     } finally {
@@ -236,14 +236,14 @@ function ProposalsContent() {
 
   const handleShareWhatsApp = (proposal: any) => {
     const shareUrl = `${window.location.origin}/proposals?id=${proposal.id}`;
-    const text = encodeURIComponent(`Hi, please find the production strategy blueprint for ${proposal.client_name} here: ${shareUrl}\n\nYou can also export this as a PDF from the viewer.`);
+    const text = encodeURIComponent(`Hi, please find the production proposal for ${proposal.client_name} here: ${shareUrl}\n\nYou can also export this as a PDF from the viewer.`);
     window.open(`https://wa.me/?text=${text}`, '_blank');
   };
 
   const handleShareEmail = (proposal: any) => {
     const shareUrl = `${window.location.origin}/proposals?id=${proposal.id}`;
-    const subject = encodeURIComponent(`Production Strategy Blueprint: ${proposal.title}`);
-    const body = encodeURIComponent(`Hello,\n\nPlease review the production blueprint for ${proposal.client_name} via the link below. You can also download the professional PDF version directly from the platform.\n\nLink: ${shareUrl}\n\nBest regards,\n${profile?.fullName || 'Production Team'}`);
+    const subject = encodeURIComponent(`Production Proposal: ${proposal.title}`);
+    const body = encodeURIComponent(`Hello,\n\nPlease review the production proposal for ${proposal.client_name} via the link below. You can also download the professional PDF version directly from the platform.\n\nLink: ${shareUrl}\n\nBest regards,\n${profile?.fullName || 'Production Team'}`);
     window.location.href = `mailto:?subject=${subject}&body=${body}`;
   };
 
@@ -260,7 +260,7 @@ function ProposalsContent() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 no-print">
         <div>
           <h1 className="text-3xl font-bold text-primary">Proposals</h1>
-          <p className="text-muted-foreground text-sm">Automated synthesis of premium production blueprints.</p>
+          <p className="text-muted-foreground text-sm">Automated synthesis of premium production proposals.</p>
         </div>
         <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
           <DialogTrigger asChild>
@@ -277,7 +277,7 @@ function ProposalsContent() {
                   </div>
                   <div>
                     <DialogTitle className="text-2xl font-black text-white">Proposal Architect</DialogTitle>
-                    <DialogDescription className="text-slate-400 text-xs">AI Production Strategy Engine</DialogDescription>
+                    <DialogDescription className="text-slate-400 text-xs">AI Proposal Engine</DialogDescription>
                   </div>
                 </div>
               </div>
@@ -349,7 +349,7 @@ function ProposalsContent() {
                     <Button onClick={() => setGenerationStep('input')} variant="outline" className="flex-1 border-white/10 text-white rounded-2xl h-14 font-black uppercase text-[10px]">Refine Brief</Button>
                     <Button onClick={handleCreateProposal} disabled={isSubmitting} className="flex-[2] bg-indigo-600 hover:bg-indigo-700 h-14 rounded-2xl font-black uppercase text-xs tracking-widest gap-3 shadow-xl">
                       {isSubmitting ? <Loader2 className="h-5 w-5 animate-spin" /> : <FileCheck className="h-5 w-5" />}
-                      Finalize Strategy
+                      Finalize Proposal
                     </Button>
                   </div>
                 )}
@@ -363,7 +363,7 @@ function ProposalsContent() {
         {proposals?.length === 0 ? (
           <Card className="border-2 border-dashed p-24 text-center rounded-[3rem] bg-white/50">
             <BrainCircuit className="h-16 w-16 mx-auto mb-6 opacity-10" />
-            <p className="font-black uppercase tracking-widest text-xs text-muted-foreground">No active blueprints found.</p>
+            <p className="font-black uppercase tracking-widest text-xs text-muted-foreground">No active proposals found.</p>
             <Button variant="link" className="mt-4 font-bold" onClick={() => setIsAddOpen(true)}>Create Proposals</Button>
           </Card>
         ) : (
@@ -386,7 +386,7 @@ function ProposalsContent() {
                 </div>
                 <div className="p-8 md:w-80 bg-slate-50/50 border-l flex flex-col gap-3">
                   <Button className="w-full rounded-xl h-11 font-bold gap-2" onClick={() => handleViewProposal(prop)}>
-                    <ExternalLink className="h-4 w-4" /> View Strategy
+                    <ExternalLink className="h-4 w-4" /> View Proposal
                   </Button>
                   <div className="flex gap-2">
                     <DropdownMenu>
@@ -396,7 +396,7 @@ function ProposalsContent() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="rounded-xl w-60 p-2">
-                        <DropdownMenuLabel className="text-[10px] uppercase font-black text-muted-foreground tracking-widest px-3 py-2">Share Strategy Blueprint</DropdownMenuLabel>
+                        <DropdownMenuLabel className="text-[10px] uppercase font-black text-muted-foreground tracking-widest px-3 py-2">Share Proposal</DropdownMenuLabel>
                         <DropdownMenuItem onClick={() => handleShareWhatsApp(prop)} className="gap-2 py-3 cursor-pointer rounded-lg">
                           <MessageSquare className="h-4 w-4 text-emerald-500" /> Share via WhatsApp
                         </DropdownMenuItem>
@@ -421,7 +421,7 @@ function ProposalsContent() {
       <AlertDialog open={!!proposalToDelete} onOpenChange={(open) => !open && setProposalToDelete(null)}>
         <AlertDialogContent className="rounded-[2rem]">
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Strategy Blueprint?</AlertDialogTitle>
+            <AlertDialogTitle>Delete Proposal?</AlertDialogTitle>
             <AlertDialogDescription>Permanently remove "{proposalToDelete?.title}"? This cannot be undone.</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -485,7 +485,7 @@ function ProposalsContent() {
 
                   {/* Print-only Footer */}
                   <div className="hidden print:block pt-24 text-center border-t border-slate-100">
-                    <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">DP Media OS • Premium Strategy Blueprint</p>
+                    <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">DP Media OS • Premium Production Proposal</p>
                     <p className="text-[8px] text-slate-300 mt-1">Electronically verified and generated via AI Architect</p>
                   </div>
                 </div>
@@ -493,8 +493,8 @@ function ProposalsContent() {
             </div>
 
             <div className="p-8 border-t bg-slate-50 flex items-center justify-between no-print shrink-0">
-              <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">AI Strategy Engine • {new Date().getFullYear()}</p>
-              <Button className="rounded-xl font-bold h-11 px-8 shadow-lg" onClick={() => setIsViewOpen(false)}>Close Strategy</Button>
+              <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">AI Proposal Engine • {new Date().getFullYear()}</p>
+              <Button className="rounded-xl font-bold h-11 px-8 shadow-lg" onClick={() => setIsViewOpen(false)}>Close Proposal</Button>
             </div>
           </div>
         </DialogContent>
