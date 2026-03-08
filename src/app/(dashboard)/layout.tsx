@@ -7,7 +7,20 @@ import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/s
 import { Toaster } from "@/components/ui/toaster";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Calendar, LayoutGrid, MoreHorizontal, Smile, ArrowRight, Plus, Loader2, X, Video, PanelRight } from "lucide-react";
+import { 
+  Calendar, 
+  LayoutGrid, 
+  MoreHorizontal, 
+  Smile, 
+  ArrowRight, 
+  Plus, 
+  Loader2, 
+  X, 
+  Video, 
+  PanelRight,
+  ChevronLeft,
+  ChevronRight
+} from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { useTenant } from "@/hooks/use-tenant";
 import { doc, serverTimestamp, collection, query, where, orderBy, limit, collectionGroup } from "firebase/firestore";
@@ -108,25 +121,29 @@ export default function DashboardLayout({
                 className="ml-auto" 
                 onClick={() => setIsRightSidebarOpen(!isRightSidebarOpen)}
               >
-                <PanelRight className="h-5 w-5" />
+                <ChevronLeft className={cn("h-5 w-5 transition-transform duration-300", isRightSidebarOpen && "rotate-180")} />
               </Button>
             )}
           </header>
 
           <div className="flex flex-row flex-1 overflow-hidden relative">
-            {/* Toggle Button for Desktop */}
+            {/* Toggle Button for Desktop & Tablet */}
             {isDashboard && (
-              <div className="hidden xl:block absolute top-8 right-8 z-50">
+              <div className="hidden md:block absolute top-8 right-8 z-50">
                 <Button 
                   variant="outline" 
                   size="icon" 
                   onClick={() => setIsRightSidebarOpen(!isRightSidebarOpen)}
                   className={cn(
-                    "rounded-xl bg-white shadow-soft transition-all duration-300 border-none",
+                    "rounded-xl bg-white shadow-soft transition-all duration-300 border-none hover:bg-slate-50",
                     isRightSidebarOpen ? "mr-0" : ""
                   )}
                 >
-                  <PanelRight className={cn("h-5 w-5 transition-transform duration-300", !isRightSidebarOpen && "rotate-180")} />
+                  {isRightSidebarOpen ? (
+                    <ChevronRight className="h-5 w-5 text-primary" />
+                  ) : (
+                    <ChevronLeft className="h-5 w-5 text-primary" />
+                  )}
                 </Button>
               </div>
             )}
