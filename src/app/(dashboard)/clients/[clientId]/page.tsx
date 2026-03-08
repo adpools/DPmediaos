@@ -23,7 +23,8 @@ import {
   CheckCircle2,
   Phone,
   CreditCard,
-  ChevronRight
+  ChevronRight,
+  Plus
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
