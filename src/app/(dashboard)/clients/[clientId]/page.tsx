@@ -76,7 +76,7 @@ export default function ClientPortfolioPage({ params }: { params: Promise<{ clie
     );
   }, [db, companyId]);
 
-  const { data: allExpenses } = useCollection(expensesQuery);
+  const { data: allExpenses, isLoading: isExpensesLoading } = useCollection(expensesQuery);
 
   // --- GLOBAL STATS ---
   const totalBilled = useMemo(() => invoices?.reduce((sum, inv) => sum + (inv.total || 0), 0) || 0, [invoices]);
@@ -163,7 +163,7 @@ export default function ClientPortfolioPage({ params }: { params: Promise<{ clie
             </TabsList>
 
             <TabsContent value="projects" className="space-y-6 animate-in fade-in duration-500">
-              {isProjectsLoading ? (
+              {isProjectsLoading || (client.company_name && !projects) ? (
                 <div className="flex justify-center p-12"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
               ) : projects?.length === 0 ? (
                 <div className="text-center py-24 bg-white rounded-[2.5rem] border-2 border-dashed text-muted-foreground">
@@ -268,7 +268,7 @@ export default function ClientPortfolioPage({ params }: { params: Promise<{ clie
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {isInvoicesLoading ? (
+                  {isInvoicesLoading || (client.company_name && !invoices) ? (
                     <TableRow><TableCell colSpan={5} className="text-center py-12"><Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" /></TableCell></TableRow>
                   ) : invoices?.length === 0 ? (
                     <TableRow><TableCell colSpan={5} className="text-center py-20 text-muted-foreground italic text-xs font-medium">No billing history found.</TableCell></TableRow>
