@@ -170,10 +170,13 @@ export default function ClientsPage() {
 
   const filteredLeads = useMemo(() => {
     if (!leads) return [];
+    // Only show leads that are specifically at 'client' stage or 'won'
     return leads.filter(l => 
-      l.company_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      l.industry?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      l.service_vertical?.toLowerCase().includes(searchQuery.toLowerCase())
+      (l.stage === 'client' || l.stage === 'won') && (
+        l.company_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        l.industry?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        l.service_vertical?.toLowerCase().includes(searchQuery.toLowerCase())
+      )
     );
   }, [leads, searchQuery]);
 
@@ -338,7 +341,7 @@ export default function ClientsPage() {
         {filteredLeads.length === 0 ? (
           <div className="col-span-full py-20 text-center bg-white rounded-3xl border-2 border-dashed text-muted-foreground">
             <Building2 className="h-12 w-12 mx-auto mb-4 opacity-20" />
-            <p className="font-medium">No partners found matching your search.</p>
+            <p className="font-medium">No confirmed partners found matching your search.</p>
             {!searchQuery && (
               <Button variant="outline" size="sm" className="rounded-xl mt-4" onClick={() => setIsOnboardOpen(true)}>Initialize Directory</Button>
             )}
