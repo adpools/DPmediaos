@@ -35,6 +35,7 @@ export async function setupNewCompany(
     permissions: {
       dashboard: { view: true, create: true, edit: true, delete: true },
       projects: { view: true, create: true, edit: true, delete: true },
+      services: { view: true, create: true, edit: true, delete: true },
       clients: { view: true, create: true, edit: true, delete: true },
       talents: { view: true, create: true, edit: true, delete: true },
       crm: { view: true, create: true, edit: true, delete: true },
@@ -52,7 +53,7 @@ export async function setupNewCompany(
   await setDoc(settingsRef, {
     id: companyId,
     company_id: companyId,
-    enabledModules: ['dashboard', 'projects', 'clients', 'talents', 'crm', 'proposals', 'invoices', 'accounts', 'research', 'reports'],
+    enabledModules: ['dashboard', 'projects', 'services', 'clients', 'talents', 'crm', 'proposals', 'invoices', 'accounts', 'research', 'reports'],
     defaultCurrency: 'INR',
     updatedAt: serverTimestamp(),
   });

@@ -17,7 +17,8 @@ import {
   LogOut,
   Loader2,
   Building2,
-  Wallet
+  Wallet,
+  Settings2
 } from "lucide-react";
 import {
   Sidebar,
@@ -43,6 +44,7 @@ import { signOut } from "firebase/auth";
 const workspaceItems = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutGrid, module: "dashboard", isCore: true },
   { title: "Projects", url: "/projects", icon: Film, module: "projects", isCore: true },
+  { title: "Service Builder", url: "/service-builder", icon: Settings2, module: "services" },
   { title: "Clients", url: "/clients", icon: Building2, module: "clients" },
   { title: "Talent Network", url: "/talents", icon: Users, module: "talents" },
   { title: "Sales CRM", url: "/crm", icon: Briefcase, module: "crm" },

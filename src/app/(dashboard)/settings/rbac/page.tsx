@@ -56,6 +56,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 const MODULES = [
   { id: 'dashboard', name: 'Dashboard' },
   { id: 'projects', name: 'Project Management' },
+  { id: 'services', name: 'Service Builder' },
   { id: 'talents', name: 'Talent Network' },
   { id: 'clients', name: 'Clients' },
   { id: 'crm', name: 'Sales CRM' },
