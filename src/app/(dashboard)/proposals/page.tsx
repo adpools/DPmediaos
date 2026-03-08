@@ -339,7 +339,7 @@ function ProposalsContent() {
               </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[800px] rounded-[3rem] p-0 overflow-hidden border-none shadow-2xl h-[90vh]">
-              <div className="bg-slate-900 text-white flex flex-col h-[90vh] md:h-[80vh]">
+              <div className="bg-slate-900 text-white flex flex-col h-full">
                 <div className="p-8 pb-4">
                   <div className="flex items-center gap-4 mb-6">
                     <div className="h-12 w-12 bg-indigo-500 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-500/20">
@@ -352,7 +352,7 @@ function ProposalsContent() {
                   </div>
                 </div>
 
-                <ScrollArea className="flex-1 px-8 md:px-10 pb-8">
+                <ScrollArea className="flex-1 px-8 md:px-10 pb-8 custom-scrollbar">
                   {generationStep === 'input' ? (
                     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
                       <div className="space-y-2 p-5 bg-indigo-500/10 rounded-3xl border border-indigo-500/20">
@@ -500,7 +500,7 @@ function ProposalsContent() {
                   )}
                 </ScrollArea>
 
-                <div className="p-8 border-t border-white/10 bg-slate-900/50 backdrop-blur-xl">
+                <div className="p-8 border-t border-white/10 bg-slate-900/50 backdrop-blur-xl shrink-0">
                   {generationStep === 'input' ? (
                     <Button 
                       onClick={handleGenerateAI} 
@@ -620,7 +620,6 @@ function ProposalsContent() {
         )}
       </div>
 
-      {/* STABLE DELETE DIALOG */}
       <AlertDialog open={!!proposalToDelete} onOpenChange={(open) => !open && setProposalToDelete(null)}>
         <AlertDialogContent className="rounded-[2rem]">
           <AlertDialogHeader>
@@ -641,7 +640,7 @@ function ProposalsContent() {
       <Dialog open={isViewOpen} onOpenChange={setIsViewOpen}>
         <DialogContent className="sm:max-w-[1000px] rounded-[3.5rem] p-0 overflow-hidden border-none shadow-2xl h-[90vh]">
           <div className="bg-white flex flex-col h-full">
-            <div className="p-10 pb-6 border-b flex items-center justify-between no-print">
+            <div className="p-10 pb-6 border-b flex items-center justify-between no-print shrink-0">
               <div className="flex items-center gap-5">
                 <div className="h-16 w-16 bg-primary/10 rounded-3xl flex items-center justify-center text-primary shadow-inner">
                   <FileText className="h-8 w-8" />
@@ -663,11 +662,11 @@ function ProposalsContent() {
               </div>
             </div>
 
-            <div className="flex-1 flex overflow-hidden">
-              <div className="w-72 border-r bg-slate-50/50 p-8 space-y-6 hidden md:block no-print">
-                <h3 className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em] px-2">Table of Contents</h3>
-                <ScrollArea className="h-[calc(100%-40px)]">
-                  <div className="space-y-1 pr-4">
+            <div className="flex-1 flex overflow-hidden min-h-0">
+              <div className="w-72 border-r bg-slate-50/50 p-8 space-y-6 hidden md:block no-print shrink-0 overflow-hidden flex flex-col">
+                <h3 className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em] px-2 shrink-0">Table of Contents</h3>
+                <ScrollArea className="flex-1 custom-scrollbar">
+                  <div className="space-y-1 pr-4 pb-8">
                     {viewingProposal?.parsedContent?.sections.map((sec: any, idx: number) => (
                       <button
                         key={idx}
@@ -691,7 +690,7 @@ function ProposalsContent() {
                 </ScrollArea>
               </div>
 
-              <ScrollArea className="flex-1 p-12 bg-white print:p-0 print:overflow-visible">
+              <ScrollArea className="flex-1 p-12 bg-white print:p-0 print:overflow-visible custom-scrollbar">
                 <div className="max-w-3xl mx-auto space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
                   {/* Print Cover Page (only visible in print) */}
                   <div className="hidden print:block space-y-12 py-20 text-center">
@@ -773,7 +772,7 @@ function ProposalsContent() {
               </ScrollArea>
             </div>
 
-            <div className="p-8 border-t bg-slate-50 flex items-center justify-between no-print">
+            <div className="p-8 border-t bg-slate-50 flex items-center justify-between no-print shrink-0">
               <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">
                 Generated via {company?.name || 'DP'} Intelligence Engine • {new Date().getFullYear()}
               </p>

@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useMemo } from "react";
@@ -415,10 +414,10 @@ export default function ClientsPage() {
               </div>
             </div>
 
-            {/* Content Area */}
-            <div className="flex-1 flex overflow-hidden">
+            {/* Content Area - Constrained for robust scrolling */}
+            <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
               {onboardStep === 'info' ? (
-                <div className="flex-1 p-10 space-y-8 animate-in fade-in slide-in-from-left-4 duration-300 overflow-y-auto">
+                <div className="flex-1 p-10 space-y-8 animate-in fade-in slide-in-from-left-4 duration-300 overflow-y-auto custom-scrollbar">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div className="space-y-2">
                       <Label htmlFor="companyName" className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Company Identity</Label>
@@ -475,12 +474,12 @@ export default function ClientsPage() {
                   </div>
                 </div>
               ) : (
-                <div className="flex-1 flex overflow-hidden animate-in fade-in slide-in-from-right-4 duration-300">
-                  <div className="flex-1 flex flex-col p-8 bg-slate-50/50 overflow-hidden">
+                <div className="flex-1 flex overflow-hidden min-h-0 animate-in fade-in slide-in-from-right-4 duration-300">
+                  <div className="flex-1 flex flex-col p-8 bg-slate-50/50 min-h-0 overflow-hidden">
                     {/* Vertical Selector - Compact & Scrollable */}
-                    <div className="mb-6 shrink-0 flex flex-col min-h-0">
+                    <div className="mb-6 shrink-0 flex flex-col">
                       <h3 className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-4">Select Content Vertical</h3>
-                      <div className="overflow-x-auto pb-4 scrollbar-hide">
+                      <div className="overflow-x-auto pb-4 custom-scrollbar">
                         <div className="flex gap-3">
                           {CONTENT_VERTICALS.map((vertical) => (
                             <Card 
@@ -505,7 +504,7 @@ export default function ClientsPage() {
                       </div>
                     </div>
 
-                    {/* Services Configurator - Full Scrollability Fix */}
+                    {/* Services Configurator - Robust Scroll Fix */}
                     <div className="flex-1 min-h-0 flex flex-col">
                       <h3 className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-4">Configure Production Services</h3>
                       {activeVertical ? (
@@ -544,13 +543,13 @@ export default function ClientsPage() {
                     </div>
                   </div>
 
-                  {/* Sidebar Summary */}
-                  <aside className="w-80 border-l bg-white flex flex-col shrink-0">
+                  {/* Sidebar Summary - Robust Scroll Fix */}
+                  <aside className="w-80 border-l bg-white flex flex-col shrink-0 min-h-0 overflow-hidden">
                     <div className="p-6 border-b bg-slate-50/50 shrink-0">
                       <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Scope Synthesis</h4>
                       <p className="text-xs font-bold text-slate-700">Project Brief Summary</p>
                     </div>
-                    <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
+                    <div className="flex-1 overflow-y-auto p-6 custom-scrollbar min-h-0">
                       <div className="space-y-6">
                         {totalServicesCount === 0 ? (
                           <div className="text-center py-12 text-[10px] font-bold text-slate-300 uppercase tracking-widest">No services selected</div>
@@ -638,23 +637,6 @@ export default function ClientsPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
-      <style jsx global>{`
-        .custom-scrollbar::-webkit-scrollbar {
-          width: 6px;
-          height: 6px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-track {
-          background: transparent;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: #e2e8f0;
-          border-radius: 10px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: #cbd5e1;
-        }
-      `}</style>
     </div>
   );
 }

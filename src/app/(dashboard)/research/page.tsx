@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from "react";
@@ -504,11 +503,11 @@ export default function MarketResearchPage() {
         </div>
       </div>
 
-      {/* DETAIL DIALOG */}
+      {/* DETAIL DIALOG - Robust scrolling fix */}
       <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
-        <DialogContent className="sm:max-w-[650px] rounded-[3rem] p-0 overflow-hidden border-none shadow-2xl">
-          <div className={selectedDetail?.type === 'automation' ? "bg-slate-900 text-white" : "bg-white text-slate-900"}>
-            <div className="p-10">
+        <DialogContent className="sm:max-w-[650px] rounded-[3rem] p-0 overflow-hidden border-none shadow-2xl h-auto max-h-[90vh] flex flex-col">
+          <div className={cn("flex-1 flex flex-col min-h-0", selectedDetail?.type === 'automation' ? "bg-slate-900 text-white" : "bg-white text-slate-900")}>
+            <div className="p-10 pb-0 shrink-0">
               <div className="flex items-center gap-4 mb-8">
                 <div className={`h-12 w-12 rounded-2xl flex items-center justify-center shadow-lg ${selectedDetail?.type === 'automation' ? 'bg-accent/20 text-accent' : 'bg-primary/10 text-primary'}`}>
                   {selectedDetail?.type === 'automation' ? <Cpu className="h-6 w-6" /> : <Package className="h-6 w-6" />}
@@ -522,111 +521,111 @@ export default function MarketResearchPage() {
                   </DialogTitle>
                 </div>
               </div>
+            </div>
 
-              <ScrollArea className="max-h-[60vh] pr-4">
-                <div className="space-y-10 pb-6">
-                  {/* Summary */}
-                  <div className="space-y-3">
-                    <h3 className={`text-[10px] font-black uppercase tracking-[0.2em] flex items-center gap-2 ${selectedDetail?.type === 'automation' ? 'text-slate-500' : 'text-slate-400'}`}>
-                      <Info className="h-3.5 w-3.5" /> Overview
-                    </h3>
-                    <p className={`text-base leading-relaxed font-medium ${selectedDetail?.type === 'automation' ? 'text-slate-300' : 'text-slate-600'}`}>
-                      {selectedDetail?.data.description || selectedDetail?.data.benefit}
-                    </p>
-                  </div>
+            <ScrollArea className="flex-1 px-10 custom-scrollbar min-h-0">
+              <div className="space-y-10 pb-10">
+                {/* Summary */}
+                <div className="space-y-3">
+                  <h3 className={`text-[10px] font-black uppercase tracking-[0.2em] flex items-center gap-2 ${selectedDetail?.type === 'automation' ? 'text-slate-500' : 'text-slate-400'}`}>
+                    <Info className="h-3.5 w-3.5" /> Overview
+                  </h3>
+                  <p className={`text-base leading-relaxed font-medium ${selectedDetail?.type === 'automation' ? 'text-slate-300' : 'text-slate-600'}`}>
+                    {selectedDetail?.data.description || selectedDetail?.data.benefit}
+                  </p>
+                </div>
 
-                  {/* Strategic Context */}
-                  {selectedDetail?.type === 'package' && (
-                    <>
-                      <div className="space-y-4">
-                        <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 flex items-center gap-2">
-                          <CheckCircle2 className="h-3.5 w-3.5 text-primary" /> Key Deliverables
-                        </h3>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                          {selectedDetail?.data.deliverables?.map((item: string, i: number) => (
-                            <div key={i} className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl border border-slate-100 text-xs font-bold text-slate-700">
-                              <CheckCircle2 className="h-3 w-3 text-emerald-500" />
-                              {item}
-                            </div>
-                          ))}
-                        </div>
+                {/* Strategic Context */}
+                {selectedDetail?.type === 'package' && (
+                  <>
+                    <div className="space-y-4">
+                      <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 flex items-center gap-2">
+                        <CheckCircle2 className="h-3.5 w-3.5 text-primary" /> Key Deliverables
+                      </h3>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {selectedDetail?.data.deliverables?.map((item: string, i: number) => (
+                          <div key={i} className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl border border-slate-100 text-xs font-bold text-slate-700">
+                            <CheckCircle2 className="h-3 w-3 text-emerald-500" />
+                            {item}
+                          </div>
+                        ))}
                       </div>
-                      <div className="space-y-3">
-                        <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Strategic Value</h3>
-                        <div className="bg-primary/5 p-6 rounded-3xl border border-primary/10">
-                          <p className="text-sm font-medium italic text-primary leading-relaxed">
-                            "{selectedDetail?.data.strategicValue || "Optimized for the identified market gap and trend velocity."}"
-                          </p>
-                        </div>
+                    </div>
+                    <div className="space-y-3">
+                      <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Strategic Value</h3>
+                      <div className="bg-primary/5 p-6 rounded-3xl border border-primary/10">
+                        <p className="text-sm font-medium italic text-primary leading-relaxed">
+                          "{selectedDetail?.data.strategicValue || "Optimized for the identified market gap and trend velocity."}"
+                        </p>
                       </div>
-                    </>
-                  )}
+                    </div>
+                  </>
+                )}
 
-                  {/* Implementation Steps */}
-                  {selectedDetail?.type === 'automation' && (
-                    <>
-                      <div className="space-y-4">
-                        <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 flex items-center gap-2">
-                          <Zap className="h-3.5 w-3.5 text-accent" /> Implementation Blueprint
-                        </h3>
-                        <div className="bg-white/5 p-6 rounded-3xl border border-white/10 space-y-4">
-                          <p className="text-sm text-slate-300 leading-relaxed">
-                            {selectedDetail?.data.implementation || "Contact engineering to initialize this AI pipeline."}
-                          </p>
-                          <div className="flex items-center gap-4 pt-2">
-                            <div className="flex flex-col">
-                              <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Est. ROI</span>
-                              <span className="text-xl font-black text-emerald-400">{selectedDetail?.data.roi || '35%'} Efficiency</span>
-                            </div>
+                {/* Implementation Steps */}
+                {selectedDetail?.type === 'automation' && (
+                  <>
+                    <div className="space-y-4">
+                      <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 flex items-center gap-2">
+                        <Zap className="h-3.5 w-3.5 text-accent" /> Implementation Blueprint
+                      </h3>
+                      <div className="bg-white/5 p-6 rounded-3xl border border-white/10 space-y-4">
+                        <p className="text-sm text-slate-300 leading-relaxed">
+                          {selectedDetail?.data.implementation || "Contact engineering to initialize this AI pipeline."}
+                        </p>
+                        <div className="flex items-center gap-4 pt-2">
+                          <div className="flex flex-col">
+                            <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Est. ROI</span>
+                            <span className="text-xl font-black text-emerald-400">{selectedDetail?.data.roi || '35%'} Efficiency</span>
                           </div>
                         </div>
                       </div>
-                    </>
-                  )}
-                </div>
-              </ScrollArea>
-
-              <div className={`mt-8 pt-8 border-t flex flex-col md:flex-row items-center justify-between gap-6 ${selectedDetail?.type === 'automation' ? 'border-white/10' : 'border-slate-100'}`}>
-                {selectedDetail?.type === 'package' ? (
-                  <>
-                    <div className="flex flex-col">
-                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Market Value</span>
-                      <span className="text-2xl font-black text-primary">{selectedDetail?.data.priceEstimate}</span>
                     </div>
-                    <div className="flex gap-2">
-                      <Button 
-                        variant="secondary"
-                        onClick={handleDraftProposal}
-                        className="rounded-2xl h-12 px-6 font-black uppercase text-[10px] tracking-widest gap-2"
-                      >
-                        <FileText className="h-4 w-4" /> Draft AI Proposal
-                      </Button>
-                      <Button 
-                        onClick={handleAddToCatalog}
-                        disabled={isActionLoading}
-                        className="rounded-2xl h-12 px-6 font-black uppercase text-[10px] tracking-widest gap-2"
-                      >
-                        {isActionLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-                        Add to Catalog
-                      </Button>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <div className="flex items-center gap-2 text-[10px] font-bold text-slate-500 uppercase tracking-widest">
-                      <Zap className="h-3.5 w-3.5 text-accent" /> Ready for Deployment
-                    </div>
-                    <Button 
-                      onClick={handleInitializeWorkflow}
-                      disabled={isActionLoading}
-                      className="bg-white text-slate-900 hover:bg-slate-100 rounded-2xl h-12 px-10 font-black uppercase text-xs tracking-widest gap-2"
-                    >
-                      {isActionLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                      Initialize Workflow <ArrowRight className="h-4 w-4" />
-                    </Button>
                   </>
                 )}
               </div>
+            </ScrollArea>
+
+            <div className={`shrink-0 p-8 border-t flex flex-col md:flex-row items-center justify-between gap-6 ${selectedDetail?.type === 'automation' ? 'border-white/10' : 'border-slate-100'}`}>
+              {selectedDetail?.type === 'package' ? (
+                <>
+                  <div className="flex flex-col">
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Market Value</span>
+                    <span className="text-2xl font-black text-primary">{selectedDetail?.data.priceEstimate}</span>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button 
+                      variant="secondary"
+                      onClick={handleDraftProposal}
+                      className="rounded-2xl h-12 px-6 font-black uppercase text-[10px] tracking-widest gap-2"
+                    >
+                      <FileText className="h-4 w-4" /> Draft AI Proposal
+                    </Button>
+                    <Button 
+                      onClick={handleAddToCatalog}
+                      disabled={isActionLoading}
+                      className="rounded-2xl h-12 px-6 font-black uppercase text-[10px] tracking-widest gap-2"
+                    >
+                      {isActionLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+                      Add to Catalog
+                    </Button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="flex items-center gap-2 text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                    <Zap className="h-3.5 w-3.5 text-accent" /> Ready for Deployment
+                  </div>
+                  <Button 
+                    onClick={handleInitializeWorkflow}
+                    disabled={isActionLoading}
+                    className="bg-white text-slate-900 hover:bg-slate-100 rounded-2xl h-12 px-10 font-black uppercase text-xs tracking-widest gap-2"
+                  >
+                    {isActionLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                    Initialize Workflow <ArrowRight className="h-4 w-4" />
+                  </Button>
+                </>
+              )}
             </div>
           </div>
         </DialogContent>

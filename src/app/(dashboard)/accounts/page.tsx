@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useMemo } from "react";
@@ -60,6 +59,7 @@ import { format, startOfMonth, endOfMonth, isSameMonth } from "date-fns";
 import { consultAIAccountant, type AIAccountantOutput } from "@/ai/flows/ai-accountant-flow";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Progress } from "@/components/ui/progress";
+import { cn } from "@/lib/utils";
 
 export default function AccountsPage() {
   const { companyId, isLoading: isTenantLoading, company, profile } = useTenant();
@@ -545,7 +545,7 @@ export default function AccountsPage() {
                   </div>
                 </CardHeader>
                 <CardContent className="p-0">
-                  <div className="overflow-x-auto">
+                  <div className="overflow-x-auto custom-scrollbar">
                     <table className="w-full text-sm min-w-[650px]">
                       <thead>
                         <tr className="border-b bg-slate-50/30">
@@ -683,7 +683,7 @@ export default function AccountsPage() {
                   </div>
                 </CardHeader>
                 <CardContent className="p-0">
-                  <div className="overflow-x-auto">
+                  <div className="overflow-x-auto custom-scrollbar">
                     <table className="w-full text-sm min-w-[500px]">
                       <thead>
                         <tr className="border-b bg-slate-50/30">
@@ -783,7 +783,7 @@ export default function AccountsPage() {
 
       {/* Register Account Dialog */}
       <Dialog open={isAddAccountOpen} onOpenChange={setIsAddOpen}>
-        <DialogContent className="sm:max-w-[425px] rounded-[2.5rem] p-8">
+        <DialogContent className="sm:max-w-[425px] rounded-[2.5rem] p-8 max-h-[90vh] overflow-y-auto custom-scrollbar">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-2xl font-bold">
               <CreditCard className="h-6 w-6 text-primary" />
@@ -838,7 +838,7 @@ export default function AccountsPage() {
 
       {/* Log Expense Dialog */}
       <Dialog open={isLogExpenseOpen} onOpenChange={setIsLogExpenseOpen}>
-        <DialogContent className="sm:max-w-[425px] rounded-[2.5rem] p-8">
+        <DialogContent className="sm:max-w-[425px] rounded-[2.5rem] p-8 max-h-[90vh] overflow-y-auto custom-scrollbar">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-2xl font-bold">
               <Receipt className="h-6 w-6 text-accent" />
@@ -901,9 +901,9 @@ export default function AccountsPage() {
 
       {/* AUTOMATED GST FILING DIALOG */}
       <Dialog open={isFilingOpen} onOpenChange={setIsFilingOpen}>
-        <DialogContent className="sm:max-w-[500px] rounded-[3rem] p-0 overflow-hidden border-none shadow-2xl">
-          <div className="bg-slate-900 text-white">
-            <div className="p-8 pb-4">
+        <DialogContent className="sm:max-w-[500px] rounded-[3rem] p-0 overflow-hidden border-none shadow-2xl h-auto max-h-[90vh] flex flex-col">
+          <div className="bg-slate-900 text-white flex-1 flex flex-col min-h-0">
+            <div className="p-8 pb-4 shrink-0">
               <div className="flex items-center gap-3 mb-6">
                 <div className="h-10 w-10 bg-indigo-500 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/20">
                   <Globe className="h-5 w-5 text-white" />
@@ -913,9 +913,11 @@ export default function AccountsPage() {
                   <DialogDescription className="text-slate-400 text-xs">Direct Statutory Handshake — Powered by Genkit</DialogDescription>
                 </div>
               </div>
+            </div>
 
+            <ScrollArea className="flex-1 px-8 custom-scrollbar min-h-0">
               {filingStep === 'review' ? (
-                <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2">
+                <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 pb-8">
                   <div className="bg-slate-800 p-6 rounded-3xl border border-slate-700 space-y-4">
                     <div className="flex justify-between items-center">
                       <span className="text-[10px] font-black uppercase text-slate-500">Target Period</span>
@@ -935,14 +937,14 @@ export default function AccountsPage() {
                   <p className="text-[11px] text-slate-400 leading-relaxed italic px-2">
                     Our automation engine will aggregate all production invoices for this period, perform a statutory data audit, and push directly to the government portal.
                   </p>
-                  <div className="pt-4 pb-8">
+                  <div className="pt-4">
                     <Button onClick={handleAutomateFiling} className="w-full bg-indigo-600 hover:bg-indigo-700 h-12 rounded-2xl font-black uppercase tracking-widest text-xs">
                       Initiate One-Click Filing
                     </Button>
                   </div>
                 </div>
               ) : filingStep === 'complete' ? (
-                <div className="space-y-8 py-12 flex flex-col items-center text-center animate-in zoom-in-95 duration-500">
+                <div className="space-y-8 py-12 flex flex-col items-center text-center animate-in zoom-in-95 duration-500 pb-12">
                   <div className="h-20 w-20 bg-emerald-500/20 rounded-full flex items-center justify-center text-emerald-500">
                     <CheckCircle2 className="h-12 w-12" />
                   </div>
@@ -959,7 +961,7 @@ export default function AccountsPage() {
                   </Button>
                 </div>
               ) : (
-                <div className="space-y-8 py-12 px-8">
+                <div className="space-y-8 py-12 pb-12">
                   <div className="space-y-4">
                     <div className="flex justify-between items-end">
                       <span className="text-[10px] font-black uppercase tracking-widest text-indigo-400 animate-pulse">
@@ -970,37 +972,39 @@ export default function AccountsPage() {
                     <Progress value={automationProgress} className="h-2 bg-slate-800" />
                   </div>
                   <div className="grid grid-cols-2 gap-4">
-                    <div className={`p-4 rounded-2xl border transition-all ${automationProgress > 30 ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-slate-800 border-slate-700'}`}>
-                      <CheckCircle2 className={`h-4 w-4 mb-2 ${automationProgress > 30 ? 'text-emerald-500' : 'text-slate-600'}`} />
+                    <div className={cn("p-4 rounded-2xl border transition-all", automationProgress > 30 ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-slate-800 border-slate-700')}>
+                      <CheckCircle2 className={cn("h-4 w-4 mb-2", automationProgress > 30 ? 'text-emerald-500' : 'text-slate-600')} />
                       <p className="text-[10px] font-black uppercase text-slate-400">Data Audit</p>
                     </div>
-                    <div className={`p-4 rounded-2xl border transition-all ${automationProgress > 85 ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-slate-800 border-slate-700'}`}>
-                      <Globe className={`h-4 w-4 mb-2 ${automationProgress > 85 ? 'text-emerald-500' : 'text-slate-600'}`} />
+                    <div className={cn("p-4 rounded-2xl border transition-all", automationProgress > 85 ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-slate-800 border-slate-700')}>
+                      <Globe className={cn("h-4 w-4 mb-2", automationProgress > 85 ? 'text-emerald-500' : 'text-slate-600')} />
                       <p className="text-[10px] font-black uppercase text-slate-400">Portal Sync</p>
                     </div>
                   </div>
                 </div>
               )}
-            </div>
+            </ScrollArea>
           </div>
         </DialogContent>
       </Dialog>
 
       {/* AI Accountant Results Dialog */}
       <Dialog open={isAIResultOpen} onOpenChange={setIsAIResultOpen}>
-        <DialogContent className="sm:max-w-[650px] rounded-[3rem] p-0 overflow-hidden border-none shadow-2xl">
-          <div className="bg-gradient-to-br from-indigo-900 via-slate-900 to-black p-10 text-white relative">
-            <BrainCircuit className="absolute top-8 right-8 h-16 w-16 opacity-10 text-accent animate-pulse" />
-            <div className="space-y-2 mb-8">
-              <div className="flex items-center gap-3">
-                <Badge className="bg-accent/20 text-accent border-accent/20 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-[0.2em]">Live Audit</Badge>
-                <span className="text-[10px] font-bold text-white/40 uppercase tracking-[0.2em]">CA-ID: GENKIT-AI-PRO</span>
+        <DialogContent className="sm:max-w-[650px] rounded-[3rem] p-0 overflow-hidden border-none shadow-2xl h-auto max-h-[90vh] flex flex-col">
+          <div className="bg-gradient-to-br from-indigo-900 via-slate-900 to-black text-white flex-1 flex flex-col min-h-0">
+            <div className="p-10 pb-4 shrink-0 relative">
+              <BrainCircuit className="absolute top-8 right-8 h-16 w-16 opacity-10 text-accent animate-pulse" />
+              <div className="space-y-2 mb-8">
+                <div className="flex items-center gap-3">
+                  <Badge className="bg-accent/20 text-accent border-accent/20 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-[0.2em]">Live Audit</Badge>
+                  <span className="text-[10px] font-bold text-white/40 uppercase tracking-[0.2em]">CA-ID: GENKIT-AI-PRO</span>
+                </div>
+                <h2 className="text-3xl md:text-4xl font-black tracking-tighter">AI Financial Portfolio Insight</h2>
               </div>
-              <h2 className="text-3xl md:text-4xl font-black tracking-tighter">AI Financial Portfolio Insight</h2>
             </div>
 
-            <ScrollArea className="max-h-[60vh] pr-4">
-              <div className="space-y-8 pb-6">
+            <ScrollArea className="flex-1 px-10 custom-scrollbar min-h-0">
+              <div className="space-y-8 pb-10">
                 {/* Summary Section */}
                 <div className="space-y-3">
                   <h3 className="text-xs font-black uppercase tracking-widest text-accent flex items-center gap-2">
@@ -1056,7 +1060,7 @@ export default function AccountsPage() {
               </div>
             </ScrollArea>
 
-            <div className="pt-8 border-t border-white/10 flex flex-col md:flex-row items-center justify-between gap-4">
+            <div className="shrink-0 p-8 border-t border-white/10 flex flex-col md:flex-row items-center justify-between gap-4 bg-black/20">
               <div className="flex items-center gap-2 text-[10px] font-bold text-white/40 uppercase tracking-widest">
                 <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
                 Audited against GSTR-1 & 3B standards
