@@ -4,7 +4,7 @@
 import { useState, useMemo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, MoreHorizontal, Building2, Calendar, Search, Loader2, IndianRupee, Sparkles, ExternalLink, ArrowRight, Database, Zap, Trash2, Archive } from "lucide-react";
+import { Plus, MoreHorizontal, Building2, Calendar, Search, Loader2, IndianRupee, Sparkles, ExternalLink, ArrowRight, Database, Zap, Trash2, Archive, List } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { useTenant } from "@/hooks/use-tenant";
@@ -317,10 +317,12 @@ export default function CRMPage() {
                             <Zap className="h-3.5 w-3.5 text-accent" />
                             <span>{lead.service_vertical || 'General Production'}</span>
                           </div>
-                          <div className="flex items-center gap-2 text-[11px] text-muted-foreground font-medium">
-                            <Calendar className="h-3.5 w-3.5" />
-                            <span>Industry: {lead.industry || 'Media'}</span>
-                          </div>
+                          {lead.scope && lead.scope.length > 0 && (
+                            <div className="flex items-center gap-2 text-[10px] text-primary/60 font-bold">
+                              <List className="h-3 w-3" />
+                              <span>{lead.scope.length} Services Architected</span>
+                            </div>
+                          )}
                         </div>
 
                         <div className="flex items-center justify-between pt-3 border-t">
@@ -382,12 +384,12 @@ export default function CRMPage() {
           border-radius: 10px;
         }
         .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: #64748b;
+          background: #94a3b8;
           border-radius: 10px;
           border: 3px solid #f1f5f9;
         }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: #475569;
+          background: #64748b;
         }
       `}</style>
     </div>
