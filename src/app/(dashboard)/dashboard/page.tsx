@@ -19,7 +19,8 @@ import {
   Users,
   Target,
   ArrowUpRight,
-  TrendingUp
+  TrendingUp,
+  Layers
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -67,8 +68,8 @@ export default function DashboardPage() {
 
   // --- DATA FETCHING ---
 
-  // 1. Fetch recent projects
-  const projectsQuery = useMemoFirebase(() => {
+  // 1. Fetch recent projects for the carousel
+  const recentProjectsQuery = useMemoFirebase(() => {
     if (!db || !companyId) return null;
     return query(
       collection(db, 'companies', companyId, 'projects'),
@@ -76,9 +77,16 @@ export default function DashboardPage() {
       limit(5)
     );
   }, [db, companyId]);
-  const { data: projects, isLoading: isProjectsLoading } = useCollection(projectsQuery);
+  const { data: recentProjects, isLoading: isProjectsLoading } = useCollection(recentProjectsQuery);
 
-  // 2. Fetch tasks
+  // 2. Fetch all projects for accurate stats
+  const allProjectsQuery = useMemoFirebase(() => {
+    if (!db || !companyId) return null;
+    return query(collection(db, 'companies', companyId, 'projects'));
+  }, [db, companyId]);
+  const { data: allProjects } = useCollection(allProjectsQuery);
+
+  // 3. Fetch tasks
   const tasksQuery = useMemoFirebase(() => {
     if (!db || !companyId) return null;
     return query(
@@ -89,21 +97,21 @@ export default function DashboardPage() {
   }, [db, companyId]);
   const { data: tasks, isLoading: isTasksLoading } = useCollection(tasksQuery);
 
-  // 3. Fetch Invoices for Revenue Graph
+  // 4. Fetch Invoices for Revenue Graph
   const invoicesQuery = useMemoFirebase(() => {
     if (!db || !companyId) return null;
     return collection(db, 'companies', companyId, 'invoices');
   }, [db, companyId]);
   const { data: invoices } = useCollection(invoicesQuery);
 
-  // 4. Fetch Leads for Pipeline Value
+  // 5. Fetch Leads for Pipeline Value
   const leadsQuery = useMemoFirebase(() => {
     if (!db || !companyId) return null;
     return collection(db, 'companies', companyId, 'leads');
   }, [db, companyId]);
   const { data: leads } = useCollection(leadsQuery);
 
-  // 5. Fetch Talent Count
+  // 6. Fetch Talent Count
   const talentsQuery = useMemoFirebase(() => {
     if (!db || !companyId) return null;
     return collection(db, 'companies', companyId, 'talents');
@@ -114,11 +122,12 @@ export default function DashboardPage() {
 
   const stats = useMemo(() => {
     const revenue = invoices?.reduce((sum, inv) => sum + (inv.total || 0), 0) || 0;
-    const pipeline = leads?.reduce((sum, l) => sum + (l.deal_value || 0), 0) || 0;
-    const active = projects?.filter(p => p.status === 'in_progress').length || 0;
+    const pipeline = leads?.reduce((sum, l) => l.stage !== 'client' ? sum + (l.deal_value || 0) : sum, 0) || 0;
+    const projectValue = allProjects?.reduce((sum, p) => sum + (p.budget || 0), 0) || 0;
+    const active = allProjects?.filter(p => p.status === 'in_progress').length || 0;
     const team = talents?.length || 0;
-    return { revenue, pipeline, active, team };
-  }, [invoices, leads, projects, talents]);
+    return { revenue, pipeline, projectValue, active, team };
+  }, [invoices, leads, allProjects, talents]);
 
   const revenueChartData = useMemo(() => {
     const months = Array.from({ length: 6 }).map((_, i) => {
@@ -137,19 +146,19 @@ export default function DashboardPage() {
   }, [invoices]);
 
   const projectBreakdown = useMemo(() => {
-    const inProgress = projects?.filter(p => p.status === 'in_progress').length || 0;
-    const completed = projects?.filter(p => p.status === 'completed').length || 0;
+    const inProgress = allProjects?.filter(p => p.status === 'in_progress').length || 0;
+    const completed = allProjects?.filter(p => p.status === 'completed').length || 0;
     return [
       { name: 'Active', value: inProgress, color: '#FF71A4' },
       { name: 'Done', value: completed, color: '#B199FF' }
     ];
-  }, [projects]);
+  }, [allProjects]);
 
   const overallProgress = useMemo(() => {
-    if (!projects || projects.length === 0) return 0;
-    const total = projects.reduce((sum, p) => sum + (p.progress || 0), 0);
-    return Math.round(total / projects.length);
-  }, [projects]);
+    if (!allProjects || allProjects.length === 0) return 0;
+    const total = allProjects.reduce((sum, p) => sum + (p.progress || 0), 0);
+    return Math.round(total / allProjects.length);
+  }, [allProjects]);
 
   if (isTenantLoading || !hasMounted) {
     return (
@@ -191,9 +200,10 @@ export default function DashboardPage() {
       </div>
 
       {/* KPI Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 md:gap-6">
         {[
-          { label: "Total Revenue", val: `₹${(stats.revenue / 1000).toFixed(1)}k`, icon: IndianRupee, color: "text-emerald-500", desc: "Real-time ledger" },
+          { label: "Gross Revenue", val: `₹${(stats.revenue / 1000).toFixed(1)}k`, icon: IndianRupee, color: "text-emerald-500", desc: "Real-time ledger" },
+          { label: "Project Value", val: `₹${(stats.projectValue / 100000).toFixed(1)}L`, icon: Layers, color: "text-primary", desc: "Active workspace" },
           { label: "Pipeline Value", val: `₹${(stats.pipeline / 100000).toFixed(1)}L`, icon: Target, color: "text-accent", desc: "Projected deals" },
           { label: "Active Projs", val: stats.active, icon: Briefcase, color: "text-blue-500", desc: "Currently filming" },
           { label: "Talent Pool", val: stats.team, icon: Users, color: "text-purple-500", desc: "Verified network" },
@@ -290,7 +300,7 @@ export default function DashboardPage() {
             <div className="flex gap-4">
               {[1, 2].map(i => <div key={i} className="min-w-[280px] md:min-w-[320px] h-[160px] md:h-[180px] bg-slate-200 animate-pulse rounded-[2rem]" />)}
             </div>
-          ) : projects?.length === 0 ? (
+          ) : recentProjects?.length === 0 ? (
             <Link href="/projects" className="w-full">
               <Card className="w-full h-[160px] md:h-[180px] border-2 border-dashed border-slate-300 bg-white rounded-[2rem] flex items-center justify-center text-muted-foreground cursor-pointer hover:bg-slate-50 transition-colors">
                 <div className="flex flex-col items-center gap-2">
@@ -301,7 +311,7 @@ export default function DashboardPage() {
             </Link>
           ) : (
             <>
-              {projects?.map((proj) => (
+              {recentProjects?.map((proj) => (
                 <Link key={proj.id} href={`/projects/${proj.id}`}>
                   <Card className={`min-w-[280px] md:min-w-[320px] h-[160px] md:h-[180px] border-none shadow-lg text-white rounded-[2rem] p-6 md:p-8 flex flex-col justify-between group cursor-pointer hover:scale-[1.02] transition-transform ${proj.color || 'card-pink'}`}>
                     <div className="flex justify-between items-start">
