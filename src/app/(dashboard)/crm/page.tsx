@@ -18,6 +18,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { addDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { toast } from "@/hooks/use-toast";
 import Link from "next/link";
+import { cn } from "@/lib/utils";
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -154,9 +155,9 @@ export default function CRMPage() {
   }
 
   return (
-    <div className="space-y-8 flex flex-col min-h-0 h-full">
-      {/* Header Section */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 shrink-0 bg-background/95 backdrop-blur-sm z-10 py-2">
+    <div className="space-y-8 flex flex-col min-h-0 h-full relative">
+      {/* Header Section - Sticky for visibility */}
+      <div className="sticky top-0 z-30 flex flex-col md:flex-row md:items-center justify-between gap-6 shrink-0 bg-[#F0F1F4]/95 backdrop-blur-md py-4 -mt-4 mb-2 border-b border-slate-200/50">
         <div>
           <h1 className="text-3xl font-bold text-primary">Sales Pipeline</h1>
           <p className="text-muted-foreground text-sm">Track opportunities and manage client relations.</p>
@@ -166,7 +167,7 @@ export default function CRMPage() {
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input 
               placeholder="Find a lead..." 
-              className="pl-9 h-10 rounded-xl"
+              className="pl-9 h-10 rounded-xl bg-white"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
@@ -174,7 +175,7 @@ export default function CRMPage() {
           
           <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
             <DialogTrigger asChild>
-              <Button className="gap-2 rounded-xl shadow-xl shadow-primary/30 h-10 px-6">
+              <Button className="gap-2 rounded-xl shadow-xl shadow-primary/30 h-10 px-6 font-bold">
                 <Plus className="h-4 w-4" /> Add Lead
               </Button>
             </DialogTrigger>
@@ -190,7 +191,7 @@ export default function CRMPage() {
               </DialogHeader>
               <form onSubmit={handleAddLead} className="space-y-5 py-4">
                 <div className="space-y-2 p-4 bg-indigo-50 rounded-2xl border border-indigo-100">
-                  <Label className="text-[10px] font-black uppercase text-indigo-600 tracking-widest flex items-center gap-2">
+                  <Label className="text-[10px] font-black uppercase text-indigo-600 tracking-widest flex items-center gap-2 mb-2">
                     <Database className="h-3 w-3" /> Link to Existing Partner
                   </Label>
                   <Select onValueChange={handleSelectExistingClient}>
@@ -276,7 +277,7 @@ export default function CRMPage() {
         </div>
       </div>
 
-      {/* Board View */}
+      {/* Board View - Horizontal Scroll Container */}
       <div className="flex-1 min-h-0 w-full overflow-hidden flex flex-col">
         <div className="flex gap-6 overflow-x-auto pb-8 h-full w-full custom-scrollbar px-1">
           {PIPELINE_STAGES.map((stage) => {
