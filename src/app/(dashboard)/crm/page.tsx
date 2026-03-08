@@ -144,8 +144,8 @@ export default function CRMPage() {
   }
 
   return (
-    <div className="space-y-8">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div className="space-y-8 h-full flex flex-col">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 shrink-0">
         <div>
           <h1 className="text-3xl font-bold text-primary">Sales Pipeline</h1>
           <p className="text-muted-foreground">Track opportunities and manage client relations.</p>
@@ -264,96 +264,98 @@ export default function CRMPage() {
         </div>
       </div>
 
-      <div className="flex gap-6 overflow-x-auto pb-10 min-h-[calc(100vh-300px)] scrollbar-thin scrollbar-thumb-slate-200">
-        {PIPELINE_STAGES.map((stage) => {
-          const leadsInStage = leads?.filter(l => l.stage === stage.id) || [];
-          const totalValue = leadsInStage.reduce((sum, l) => sum + (l.deal_value || 0), 0);
+      <div className="flex-1 w-full overflow-hidden">
+        <div className="flex gap-6 overflow-x-auto pb-10 h-full w-full custom-scrollbar">
+          {PIPELINE_STAGES.map((stage) => {
+            const leadsInStage = leads?.filter(l => l.stage === stage.id) || [];
+            const totalValue = leadsInStage.reduce((sum, l) => sum + (l.deal_value || 0), 0);
 
-          return (
-            <div key={stage.id} className="flex flex-col gap-4 min-w-[320px] w-[320px] shrink-0">
-              <div className="flex items-center justify-between px-3">
-                <div className="flex items-center gap-2">
-                  <h3 className="font-bold text-sm uppercase tracking-wider">{stage.name}</h3>
-                  <Badge variant="secondary" className="h-5 px-1.5 text-[10px] font-bold bg-white">{leadsInStage.length}</Badge>
+            return (
+              <div key={stage.id} className="flex flex-col gap-4 min-w-[320px] w-[320px] shrink-0 h-full">
+                <div className="flex items-center justify-between px-3 shrink-0">
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-bold text-sm uppercase tracking-wider">{stage.name}</h3>
+                    <Badge variant="secondary" className="h-5 px-1.5 text-[10px] font-bold bg-white">{leadsInStage.length}</Badge>
+                  </div>
+                  <span className="text-[11px] font-bold text-muted-foreground">
+                    ₹{(totalValue / 100000).toFixed(1)}L
+                  </span>
                 </div>
-                <span className="text-[11px] font-bold text-muted-foreground">
-                  ₹{(totalValue / 100000).toFixed(1)}L
-                </span>
-              </div>
 
-              <div className="flex flex-col gap-4 h-full">
-                {leadsInStage.map((lead) => (
-                  <Card key={lead.id} className="cursor-pointer hover:ring-2 hover:ring-primary/10 transition-all border-none shadow-sm group">
-                    <CardContent className="p-5 space-y-4">
-                      <div className="flex items-start justify-between gap-2">
-                        <Link href={`/crm/${lead.id}`} className="flex-1">
-                          <span className="text-sm font-bold leading-tight group-hover:text-primary transition-colors block">{lead.company_name}</span>
-                        </Link>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0">
-                              <MoreHorizontal className="h-4 w-4" />
+                <div className="flex flex-col gap-4 overflow-y-auto pr-2 pb-4">
+                  {leadsInStage.map((lead) => (
+                    <Card key={lead.id} className="cursor-pointer hover:ring-2 hover:ring-primary/10 transition-all border-none shadow-sm group shrink-0">
+                      <CardContent className="p-5 space-y-4">
+                        <div className="flex items-start justify-between gap-2">
+                          <Link href={`/crm/${lead.id}`} className="flex-1">
+                            <span className="text-sm font-bold leading-tight group-hover:text-primary transition-colors block">{lead.company_name}</span>
+                          </Link>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0">
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="rounded-xl">
+                              <DropdownMenuItem asChild>
+                                <Link href={`/crm/${lead.id}`} className="flex items-center gap-2">
+                                  <ExternalLink className="h-3.5 w-3.5" /> Open Detailed View
+                                </Link>
+                              </DropdownMenuItem>
+                              <DropdownMenuItem asChild>
+                                <Link href={`/clients/${lead.id}`} className="flex items-center gap-2 text-muted-foreground">
+                                  <Building2 className="h-3.5 w-3.5" /> View Production History
+                                </Link>
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem className="flex items-center gap-2 text-rose-500 focus:text-rose-600 focus:bg-rose-50" onClick={() => setLeadToArchive(lead)}>
+                                <Archive className="h-3.5 w-3.5" /> Archive Lead
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2 text-[11px] text-muted-foreground font-medium">
+                            <Zap className="h-3.5 w-3.5 text-accent" />
+                            <span>{lead.service_vertical || 'General Production'}</span>
+                          </div>
+                          <div className="flex items-center gap-2 text-[11px] text-muted-foreground font-medium">
+                            <Calendar className="h-3.5 w-3.5" />
+                            <span>Industry: {lead.industry || 'Media'}</span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center justify-between pt-3 border-t">
+                          <div className="flex items-center gap-1 text-primary font-bold text-sm">
+                            <IndianRupee className="h-3 w-3" />
+                            <span>{(lead.deal_value || 0).toLocaleString()}</span>
+                          </div>
+                          <Link href={`/crm/${lead.id}`}>
+                            <Button variant="ghost" size="icon" className="h-6 w-6 rounded-full group-hover:bg-primary/5">
+                              <ArrowRight className="h-3.5 w-3.5 text-muted-foreground group-hover:text-primary transition-colors" />
                             </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="rounded-xl">
-                            <DropdownMenuItem asChild>
-                              <Link href={`/crm/${lead.id}`} className="flex items-center gap-2">
-                                <ExternalLink className="h-3.5 w-3.5" /> Open Detailed View
-                              </Link>
-                            </DropdownMenuItem>
-                            <DropdownMenuItem asChild>
-                              <Link href={`/clients/${lead.id}`} className="flex items-center gap-2 text-muted-foreground">
-                                <Building2 className="h-3.5 w-3.5" /> View Production History
-                              </Link>
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem className="flex items-center gap-2 text-rose-500 focus:text-rose-600 focus:bg-rose-50" onClick={() => setLeadToArchive(lead)}>
-                              <Archive className="h-3.5 w-3.5" /> Archive Lead
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-2 text-[11px] text-muted-foreground font-medium">
-                          <Zap className="h-3.5 w-3.5 text-accent" />
-                          <span>{lead.service_vertical || 'General Production'}</span>
+                          </Link>
                         </div>
-                        <div className="flex items-center gap-2 text-[11px] text-muted-foreground font-medium">
-                          <Calendar className="h-3.5 w-3.5" />
-                          <span>Industry: {lead.industry || 'Media'}</span>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center justify-between pt-3 border-t">
-                        <div className="flex items-center gap-1 text-primary font-bold text-sm">
-                          <IndianRupee className="h-3 w-3" />
-                          <span>{(lead.deal_value || 0).toLocaleString()}</span>
-                        </div>
-                        <Link href={`/crm/${lead.id}`}>
-                          <Button variant="ghost" size="icon" className="h-6 w-6 rounded-full group-hover:bg-primary/5">
-                            <ArrowRight className="h-3.5 w-3.5 text-muted-foreground group-hover:text-primary transition-colors" />
-                          </Button>
-                        </Link>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-                
-                <Button 
-                  variant="ghost" 
-                  className="w-full border-2 border-dashed border-slate-200 h-24 hover:bg-white hover:border-primary/20 transition-all rounded-2xl group"
-                  onClick={() => {
-                    setNewLead({...newLead, stage: stage.id});
-                    setIsAddOpen(true);
-                  }}
-                >
-                  <Plus className="h-5 w-5 text-muted-foreground/40 group-hover:text-primary transition-colors" />
-                </Button>
+                      </CardContent>
+                    </Card>
+                  ))}
+                  
+                  <Button 
+                    variant="ghost" 
+                    className="w-full border-2 border-dashed border-slate-200 h-24 hover:bg-white hover:border-primary/20 transition-all rounded-2xl group shrink-0"
+                    onClick={() => {
+                      setNewLead({...newLead, stage: stage.id});
+                      setIsAddOpen(true);
+                    }}
+                  >
+                    <Plus className="h-5 w-5 text-muted-foreground/40 group-hover:text-primary transition-colors" />
+                  </Button>
+                </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
 
       {/* STABLE ARCHIVE DIALOG */}
@@ -373,6 +375,22 @@ export default function CRMPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <style jsx global>{`
+        .custom-scrollbar::-webkit-scrollbar {
+          height: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: #e2e8f0;
+          border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: #cbd5e1;
+        }
+      `}</style>
     </div>
   );
 }
