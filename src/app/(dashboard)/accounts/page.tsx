@@ -131,19 +131,6 @@ export default function AccountsPage() {
   const [accountToDelete, setAccountToDelete] = useState<any>(null);
   const [expenseToDelete, setExpenseToDelete] = useState<any>(null);
 
-  // Frequency State
-  const [filingFrequency, setFilingFrequency] = useState<'monthly' | 'quarterly'>('monthly');
-
-  // Automation Flow State
-  const [isFilingOpen, setIsFilingOpen] = useState(false);
-  const [selectedFilingPeriod, setSelectedFilingPeriod] = useState<any>(null);
-  const [filingStep, setFilingStep] = useState<'review' | 'validating' | 'syncing' | 'complete'>('review');
-  const [automationProgress, setAutomationProgress] = useState(0);
-  const [sessionARN, setSessionARN] = useState<string | null>(null);
-
-  // Assistant State
-  const [isAssistantRunning, setIsAssistantRunning] = useState(false);
-
   // AI State
   const [isAIResultOpen, setIsAIResultOpen] = useState(false);
   const [aiAdvice, setAIAdvice] = useState<AIAccountantOutput | null>(null);
@@ -253,16 +240,7 @@ export default function AccountsPage() {
 
     invoices.forEach(inv => {
       const date = new Date(inv.issue_date);
-      let periodKey = '';
-      
-      if (filingFrequency === 'monthly') {
-        periodKey = format(date, 'MMM yyyy');
-      } else {
-        const month = date.getMonth(); 
-        const year = date.getFullYear();
-        const q = Math.floor(month / 3) + 1;
-        periodKey = `Q${q} ${year}`;
-      }
+      let periodKey = format(date, 'MMM yyyy');
 
       const amount = inv.gst_amount || 0;
       totalOutput += amount;
@@ -283,17 +261,9 @@ export default function AccountsPage() {
 
     return {
       output: totalOutput,
-      periods: Object.values(aggregatedData).sort((a, b) => {
-        if (filingFrequency === 'quarterly') {
-          const [aq, ay] = a.period.split(' ');
-          const [bq, by] = b.period.split(' ');
-          if (ay !== by) return parseInt(by) - parseInt(ay);
-          return bq.localeCompare(aq);
-        }
-        return new Date(b.period).getTime() - new Date(a.period).getTime();
-      })
+      periods: Object.values(aggregatedData).sort((a, b) => new Date(b.period).getTime() - new Date(a.period).getTime())
     };
-  }, [invoices, filings, filingFrequency]);
+  }, [invoices, filings]);
 
   // --- ACTIONS ---
 
@@ -355,90 +325,6 @@ export default function AccountsPage() {
     deleteDocumentNonBlocking(expenseRef);
     toast({ title: "Expense Purged", description: "Record removed from ledger." });
     setExpenseToDelete(null);
-  };
-
-  const handleStartFiling = (periodData: any) => {
-    setSelectedFilingPeriod(periodData);
-    setSessionARN(null);
-    setFilingStep('review');
-    setAutomationProgress(0);
-    setIsFilingOpen(true);
-  };
-
-  const handleViewARN = (periodData: any) => {
-    setSelectedFilingPeriod(periodData);
-    setSessionARN(periodData.arn);
-    setFilingStep('complete');
-    setIsFilingOpen(true);
-  };
-
-  const handleBulkAutomate = async () => {
-    const pending = gstStats.periods.filter(m => m.status === 'Pending');
-    if (pending.length === 0) {
-      toast({ title: "All Filed", description: "No pending periods detected for automation." });
-      return;
-    }
-    handleStartFiling(pending[0]);
-  };
-
-  const handleAutomateFiling = async () => {
-    setFilingStep('validating');
-    
-    for (let i = 0; i <= 30; i += 5) {
-      setAutomationProgress(i);
-      await new Promise(r => setTimeout(r, 100));
-    }
-
-    setFilingStep('syncing');
-    for (let i = 35; i <= 85; i += 5) {
-      setAutomationProgress(i);
-      await new Promise(r => setTimeout(r, 150));
-    }
-
-    const filingsRef = collection(db, 'companies', companyId!, 'gst_filings');
-    const arn = `ARN-${Math.random().toString(36).substring(2, 10).toUpperCase()}`;
-    
-    addDocumentNonBlocking(filingsRef, {
-      company_id: companyId,
-      period: selectedFilingPeriod.period,
-      gst_output: selectedFilingPeriod.output,
-      arn_number: arn,
-      status: 'Filed',
-      submitted_at: serverTimestamp()
-    });
-
-    setSessionARN(arn);
-    setAutomationProgress(100);
-    setFilingStep('complete');
-    
-    toast({ 
-      title: "Automated Filing Successful", 
-      description: `GSTR record for ${selectedFilingPeriod.period} synced with portal. ARN: ${arn}` 
-    });
-  };
-
-  const runFilingAssistant = async (type: 'GSTR-1' | 'GSTR-3B') => {
-    setIsAssistantRunning(true);
-    toast({ title: `Assistant Initiated`, description: `Running automated ${type} integrity checks...` });
-    
-    await new Promise(r => setTimeout(r, 2000));
-    
-    if (type === 'GSTR-1') {
-      const missingGstins = invoices?.filter(inv => !inv.client_id || inv.client_id === 'unlinked').length || 0;
-      if (missingGstins > 0) {
-        toast({ 
-          variant: "destructive", 
-          title: "GSTR-1 Risk Found", 
-          description: `Detected ${missingGstins} invoices with unlinked CRM data. Please update client GSTINs.` 
-        });
-      } else {
-        toast({ title: "GSTR-1 Clean", description: "No data integrity issues detected across production billing." });
-      }
-    } else {
-      toast({ title: "GSTR-3B Draft Ready", description: "Aggregate tax liability and input credit draft generated." });
-    }
-    
-    setIsAssistantRunning(false);
   };
 
   const handleConsultAI = async () => {
@@ -823,27 +709,8 @@ export default function AccountsPage() {
 
               <Card className="border-none shadow-soft rounded-[2.5rem] overflow-hidden bg-white">
                 <CardHeader className="bg-slate-50/50 border-b px-8 py-6">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    <div>
-                      <CardTitle className="text-xl font-bold">Automated Compliance Ledger</CardTitle>
-                      <CardDescription>Initiate one-click statutory filings via simulated portal handshake.</CardDescription>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <Label className="text-[10px] font-black uppercase text-slate-400">Frequency</Label>
-                      <Select 
-                        value={filingFrequency} 
-                        onValueChange={(val: any) => setFilingFrequency(val)}
-                      >
-                        <SelectTrigger className="w-[130px] rounded-xl h-9 text-xs font-bold bg-white">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="monthly">Monthly</SelectItem>
-                          <SelectItem value="quarterly">Quarterly</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
+                  <CardTitle className="text-xl font-bold">Automated Compliance Ledger</CardTitle>
+                  <CardDescription>Initiate one-click statutory filings via simulated portal handshake.</CardDescription>
                 </CardHeader>
                 <CardContent className="p-0">
                   <div className="overflow-x-auto custom-scrollbar">
@@ -872,15 +739,9 @@ export default function AccountsPage() {
                                 </Badge>
                               </td>
                               <td className="px-8 py-5 text-right">
-                                {m.status === 'Pending' ? (
-                                  <Button variant="ghost" size="sm" className="h-8 text-[10px] font-bold uppercase tracking-wider text-primary hover:text-primary hover:bg-primary/5 gap-2" onClick={() => handleStartFiling(m)}>
-                                    <Zap className="h-3 w-3" /> Initiate Automation
-                                  </Button>
-                                ) : (
-                                  <Button variant="ghost" size="sm" className="h-8 text-[10px] font-bold uppercase tracking-wider text-emerald-600 hover:bg-emerald-50 gap-2" onClick={() => handleViewARN(m)}>
-                                    <CheckCircle2 className="h-3 w-3" /> View ARN
-                                  </Button>
-                                )}
+                                <Button variant="ghost" size="sm" className="h-8 text-[10px] font-bold uppercase tracking-wider text-primary hover:text-primary hover:bg-primary/5 gap-2">
+                                  <Zap className="h-3 w-3" /> Initiate Automation
+                                </Button>
                               </td>
                             </tr>
                           ))
@@ -902,7 +763,7 @@ export default function AccountsPage() {
                   <p className="text-xs text-indigo-800/70 leading-relaxed font-medium">
                     Your workspace is authorized for direct filing. We've detected <strong>{gstStats.periods.filter(m => m.status === 'Pending').length}</strong> periods ready for statutory submission.
                   </p>
-                  <Button className="w-full rounded-xl text-[10px] font-black uppercase tracking-widest h-9 bg-indigo-600 hover:bg-indigo-700" onClick={handleBulkAutomate}>
+                  <Button className="w-full rounded-xl text-[10px] font-black uppercase tracking-widest h-9 bg-indigo-600 hover:bg-indigo-700">
                     Bulk Automate All
                   </Button>
                 </CardContent>
@@ -917,24 +778,8 @@ export default function AccountsPage() {
                   <p className="text-xs text-slate-400">Our engine cross-checks GSTINs and HSN codes automatically before submission.</p>
                 </div>
                 <div className="pt-2 space-y-3">
-                  <Button 
-                    variant="outline" 
-                    className="w-full bg-white/5 border-white/10 text-white hover:bg-white/10 rounded-xl h-10 text-xs font-bold"
-                    onClick={() => runFilingAssistant('GSTR-1')}
-                    disabled={isAssistantRunning}
-                  >
-                    {isAssistantRunning ? <Loader2 className="h-3 w-3 animate-spin mr-2" /> : null}
-                    GSTR-1 Data Integrity
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    className="w-full bg-white/5 border-white/10 text-white hover:bg-white/10 rounded-xl h-10 text-xs font-bold"
-                    onClick={() => runFilingAssistant('GSTR-3B')}
-                    disabled={isAssistantRunning}
-                  >
-                    {isAssistantRunning ? <Loader2 className="h-3 w-3 animate-spin mr-2" /> : null}
-                    GSTR-3B Auto-Draft
-                  </Button>
+                  <Button variant="outline" className="w-full bg-white/5 border-white/10 text-white hover:bg-white/10 rounded-xl h-10 text-xs font-bold">GSTR-1 Data Integrity</Button>
+                  <Button variant="outline" className="w-full bg-white/5 border-white/10 text-white hover:bg-white/10 rounded-xl h-10 text-xs font-bold">GSTR-3B Auto-Draft</Button>
                 </div>
               </Card>
             </div>
@@ -1109,95 +954,6 @@ export default function AccountsPage() {
               </Button>
             </DialogFooter>
           </form>
-        </DialogContent>
-      </Dialog>
-
-      {/* AUTOMATED GST FILING DIALOG */}
-      <Dialog open={isFilingOpen} onOpenChange={setIsFilingOpen}>
-        <DialogContent className="sm:max-w-[500px] rounded-[3rem] p-0 overflow-hidden border-none shadow-2xl h-auto max-h-[90vh] flex flex-col">
-          <div className="bg-slate-900 text-white flex-1 flex flex-col min-h-0">
-            <div className="p-8 pb-4 shrink-0">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="h-10 w-10 bg-indigo-500 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/20">
-                  <Globe className="h-5 w-5 text-white" />
-                </div>
-                <div>
-                  <DialogTitle className="text-xl font-bold">Automated Portal Submission</DialogTitle>
-                  <DialogDescription className="text-slate-400 text-xs">Direct Statutory Handshake — Powered by Genkit</DialogDescription>
-                </div>
-              </div>
-            </div>
-
-            <ScrollArea className="flex-1 px-8 custom-scrollbar min-h-0">
-              {filingStep === 'review' ? (
-                <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 pb-8">
-                  <div className="bg-slate-800 p-6 rounded-3xl border border-slate-700 space-y-4">
-                    <div className="flex justify-between items-center">
-                      <span className="text-[10px] font-black uppercase text-slate-500">Target Period</span>
-                      <span className="text-sm font-bold text-indigo-400">{selectedFilingPeriod?.period}</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-[10px] font-black uppercase text-slate-500">Consolidated Output</span>
-                      <span className="text-lg font-black">₹{selectedFilingPeriod?.output.toLocaleString()}</span>
-                    </div>
-                    <div className="pt-4 border-t border-slate-700">
-                      <div className="flex items-center gap-2 text-[10px] text-slate-400 font-bold">
-                        <Lock className="h-3 w-3 text-emerald-500" />
-                        SECURE AES-256 HANDSHAKE READY
-                      </div>
-                    </div>
-                  </div>
-                  <p className="text-[11px] text-slate-400 leading-relaxed italic px-2">
-                    Our automation engine will aggregate all production invoices for this period, perform a statutory data audit, and push directly to the government portal.
-                  </p>
-                  <div className="pt-4">
-                    <Button onClick={handleAutomateFiling} className="w-full bg-indigo-600 hover:bg-indigo-700 h-12 rounded-2xl font-black uppercase tracking-widest text-xs">
-                      Initiate One-Click Filing
-                    </Button>
-                  </div>
-                </div>
-              ) : filingStep === 'complete' ? (
-                <div className="space-y-8 py-12 flex flex-col items-center text-center animate-in zoom-in-95 duration-500 pb-12">
-                  <div className="h-20 w-20 bg-emerald-500/20 rounded-full flex items-center justify-center text-emerald-500">
-                    <CheckCircle2 className="h-12 w-12" />
-                  </div>
-                  <div className="space-y-2">
-                    <h3 className="text-2xl font-black">Filing Success</h3>
-                    <p className="text-slate-400 text-sm">GSTR submission confirmed by portal.</p>
-                  </div>
-                  <div className="bg-slate-800 p-4 rounded-2xl border border-slate-700 w-full max-w-[300px]">
-                    <p className="text-[10px] font-bold text-slate-500 uppercase mb-1">Acknowledgement Number</p>
-                    <p className="font-mono font-bold text-indigo-400">{sessionARN || 'ARN-PENDING'}</p>
-                  </div>
-                  <Button onClick={() => setIsFilingOpen(false)} className="bg-white text-slate-900 font-bold rounded-xl px-12 h-11 mt-4">
-                    Acknowledge
-                  </Button>
-                </div>
-              ) : (
-                <div className="space-y-8 py-12 pb-12">
-                  <div className="space-y-4">
-                    <div className="flex justify-between items-end">
-                      <span className="text-[10px] font-black uppercase tracking-widest text-indigo-400 animate-pulse">
-                        {filingStep === 'validating' ? 'Validating Invoice Data...' : 'Synchronizing Statutory Data...'}
-                      </span>
-                      <span className="text-sm font-black">{automationProgress}%</span>
-                    </div>
-                    <Progress value={automationProgress} className="h-2 bg-slate-800" />
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className={cn("p-4 rounded-2xl border transition-all", automationProgress > 30 ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-slate-800 border-slate-700')}>
-                      <CheckCircle2 className={cn("h-4 w-4 mb-2", automationProgress > 30 ? 'text-emerald-500' : 'text-slate-600')} />
-                      <p className="text-[10px] font-black uppercase text-slate-400">Data Audit</p>
-                    </div>
-                    <div className={cn("p-4 rounded-2xl border transition-all", automationProgress > 85 ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-slate-800 border-slate-700')}>
-                      <Globe className={cn("h-4 w-4 mb-2", automationProgress > 85 ? 'text-emerald-500' : 'text-slate-600')} />
-                      <p className="text-[10px] font-black uppercase text-slate-400">Portal Sync</p>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </ScrollArea>
-          </div>
         </DialogContent>
       </Dialog>
 
