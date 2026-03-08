@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, Suspense } from "react";
@@ -280,7 +279,7 @@ function ProposalsContent() {
         <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
           <DialogTrigger asChild>
             <Button className="gap-2 rounded-xl shadow-lg shadow-primary/20">
-              <Plus className="h-4 w-4" /> Launch AI Architect
+              <Plus className="h-4 w-4" /> Create Proposals
             </Button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-[800px] rounded-[3rem] p-0 overflow-hidden border-none shadow-2xl h-[90vh] flex flex-col">
@@ -291,7 +290,7 @@ function ProposalsContent() {
                     <BrainCircuit className="h-6 w-6 text-white" />
                   </div>
                   <div>
-                    <DialogTitle className="text-2xl font-black text-white">AI Architect Wizard</DialogTitle>
+                    <DialogTitle className="text-2xl font-black text-white">Proposal Architect Wizard</DialogTitle>
                     <DialogDescription className="text-slate-400 text-xs">Dynamic Production Strategy Engine</DialogDescription>
                   </div>
                 </div>
@@ -357,7 +356,7 @@ function ProposalsContent() {
                 {generationStep === 'input' ? (
                   <Button onClick={handleGenerateAI} disabled={isGenerating} className="w-full bg-indigo-600 hover:bg-indigo-700 h-14 rounded-2xl font-black uppercase text-xs tracking-widest gap-3 shadow-xl">
                     {isGenerating ? <Loader2 className="h-5 w-5 animate-spin" /> : <Zap className="h-5 w-5" />}
-                    Launch AI Architect
+                    Create Proposals
                   </Button>
                 ) : (
                   <div className="flex gap-4">
@@ -379,7 +378,7 @@ function ProposalsContent() {
           <Card className="border-2 border-dashed p-24 text-center rounded-[3rem] bg-white/50">
             <BrainCircuit className="h-16 w-16 mx-auto mb-6 opacity-10" />
             <p className="font-black uppercase tracking-widest text-xs text-muted-foreground">No active blueprints.</p>
-            <Button variant="link" className="mt-4 font-bold" onClick={() => setIsAddOpen(true)}>Launch Wizard</Button>
+            <Button variant="link" className="mt-4 font-bold" onClick={() => setIsAddOpen(true)}>Create Proposals</Button>
           </Card>
         ) : (
           proposals?.map((prop) => (
