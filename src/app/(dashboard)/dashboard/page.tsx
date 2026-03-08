@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
@@ -43,11 +43,16 @@ import { format, subMonths, startOfMonth, isSameMonth } from "date-fns";
 export default function DashboardPage() {
   const { profile, company, user, isLoading: isTenantLoading, companyId, isSuperAdmin } = useTenant();
   const db = useFirestore();
+  const [hasMounted, setHasMounted] = useState(false);
+
+  useEffect(() => {
+    setHasMounted(true);
+  }, []);
 
   // Bootstrap Promotion Logic for Super Administrator
   useEffect(() => {
-    if (user?.email === 'arundevv.com@gmail.com' && db) {
-      if (profile && profile.role_id !== 'admin') {
+    if (user?.email === 'arundevv.com@gmail.com' && db && profile) {
+      if (profile.role_id !== 'admin') {
         const userRef = doc(db, 'users', user.uid);
         updateDocumentNonBlocking(userRef, { role_id: 'admin' });
       }
@@ -146,7 +151,7 @@ export default function DashboardPage() {
     return Math.round(total / projects.length);
   }, [projects]);
 
-  if (isTenantLoading) {
+  if (isTenantLoading || !hasMounted) {
     return (
       <div className="flex items-center justify-center h-[80vh]">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useUser, useDoc, useMemoFirebase } from '@/firebase';
@@ -20,31 +21,31 @@ export function useTenant() {
 
   const { data: profile, isLoading: isProfileLoading } = useDoc(userProfileRef);
 
+  // Extract IDs for stable dependency tracking
+  const profileCId = profile?.company_id || (profile as any)?.companyId;
+  const profileRId = profile?.role_id || (profile as any)?.roleId;
+
   // 2. Get the Company data
   const companyRef = useMemoFirebase(() => {
-    const cId = profile?.company_id || (profile as any)?.companyId;
-    if (!db || !cId) return null;
-    return doc(db, 'companies', cId);
-  }, [db, profile]);
+    if (!db || !profileCId) return null;
+    return doc(db, 'companies', profileCId);
+  }, [db, profileCId]);
 
   const { data: company, isLoading: isCompanyLoading } = useDoc(companyRef);
 
   // 3. Get the Role permissions
   const roleRef = useMemoFirebase(() => {
-    const cId = profile?.company_id || (profile as any)?.companyId;
-    const rId = profile?.role_id || (profile as any)?.roleId;
-    if (!db || !cId || !rId) return null;
-    return doc(db, 'companies', cId, 'roles', rId);
-  }, [db, profile]);
+    if (!db || !profileCId || !profileRId) return null;
+    return doc(db, 'companies', profileCId, 'roles', profileRId);
+  }, [db, profileCId, profileRId]);
 
   const { data: role, isLoading: isRoleLoading } = useDoc(roleRef);
 
   // 4. Get Company Settings
   const settingsRef = useMemoFirebase(() => {
-    const cId = profile?.company_id || (profile as any)?.companyId;
-    if (!db || !cId) return null;
-    return doc(db, 'companies', cId, 'company_settings', cId);
-  }, [db, profile]);
+    if (!db || !profileCId) return null;
+    return doc(db, 'companies', profileCId, 'company_settings', profileCId);
+  }, [db, profileCId]);
 
   const { data: settings, isLoading: isSettingsLoading } = useDoc(settingsRef);
 
@@ -59,7 +60,7 @@ export function useTenant() {
   const isLoading = isAuthLoading || isProfileLoading || isSuperAdminLoading;
   
   // Secondary loading states are only relevant if we have a company_id
-  const hasContext = !!(profile?.company_id || (profile as any)?.companyId);
+  const hasContext = !!profileCId;
   const isContextLoading = hasContext && (isCompanyLoading || isRoleLoading || isSettingsLoading);
 
   // Combined Super Admin check including hardcoded bootstrap email
@@ -91,7 +92,7 @@ export function useTenant() {
     role,
     settings,
     isLoading: isLoading || isContextLoading,
-    companyId: profile?.company_id || (profile as any)?.companyId,
+    companyId: profileCId,
     isSuperAdmin: isSuperAdminValue,
     hasPermission,
     isModuleEnabled,
