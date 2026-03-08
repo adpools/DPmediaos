@@ -8,23 +8,24 @@ import {
   Receipt, 
   ArrowLeft, 
   Loader2, 
-  ExternalLink,
-  Clock,
-  Sparkles,
-  Mail,
-  Building2,
-  DollarSign,
-  PieChart,
-  User,
-  FileText,
-  MapPin,
-  TrendingUp,
-  Zap,
-  CheckCircle2,
-  Phone,
-  CreditCard,
-  ChevronRight,
-  Plus
+  ExternalLink, 
+  Clock, 
+  Sparkles, 
+  Mail, 
+  Building2, 
+  DollarSign, 
+  PieChart, 
+  User, 
+  FileText, 
+  MapPin, 
+  TrendingUp, 
+  Zap, 
+  CheckCircle2, 
+  Phone, 
+  CreditCard, 
+  ChevronRight, 
+  Plus,
+  Target
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -96,7 +97,29 @@ export default function ClientPortfolioPage({ params }: { params: Promise<{ clie
 
   const { data: allExpenses } = useCollection(expensesQuery);
 
+  // 5. Fetch all leads for this company to calculate pipeline value
+  const pipelineLeadsQuery = useMemoFirebase(() => {
+    if (!db || !companyId || !client?.company_name) return null;
+    return query(
+      collection(db, 'companies', companyId, 'leads'),
+      where('company_name', '==', client.company_name)
+    );
+  }, [db, companyId, client?.company_name]);
+
+  const { data: allRelatedLeads } = useCollection(pipelineLeadsQuery);
+
   // --- ANALYTICS ---
+
+  const pipelineStats = useMemo(() => {
+    if (!allRelatedLeads) return { count: 0, totalValue: 0 };
+    // Pipeline stages: exclude 'client' (confirmed partner) and 'won' (already projects)
+    // Actually typically pipeline includes everything from lead to negotiation.
+    const pipelineItems = allRelatedLeads.filter(l => 
+      !['client', 'won', 'lost'].includes(l.stage || '')
+    );
+    const totalValue = pipelineItems.reduce((sum, l) => sum + (l.deal_value || 0), 0);
+    return { count: pipelineItems.length, totalValue };
+  }, [allRelatedLeads]);
 
   const projectAnalytics = useMemo(() => {
     if (!projects) return [];
@@ -299,19 +322,26 @@ export default function ClientPortfolioPage({ params }: { params: Promise<{ clie
 
         {/* Main Content */}
         <main className="lg:col-span-8 space-y-8">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 md:gap-6">
             <Card className="border-none shadow-sm rounded-3xl bg-white border-l-4 border-l-primary">
               <CardContent className="pt-6">
                 <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1">Gross Revenue</p>
                 <h4 className="text-2xl font-black text-slate-800">₹{totals.revenue.toLocaleString()}</h4>
-                <p className="text-[9px] text-emerald-600 font-bold mt-1">+ Billed Performance</p>
+                <p className="text-[9px] text-emerald-600 font-bold mt-1">+ Billed</p>
               </CardContent>
             </Card>
             <Card className="border-none shadow-sm rounded-3xl bg-white border-l-4 border-l-rose-500">
               <CardContent className="pt-6">
                 <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1">Production Burn</p>
                 <h4 className="text-2xl font-black text-rose-600">₹{totals.burn.toLocaleString()}</h4>
-                <p className="text-[9px] text-muted-foreground font-bold mt-1">Total Project Costs</p>
+                <p className="text-[9px] text-muted-foreground font-bold mt-1">Total Costs</p>
+              </CardContent>
+            </Card>
+            <Card className="border-none shadow-sm rounded-3xl bg-indigo-50 border-l-4 border-l-indigo-500">
+              <CardContent className="pt-6">
+                <p className="text-[10px] font-black text-indigo-600 uppercase tracking-widest mb-1">Sales Pipeline</p>
+                <h4 className="text-2xl font-black text-indigo-900">₹{pipelineStats.totalValue.toLocaleString()}</h4>
+                <p className="text-[9px] text-indigo-400 font-bold mt-1">{pipelineStats.count} Opportunities</p>
               </CardContent>
             </Card>
             <Card className={cn(
@@ -320,7 +350,7 @@ export default function ClientPortfolioPage({ params }: { params: Promise<{ clie
             )}>
               <CardContent className="pt-6">
                 <p className="text-[10px] font-black text-white/60 uppercase tracking-widest mb-1">Net Performance</p>
-                <h4 className="text-2xl font-black">₹{totals.profit.toLocaleString()}</h4>
+                <h4 className="text-xl font-black">₹{totals.profit.toLocaleString()}</h4>
                 <p className="text-[9px] text-white/40 font-bold mt-1">Workspace Margin</p>
               </CardContent>
             </Card>
