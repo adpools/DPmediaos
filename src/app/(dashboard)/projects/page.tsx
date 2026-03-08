@@ -579,7 +579,7 @@ function ProjectCard({ project, view, index, onArchive }: { project: any, view: 
         <div className="flex flex-col md:flex-row md:items-center">
           <Link 
             href={`/projects/${project.id}`} 
-            className="p-5 md:p-6 md:w-[35%] flex flex-col gap-2 relative group-hover:bg-slate-50/50 transition-colors"
+            className="p-5 md:p-6 md:w-[30%] flex flex-col gap-2 relative group-hover:bg-slate-50/50 transition-colors"
           >
             <div className="absolute left-0 top-0 bottom-0 w-1.5" style={{ backgroundColor: project.color === 'card-pink' ? '#FF4B82' : '#B199FF' }} />
             <div className="flex items-center gap-3">
@@ -588,27 +588,31 @@ function ProjectCard({ project, view, index, onArchive }: { project: any, view: 
               </h3>
               <ExternalLink className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-all transform group-hover:translate-x-1" />
             </div>
-            <div className="flex flex-wrap items-center gap-2 md:gap-3">
-              <Badge variant="outline" className="text-[8px] md:text-[9px] uppercase font-bold tracking-widest py-0.5 px-2 bg-slate-50 border-slate-200 text-slate-500">
-                {project.status?.replace('_', ' ')}
-              </Badge>
-              <div className="flex items-center gap-1.5 text-[10px] md:text-xs text-muted-foreground font-medium">
-                <Briefcase className="h-3 w-3" />
-                {project.client_name}
-              </div>
+            <div className="flex items-center gap-1.5 text-[10px] md:text-xs text-muted-foreground font-medium">
+              <Briefcase className="h-3 w-3" />
+              {project.client_name}
             </div>
           </Link>
 
-          <div className="flex-1 px-5 md:px-6 py-4 md:py-0 border-y md:border-y-0 md:border-x border-slate-100">
-            <div className="space-y-2 md:space-y-3">
-              <div className="flex justify-between items-end">
-                <div className="flex items-center gap-2">
-                  <Layers className="h-3.5 w-3.5 text-primary/60" />
-                  <span className="text-[9px] md:text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Production Health</span>
+          <div className="flex-1 px-5 md:px-8 py-4 md:py-0 border-y md:border-y-0 md:border-x border-slate-100">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 items-center">
+              <div className="space-y-2 md:space-y-3">
+                <div className="flex justify-between items-end">
+                  <div className="flex items-center gap-2">
+                    <Layers className="h-3.5 w-3.5 text-primary/60" />
+                    <span className="text-[9px] md:text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Production Health</span>
+                  </div>
+                  <span className="text-xs md:text-sm font-black text-primary">{project.progress || 0}%</span>
                 </div>
-                <span className="text-xs md:text-sm font-black text-primary">{project.progress || 0}%</span>
+                <Progress value={project.progress || 0} className="h-1.5 md:h-2 rounded-full bg-slate-100" />
               </div>
-              <Progress value={project.progress || 0} className="h-1.5 md:h-2 rounded-full bg-slate-100" />
+              
+              <div className="hidden sm:flex flex-col gap-1 pl-6 border-l border-slate-50">
+                <span className="text-[8px] md:text-[9px] uppercase font-black text-slate-400 tracking-[0.15em]">Workflow Stage</span>
+                <Badge variant="secondary" className="w-fit text-[10px] font-black uppercase bg-primary/5 text-primary border-none py-0.5">
+                  {project.status?.replace('_', ' ')}
+                </Badge>
+              </div>
             </div>
           </div>
 
