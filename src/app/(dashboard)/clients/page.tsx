@@ -426,7 +426,7 @@ export default function ClientsPage() {
                 </div>
                 <div>
                   <DialogTitle className="text-2xl font-black">Strategic Client Onboarding</DialogTitle>
-                  <DialogDescription>Register partner and architect initial production scope.</DialogDescription>
+                  <DialogDescription>Register partner and create a sales lead.</DialogDescription>
                 </div>
               </div>
               <div className="flex items-center gap-2">
@@ -643,8 +643,8 @@ export default function ClientsPage() {
                       disabled={!newClient.company_name || isSubmitting}
                       className="rounded-2xl h-12 px-10 font-black uppercase text-xs tracking-widest gap-2 shadow-xl shadow-primary/20"
                     >
-                      {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                      Architect Scope <ChevronRight className="h-4 w-4" />
+                      {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                      Create Lead <ChevronRight className="h-4 w-4" />
                     </Button>
                   </div>
                 </>
