@@ -10,12 +10,13 @@ import { useAuth, useUser } from "@/firebase";
 import { initiateEmailSignIn } from "@/firebase/non-blocking-login";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Sparkles, Loader2 } from "lucide-react";
+import { Sparkles, Loader2, Eye, EyeOff } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const auth = useAuth();
   const { user } = useUser();
@@ -78,14 +79,25 @@ export default function LoginPage() {
                 <Label htmlFor="password">Password</Label>
                 <Link href="/forgot-password" title="Recover account" className="text-xs text-primary font-bold hover:underline">Forgot password?</Link>
               </div>
-              <Input 
-                id="password" 
-                type="password" 
-                required 
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="h-12 rounded-xl"
-              />
+              <div className="relative">
+                <Input 
+                  id="password" 
+                  type={showPassword ? "text" : "password"} 
+                  required 
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="h-12 rounded-xl pr-12"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 text-muted-foreground hover:bg-transparent"
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </Button>
+              </div>
             </div>
             <Button disabled={loading} className="w-full h-12 rounded-xl text-base font-bold shadow-lg shadow-primary/20">
               {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : "Sign In to OS"}
