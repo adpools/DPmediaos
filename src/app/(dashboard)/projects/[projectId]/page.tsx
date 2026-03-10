@@ -106,7 +106,7 @@ export default function ProjectWorkspacePage({ params }: { params: Promise<{ pro
   const [assetToDelete, setAssetToDelete] = useState<any>(null);
   const [expenseToDelete, setExpenseToDelete] = useState<any>(null);
 
-  // 1. Fetch Project Details
+  // 1. Project Details
   const projectRef = useMemoFirebase(() => {
     if (!db || !companyId || !projectId) return null;
     return doc(db, 'companies', companyId, 'projects', projectId);
@@ -114,7 +114,7 @@ export default function ProjectWorkspacePage({ params }: { params: Promise<{ pro
 
   const { data: project, isLoading: isProjectLoading } = useDoc(projectRef);
 
-  // 2. Fetch Tasks for this project
+  // 2. Tasks
   const tasksQuery = useMemoFirebase(() => {
     if (!db || !companyId || !projectId) return null;
     return query(
@@ -125,7 +125,7 @@ export default function ProjectWorkspacePage({ params }: { params: Promise<{ pro
 
   const { data: tasks, isLoading: isTasksLoading } = useCollection(tasksQuery);
 
-  // 3. Fetch Items/Assets for this project
+  // 3. Assets
   const assetsQuery = useMemoFirebase(() => {
     if (!db || !companyId || !projectId) return null;
     return query(
@@ -136,7 +136,7 @@ export default function ProjectWorkspacePage({ params }: { params: Promise<{ pro
 
   const { data: assets, isLoading: isAssetsLoading } = useCollection(assetsQuery);
 
-  // 4. Fetch Production Schedule / Shoot Days
+  // 4. Production Days
   const shootDaysQuery = useMemoFirebase(() => {
     if (!db || !companyId || !projectId) return null;
     return query(
@@ -147,7 +147,7 @@ export default function ProjectWorkspacePage({ params }: { params: Promise<{ pro
 
   const { data: shootDays, isLoading: isShootDaysLoading } = useCollection(shootDaysQuery);
 
-  // 5. Fetch Invoices related to this project
+  // 5. Invoices
   const invoicesQuery = useMemoFirebase(() => {
     if (!db || !companyId || !projectId) return null;
     return query(
@@ -159,7 +159,7 @@ export default function ProjectWorkspacePage({ params }: { params: Promise<{ pro
 
   const { data: invoices, isLoading: isInvoicesLoading } = useCollection(invoicesQuery);
 
-  // 6. Fetch Expenses related to this project (Sync with global ledger)
+  // 6. Project Expenses
   const projectExpensesQuery = useMemoFirebase(() => {
     if (!db || !companyId || !projectId) return null;
     return query(
@@ -173,39 +173,19 @@ export default function ProjectWorkspacePage({ params }: { params: Promise<{ pro
 
   // --- DERIVED CALCULATIONS ---
 
-  /**
-   * REFINED PROGRESS CALCULATION: Total Production Velocity
-   * Aggregates progress across Pre-Prod, Production, Post-Prod, and Release.
-   */
   const liveProgress = useMemo(() => {
     if (!tasks || tasks.length === 0) return project?.progress || 0;
-    
-    // Only include objectives from core production phases
     const corePhases = ['pre-prod', 'production', 'post-prod', 'release'];
     const productionTasks = tasks.filter(t => corePhases.includes(t.phase));
-    
     if (productionTasks.length === 0) return 0;
-    
     const completedCount = productionTasks.filter(t => t.status === 'done').length;
     return Math.round((completedCount / productionTasks.length) * 100);
   }, [tasks, project?.progress]);
 
-  const totalBilled = useMemo(() => {
-    return invoices?.reduce((sum, inv) => sum + (inv.total || 0), 0) || 0;
-  }, [invoices]);
-
-  const totalRevenueBase = useMemo(() => {
-    return invoices?.reduce((sum, inv) => sum + (inv.subtotal || 0), 0) || 0;
-  }, [invoices]);
-
-  const totalOutstanding = useMemo(() => {
-    return invoices?.reduce((sum, inv) => inv.payment_status !== 'paid' ? sum + (inv.total || 0) : sum, 0) || 0;
-  }, [invoices]);
-
-  const totalExpenses = useMemo(() => {
-    return projectExpenses?.reduce((sum, ex) => sum + (ex.amount || 0), 0) || 0;
-  }, [projectExpenses]);
-
+  const totalBilled = useMemo(() => invoices?.reduce((sum, inv) => sum + (inv.total || 0), 0) || 0, [invoices]);
+  const totalRevenueBase = useMemo(() => invoices?.reduce((sum, inv) => sum + (inv.subtotal || 0), 0) || 0, [invoices]);
+  const totalOutstanding = useMemo(() => invoices?.reduce((sum, inv) => inv.payment_status !== 'paid' ? sum + (inv.total || 0) : sum, 0) || 0, [invoices]);
+  const totalExpenses = useMemo(() => projectExpenses?.reduce((sum, ex) => sum + (ex.amount || 0), 0) || 0, [projectExpenses]);
   const netProfit = totalRevenueBase - totalExpenses;
   const profitMargin = totalRevenueBase > 0 ? (netProfit / totalRevenueBase) * 100 : 0;
 
@@ -215,52 +195,28 @@ export default function ProjectWorkspacePage({ params }: { params: Promise<{ pro
     if (!db || !companyId || !projectId) return;
     const taskRef = doc(db, 'companies', companyId, 'projects', projectId, 'tasks', taskId);
     const newStatus = currentStatus === 'done' ? 'todo' : 'done';
-    
-    updateDocumentNonBlocking(taskRef, { 
-      status: newStatus,
-      updatedAt: serverTimestamp() 
+    updateDocumentNonBlocking(taskRef, { status: newStatus, updatedAt: serverTimestamp() });
+    if (projectRef) updateDocumentNonBlocking(projectRef, { progress: liveProgress });
+  };
+
+  const handleAddTask = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!db || !companyId || !projectId || !newTask.title) return;
+    setIsSubmitting(true);
+    const tasksRef = collection(db, 'companies', companyId, 'projects', projectId, 'tasks');
+    addDocumentNonBlocking(tasksRef, {
+      company_id: companyId,
+      project_id: projectId,
+      title: newTask.title,
+      phase: activeTab === 'assets' || activeTab === 'finances' ? 'production' : activeTab,
+      assignedTo: newTask.assignedTo || "Producer",
+      status: 'todo',
+      priority: 'Medium',
+      created_at: serverTimestamp()
     });
-
-    // Update Project Document with Syncing Progress
-    if (projectRef) {
-      updateDocumentNonBlocking(projectRef, { progress: liveProgress });
-    }
-  };
-
-  const handleUpdateAssetStatus = (assetId: string, newStatus: string) => {
-    if (!db || !companyId || !projectId) return;
-    const assetRef = doc(db, 'companies', companyId, 'projects', projectId, 'items', assetId);
-    updateDocumentNonBlocking(assetRef, { status: newStatus, updatedAt: serverTimestamp() });
-    toast({ title: "Asset Updated", description: `Item status changed to ${newStatus}.` });
-  };
-
-  const handleConfirmDeleteTask = () => {
-    if (!db || !companyId || !projectId || !taskToDelete) return;
-    const taskRef = doc(db, 'companies', companyId, 'projects', projectId, 'tasks', taskToDelete.id);
-    deleteDocumentNonBlocking(taskRef);
-    toast({ title: "Objective Removed", description: "The task has been deleted from the roadmap." });
-    setTaskToDelete(null);
-    
-    // Sync total progress after deletion
-    if (projectRef) {
-      updateDocumentNonBlocking(projectRef, { progress: liveProgress });
-    }
-  };
-
-  const handleConfirmDeleteAsset = () => {
-    if (!db || !companyId || !projectId || !assetToDelete) return;
-    const assetRef = doc(db, 'companies', companyId, 'projects', projectId, 'items', assetToDelete.id);
-    deleteDocumentNonBlocking(assetRef);
-    toast({ title: "Asset Removed", description: "Item has been removed from tracking." });
-    setAssetToDelete(null);
-  };
-
-  const handleConfirmDeleteExpense = () => {
-    if (!db || !companyId || !projectId || !expenseToDelete) return;
-    const expenseRef = doc(db, 'companies', companyId, 'expenses', expenseToDelete.id);
-    deleteDocumentNonBlocking(expenseRef);
-    toast({ title: "Expense Purged", description: "Record removed from project ledger." });
-    setExpenseToDelete(null);
+    setIsAddTaskOpen(false);
+    setNewTask({ title: "", assignedTo: "" });
+    setIsSubmitting(false);
   };
 
   const handleSeedPhase = (phase: string) => {
@@ -275,6 +231,8 @@ export default function ProjectWorkspacePage({ params }: { params: Promise<{ pro
     const objectives = defaults[phase] || [];
     objectives.forEach((title, idx) => {
       addDocumentNonBlocking(tasksRef, {
+        company_id: companyId,
+        project_id: projectId,
         title,
         phase,
         assignedTo: 'Producer',
@@ -283,55 +241,30 @@ export default function ProjectWorkspacePage({ params }: { params: Promise<{ pro
         created_at: serverTimestamp()
       });
     });
-    toast({ title: "Roadmap Initialized", description: `Added ${objectives.length} objectives for ${phase.replace('-', ' ')}.` });
-  };
-
-  const handleAddTask = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!db || !companyId || !projectId || !newTask.title) return;
-    setIsSubmitting(true);
-    try {
-      const tasksRef = collection(db, 'companies', companyId, 'projects', projectId, 'tasks');
-      addDocumentNonBlocking(tasksRef, {
-        title: newTask.title,
-        phase: activeTab === 'assets' ? 'production' : (activeTab === 'finances' ? 'production' : activeTab),
-        assignedTo: newTask.assignedTo || "Producer",
-        status: 'todo',
-        priority: 'Medium',
-        created_at: serverTimestamp()
-      });
-      setIsAddTaskOpen(false);
-      setNewTask({ title: "", assignedTo: "" });
-    } finally {
-      setIsSubmitting(false);
-    }
+    toast({ title: "Roadmap Initialized", description: `Added objectives for ${phase.replace('-', ' ')}.` });
   };
 
   const handleAddAsset = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!db || !companyId || !projectId || !newAsset.name) return;
     setIsSubmitting(true);
-    try {
-      const assetsRef = collection(db, 'companies', companyId, 'projects', projectId, 'items');
-      addDocumentNonBlocking(assetsRef, {
-        ...newAsset,
-        created_at: serverTimestamp(),
-      });
-      setIsAddAssetOpen(false);
-      setNewAsset({ name: "", category: "Equipment", status: "available" });
-      toast({ title: "Asset Registered", description: `${newAsset.name} added to inventory.` });
-    } finally {
-      setIsSubmitting(false);
-    }
+    const assetsRef = collection(db, 'companies', companyId, 'projects', projectId, 'items');
+    addDocumentNonBlocking(assetsRef, {
+      ...newAsset,
+      company_id: companyId,
+      project_id: projectId,
+      created_at: serverTimestamp(),
+    });
+    setIsAddAssetOpen(false);
+    setNewAsset({ name: "", category: "Equipment", status: "available" });
+    setIsSubmitting(false);
   };
 
   const handleLogExpense = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!companyId || !newExpense.description || !newExpense.amount) return;
-
     setIsSubmitting(true);
     const expensesRef = collection(db, 'companies', companyId, 'expenses');
-    
     addDocumentNonBlocking(expensesRef, {
       company_id: companyId,
       category: newExpense.category,
@@ -343,19 +276,36 @@ export default function ProjectWorkspacePage({ params }: { params: Promise<{ pro
       project_id: projectId,
       created_at: serverTimestamp(),
     });
-
-    toast({ title: "Expense Recorded", description: `${newExpense.category} cost has been added to project ledger.` });
     setNewExpense({ category: "Talent & Crew", sub_category: "Director", description: "", amount: "", date: new Date().toISOString().split('T')[0], status: "Paid" });
     setIsLogExpenseOpen(false);
     setIsSubmitting(false);
   };
 
+  const handleConfirmDeleteTask = () => {
+    if (!db || !companyId || !projectId || !taskToDelete) return;
+    deleteDocumentNonBlocking(doc(db, 'companies', companyId, 'projects', projectId, 'tasks', taskToDelete.id));
+    setTaskToDelete(null);
+  };
+
+  const handleConfirmDeleteAsset = () => {
+    if (!db || !companyId || !projectId || !assetToDelete) return;
+    deleteDocumentNonBlocking(doc(db, 'companies', companyId, 'projects', projectId, 'items', assetToDelete.id));
+    setAssetToDelete(null);
+  };
+
+  const handleConfirmDeleteExpense = () => {
+    if (!db || !companyId || !expenseToDelete) return;
+    deleteDocumentNonBlocking(doc(db, 'companies', companyId, 'expenses', expenseToDelete.id));
+    setExpenseToDelete(null);
+  };
+
+  const handleUpdateAssetStatus = (assetId: string, newStatus: string) => {
+    if (!db || !companyId || !projectId) return;
+    updateDocumentNonBlocking(doc(db, 'companies', companyId, 'projects', projectId, 'items', assetId), { status: newStatus, updatedAt: serverTimestamp() });
+  };
+
   if (isTenantLoading || isProjectLoading || isTasksLoading || isAssetsLoading || isShootDaysLoading || isInvoicesLoading || isProjectExpensesLoading) {
-    return (
-      <div className="flex items-center justify-center h-[80vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
+    return <div className="flex items-center justify-center h-[80vh]"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
   }
 
   if (!project) {
@@ -388,7 +338,6 @@ export default function ProjectWorkspacePage({ params }: { params: Promise<{ pro
 
   return (
     <div className="space-y-8 max-w-7xl mx-auto">
-      {/* Header Section */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="flex items-center gap-4">
           <Link href="/projects">
@@ -423,7 +372,6 @@ export default function ProjectWorkspacePage({ params }: { params: Promise<{ pro
         </div>
       </div>
 
-      {/* KPI Overview */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <Card className="border-none shadow-sm bg-white rounded-2xl">
           <CardContent className="p-6">
@@ -463,27 +411,13 @@ export default function ProjectWorkspacePage({ params }: { params: Promise<{ pro
         </Card>
       </div>
 
-      {/* Workspace Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="bg-white/50 border p-1 rounded-2xl h-auto flex-wrap mb-8">
-          <TabsTrigger value="pre-prod" className="rounded-xl px-6 py-2.5 gap-2 data-[state=active]:bg-primary data-[state=active]:text-white font-bold text-xs uppercase tracking-widest">
-            <FileText className="h-4 w-4" /> Pre-Prod
-          </TabsTrigger>
-          <TabsTrigger value="production" className="rounded-xl px-6 py-2.5 gap-2 data-[state=active]:bg-primary data-[state=active]:text-white font-bold text-xs uppercase tracking-widest">
-            <Camera className="h-4 w-4" /> Production
-          </TabsTrigger>
-          <TabsTrigger value="post-prod" className="rounded-xl px-6 py-2.5 gap-2 data-[state=active]:bg-primary data-[state=active]:text-white font-bold text-xs uppercase tracking-widest">
-            <Scissors className="h-4 w-4" /> Post-Prod
-          </TabsTrigger>
-          <TabsTrigger value="release" className="rounded-xl px-6 py-2.5 gap-2 data-[state=active]:bg-primary data-[state=active]:text-white font-bold text-xs uppercase tracking-widest">
-            <Rocket className="h-4 w-4" /> Release
-          </TabsTrigger>
-          <TabsTrigger value="assets" className="rounded-xl px-6 py-2.5 gap-2 data-[state=active]:bg-primary data-[state=active]:text-white font-bold text-xs uppercase tracking-widest">
-            <Package className="h-4 w-4" /> Assets
-          </TabsTrigger>
-          <TabsTrigger value="finances" className="rounded-xl px-6 py-2.5 gap-2 data-[state=active]:bg-primary data-[state=active]:text-white font-bold text-xs uppercase tracking-widest">
-            <Receipt className="h-4 w-4" /> Finance
-          </TabsTrigger>
+          {["pre-prod", "production", "post-prod", "release", "assets", "finances"].map(tab => (
+            <TabsTrigger key={tab} value={tab} className="rounded-xl px-6 py-2.5 gap-2 data-[state=active]:bg-primary data-[state=active]:text-white font-bold text-xs uppercase tracking-widest capitalize">
+              {getPhaseIcon(tab)} {tab.replace('-', ' ')}
+            </TabsTrigger>
+          ))}
         </TabsList>
 
         {["pre-prod", "production", "post-prod", "release"].map((phase) => (
@@ -504,9 +438,7 @@ export default function ProjectWorkspacePage({ params }: { params: Promise<{ pro
                     </Button>
                   </CardHeader>
                   <CardContent className="p-0">
-                    {isTasksLoading ? (
-                      <div className="flex justify-center p-12"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
-                    ) : phaseTasks(phase).length === 0 ? (
+                    {phaseTasks(phase).length === 0 ? (
                       <div className="text-center py-24 text-muted-foreground space-y-4">
                         <Target className="h-12 w-12 mx-auto opacity-10" />
                         <p className="text-sm font-medium">No objectives registered for this production phase.</p>
@@ -526,89 +458,46 @@ export default function ProjectWorkspacePage({ params }: { params: Promise<{ pro
                                 {task.title}
                               </p>
                               <div className="flex items-center gap-3 mt-1">
-                                <Badge variant="outline" className="text-[8px] uppercase font-bold text-muted-foreground border-slate-200">
-                                  {task.priority || 'Medium'}
-                                </Badge>
+                                <Badge variant="outline" className="text-[8px] uppercase font-bold text-muted-foreground border-slate-200">{task.priority || 'Medium'}</Badge>
                                 <span className="text-[10px] text-muted-foreground flex items-center gap-1">
-                                  <Users className="h-3 w-3" /> Assigned: <span className="font-bold text-primary/80 ml-0.5">{task.assignedTo || 'Unassigned'}</span>
+                                  <Users className="h-3 w-3" /> <span className="font-bold text-primary/80 ml-0.5">{task.assignedTo || 'Unassigned'}</span>
                                 </span>
                               </div>
                             </div>
-                            <div className="flex items-center gap-4">
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button variant="ghost" size="icon" className="rounded-xl opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <MoreVertical className="h-4 w-4" />
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end" className="rounded-xl w-48">
-                                  <DropdownMenuItem className="cursor-pointer gap-2 py-2" onClick={() => handleToggleTask(task.id, task.status)}>
-                                    {task.status === 'done' ? <Clock className="h-4 w-4" /> : <CheckCircle2 className="h-4 w-4" />}
-                                    Mark as {task.status === 'done' ? 'Pending' : 'Completed'}
-                                  </DropdownMenuItem>
-                                  <DropdownMenuSeparator />
-                                  <DropdownMenuItem className="cursor-pointer gap-2 py-2 text-rose-500 focus:text-rose-600 focus:bg-rose-50" onClick={() => setTaskToDelete(task)}>
-                                    <Trash2 className="h-4 w-4" /> Delete Objective
-                                  </DropdownMenuItem>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                            </div>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="rounded-xl opacity-0 group-hover:opacity-100 transition-opacity">
+                                  <MoreVertical className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="rounded-xl w-48">
+                                <DropdownMenuItem className="cursor-pointer gap-2 py-2" onClick={() => handleToggleTask(task.id, task.status)}>
+                                  {task.status === 'done' ? <Clock className="h-4 w-4" /> : <CheckCircle2 className="h-4 w-4" />} Mark as {task.status === 'done' ? 'Pending' : 'Completed'}
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem className="cursor-pointer gap-2 py-2 text-rose-500" onClick={() => setTaskToDelete(task)}>
+                                  <Trash2 className="h-4 w-4" /> Delete Objective
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
                           </div>
                         ))}
                       </div>
                     )}
                   </CardContent>
                 </Card>
-
-                {phase === 'production' && (
-                  <Card className="border-none shadow-sm rounded-[2rem] overflow-hidden bg-white">
-                    <CardHeader className="px-8 pt-8">
-                      <CardTitle className="text-xl">Shoot Schedule</CardTitle>
-                      <CardDescription>Daily call sheets and location logistics.</CardDescription>
-                    </CardHeader>
-                    <CardContent className="p-8 space-y-4">
-                      {shootDays?.length === 0 ? (
-                        <div className="text-center py-12 bg-slate-50 rounded-3xl border-2 border-dashed">
-                          <p className="text-sm text-muted-foreground">No call sheets generated yet.</p>
-                        </div>
-                      ) : (
-                        shootDays?.map(day => (
-                          <div key={day.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-white">
-                            <div className="flex items-center gap-4">
-                              <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
-                                <Video className="h-6 w-6" />
-                              </div>
-                              <div>
-                                <p className="font-bold text-sm">{day.location || 'Studio Set'}</p>
-                                <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">Shoot Day: {day.date}</p>
-                              </div>
-                            </div>
-                            <Button variant="ghost" size="sm" className="rounded-xl text-xs font-bold gap-2">
-                              View Sheet <ChevronRight className="h-3 w-3" />
-                            </Button>
-                          </div>
-                        ))
-                      )}
-                    </CardContent>
-                  </Card>
-                )}
               </div>
-
               <div className="space-y-6">
                 <Card className="border-none shadow-sm bg-primary text-white rounded-[2rem]">
                   <CardContent className="p-8 space-y-4">
-                    <div className="h-12 w-12 rounded-2xl bg-white/20 flex items-center justify-center backdrop-blur-md">
-                      <LayoutGrid className="h-6 w-6" />
-                    </div>
+                    <div className="h-12 w-12 rounded-2xl bg-white/20 flex items-center justify-center backdrop-blur-md"><LayoutGrid className="h-6 w-6" /></div>
                     <h4 className="text-xl font-bold">Phase Metrics</h4>
-                    <div className="space-y-4 pt-2">
-                      <div className="space-y-2">
-                        <div className="flex justify-between text-[10px] font-bold uppercase text-white/60">
-                          <span>Checklist Completion</span>
-                          <span>{phaseProgress(phase)}%</span>
-                        </div>
-                        <Progress value={phaseProgress(phase)} className="h-1 bg-white/10" />
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-[10px] font-bold uppercase text-white/60">
+                        <span>Checklist Completion</span>
+                        <span>{phaseProgress(phase)}%</span>
                       </div>
+                      <Progress value={phaseProgress(phase)} className="h-1 bg-white/10" />
                     </div>
                   </CardContent>
                 </Card>
@@ -629,19 +518,11 @@ export default function ProjectWorkspacePage({ params }: { params: Promise<{ pro
                     </div>
                     <CardDescription>Track equipment, props, and media storage devices.</CardDescription>
                   </div>
-                  <Button variant="outline" size="sm" className="rounded-xl" onClick={() => setIsAddAssetOpen(true)}>
-                    <Plus className="h-4 w-4 mr-2" /> Register Item
-                  </Button>
+                  <Button variant="outline" size="sm" className="rounded-xl" onClick={() => setIsAddAssetOpen(true)}><Plus className="h-4 w-4 mr-2" /> Register Item</Button>
                 </CardHeader>
                 <CardContent className="p-0">
-                  {isAssetsLoading ? (
-                    <div className="flex justify-center p-12"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
-                  ) : assets?.length === 0 ? (
-                    <div className="text-center py-24 text-muted-foreground space-y-4">
-                      <Box className="h-12 w-12 mx-auto opacity-10" />
-                      <p className="text-sm font-medium">No items registered for tracking.</p>
-                      <Button variant="link" size="sm" onClick={() => setIsAddAssetOpen(true)}>Start tracking equipment</Button>
-                    </div>
+                  {assets?.length === 0 ? (
+                    <div className="text-center py-24 text-muted-foreground"><Box className="h-12 w-12 mx-auto opacity-10" /><p className="text-sm font-medium mt-4">No items registered.</p></div>
                   ) : (
                     <div className="divide-y">
                       {assets?.map((asset) => (
@@ -651,43 +532,18 @@ export default function ProjectWorkspacePage({ params }: { params: Promise<{ pro
                           </div>
                           <div className="flex-1">
                             <p className="font-bold text-sm text-slate-800">{asset.name}</p>
-                            <div className="flex items-center gap-3 mt-1">
-                              <Badge variant="outline" className="text-[8px] uppercase font-bold text-muted-foreground border-slate-200">
-                                {asset.category}
-                              </Badge>
-                              <span className="text-[10px] text-muted-foreground flex items-center gap-1">
-                                <Users className="h-3 w-3" /> Holder: <span className="font-bold text-primary/80 ml-0.5">{asset.holder || 'Studio Storage'}</span>
-                              </span>
-                            </div>
+                            <Badge variant="outline" className="text-[8px] uppercase font-bold mt-1">{asset.category}</Badge>
                           </div>
-                          <div className="flex items-center gap-4">
-                            <Badge className={`uppercase text-[9px] font-bold ${asset.status === 'available' ? 'bg-emerald-500' : asset.status === 'checked_out' ? 'bg-amber-500' : 'bg-rose-500'}`}>
-                              {asset.status.replace('_', ' ')}
-                            </Badge>
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" className="rounded-xl opacity-0 group-hover:opacity-100 transition-opacity">
-                                  <MoreVertical className="h-4 w-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end" className="rounded-xl w-48">
-                                <DropdownMenuLabel className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground px-3 py-2">Set Status</DropdownMenuLabel>
-                                <DropdownMenuItem className="cursor-pointer gap-2 py-2" onClick={() => handleUpdateAssetStatus(asset.id, 'available')}>
-                                  <Check className="h-4 w-4 text-emerald-500" /> Available
-                                </DropdownMenuItem>
-                                <DropdownMenuItem className="cursor-pointer gap-2 py-2" onClick={() => handleUpdateAssetStatus(asset.id, 'checked_out')}>
-                                  <Clock className="h-4 w-4 text-amber-500" /> Checked Out
-                                </DropdownMenuItem>
-                                <DropdownMenuItem className="cursor-pointer gap-2 py-2" onClick={() => handleUpdateAssetStatus(asset.id, 'maintenance')}>
-                                  <Target className="h-4 w-4 text-rose-500" /> Maintenance
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem className="cursor-pointer gap-2 py-2 text-rose-500 focus:text-rose-600 focus:bg-rose-50" onClick={() => setAssetToDelete(asset)}>
-                                  <Trash2 className="h-4 w-4" /> Remove Tracking
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </div>
+                          <Badge className={`uppercase text-[9px] font-bold ${asset.status === 'available' ? 'bg-emerald-500' : 'bg-rose-500'}`}>{asset.status.replace('_', ' ')}</Badge>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="rounded-xl"><MoreVertical className="h-4 w-4" /></Button></DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="rounded-xl">
+                              <DropdownMenuItem onClick={() => handleUpdateAssetStatus(asset.id, 'available')}>Available</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleUpdateAssetStatus(asset.id, 'checked_out')}>Checked Out</DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem className="text-rose-500" onClick={() => setAssetToDelete(asset)}>Delete</DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </div>
                       ))}
                     </div>
@@ -695,504 +551,77 @@ export default function ProjectWorkspacePage({ params }: { params: Promise<{ pro
                 </CardContent>
               </Card>
             </div>
-
-            <div className="space-y-6">
-              <Card className="border-none shadow-sm bg-accent text-white rounded-[2rem]">
-                <CardContent className="p-8 space-y-4">
-                  <div className="h-12 w-12 rounded-2xl bg-white/20 flex items-center justify-center backdrop-blur-md">
-                    <Package className="h-6 w-6" />
-                  </div>
-                  <h4 className="text-xl font-bold">Inventory Health</h4>
-                  <p className="text-xs text-white/70">Ensure all high-value items are returned before production wrap-up.</p>
-                  <div className="pt-2">
-                    <div className="flex justify-between text-[10px] font-bold uppercase text-white/60 mb-2">
-                      <span>Return Status</span>
-                      <span>{assets?.length ? Math.round((assets.filter(a => a.status === 'available').length / assets.length) * 100) : 0}%</span>
-                    </div>
-                    <Progress value={assets?.length ? (assets.filter(a => a.status === 'available').length / assets.length) * 100 : 0} className="h-1 bg-white/10" />
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
           </div>
         </TabsContent>
 
         <TabsContent value="finances" className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
-          {/* P&L Analysis Section */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <Card className="border-none shadow-soft bg-white rounded-[2rem] overflow-hidden relative border-l-4 border-l-primary">
+            <Card className="border-none shadow-soft bg-white rounded-[2rem] border-l-4 border-l-primary">
               <CardContent className="p-8">
-                <div className="flex justify-between items-start mb-4">
-                  <div className="p-2.5 bg-primary/10 rounded-xl text-primary">
-                    <ArrowUpRight className="h-5 w-5" />
-                  </div>
-                  <Badge variant="secondary" className="bg-primary/5 text-primary text-[9px] font-bold uppercase border-none">Total Invoiced</Badge>
-                </div>
-                <p className="text-[10px] font-bold uppercase text-muted-foreground tracking-widest mb-1">Gross Revenue (Excl. GST)</p>
+                <p className="text-[10px] font-bold uppercase text-muted-foreground tracking-widest mb-1">Gross Revenue</p>
                 <h3 className="text-3xl font-black">₹{totalRevenueBase.toLocaleString()}</h3>
               </CardContent>
             </Card>
-
-            <Card className="border-none shadow-soft bg-white rounded-[2rem] overflow-hidden relative border-l-4 border-l-rose-500">
+            <Card className="border-none shadow-soft bg-white rounded-[2rem] border-l-4 border-l-rose-500">
               <CardContent className="p-8">
-                <div className="flex justify-between items-start mb-4">
-                  <div className="p-2.5 bg-rose-50 rounded-xl text-rose-500">
-                    <TrendingDown className="h-5 w-5" />
-                  </div>
-                  <Badge variant="secondary" className="bg-rose-50 text-rose-500 text-[9px] font-bold uppercase border-none">Production Burn</Badge>
-                </div>
-                <p className="text-[10px] font-bold uppercase text-muted-foreground tracking-widest mb-1">Total Project Expenses</p>
+                <p className="text-[10px] font-bold uppercase text-muted-foreground tracking-widest mb-1">Production Burn</p>
                 <h3 className="text-3xl font-black">₹{totalExpenses.toLocaleString()}</h3>
               </CardContent>
             </Card>
-
-            <Card className={cn(
-              "border-none shadow-soft rounded-[2rem] overflow-hidden relative border-l-4 text-white",
-              netProfit >= 0 ? "bg-emerald-600 border-l-emerald-400" : "bg-rose-600 border-l-rose-400"
-            )}>
+            <Card className={cn("border-none shadow-soft rounded-[2rem] text-white border-l-4", netProfit >= 0 ? "bg-emerald-600 border-l-emerald-400" : "bg-rose-600 border-l-rose-400")}>
               <CardContent className="p-8">
-                <div className="flex justify-between items-start mb-4">
-                  <div className="p-2.5 bg-white/20 rounded-xl">
-                    <Sparkles className="h-5 w-5" />
-                  </div>
-                  <div className="flex flex-col items-end">
-                    <Badge variant="secondary" className="bg-white/20 text-white text-[9px] font-bold uppercase border-none mb-1">Net Performance</Badge>
-                    <span className="text-[10px] font-black">{profitMargin.toFixed(1)}% Margin</span>
-                  </div>
-                </div>
-                <p className="text-[10px] font-bold uppercase text-white/60 tracking-widest mb-1">Profit / Loss</p>
+                <p className="text-[10px] font-bold uppercase text-white/60 tracking-widest mb-1">Net Performance</p>
                 <h3 className="text-3xl font-black">₹{netProfit.toLocaleString()}</h3>
               </CardContent>
             </Card>
           </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div className="lg:col-span-2 space-y-6">
-              {/* Project Operational Ledger */}
-              <Card className="border-none shadow-soft rounded-[2.5rem] overflow-hidden bg-white">
-                <CardHeader className="bg-slate-50/50 border-b px-8 py-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <div className="flex items-center gap-2 mb-1">
-                        <div className="p-1.5 bg-rose-50 rounded-lg text-rose-500"><TrendingDown className="h-4 w-4" /></div>
-                        <CardTitle className="text-xl">Operational Ledger (Project)</CardTitle>
-                      </div>
-                      <CardDescription>Direct production costs and technician fees.</CardDescription>
-                    </div>
-                    <Button variant="outline" size="sm" className="rounded-xl font-bold h-9 gap-2" onClick={() => setIsLogExpenseOpen(true)}>
-                      <Plus className="h-4 w-4" /> Log Project Cost
-                    </Button>
-                  </div>
-                </CardHeader>
-                <CardContent className="p-0">
-                  <div className="overflow-x-auto custom-scrollbar">
-                    <table className="w-full text-sm min-w-[600px]">
-                      <thead>
-                        <tr className="border-b bg-slate-50/30">
-                          <th className="px-8 py-4 text-left font-bold text-[10px] uppercase tracking-widest text-muted-foreground">Date</th>
-                          <th className="px-8 py-4 text-left font-bold text-[10px] uppercase tracking-widest text-muted-foreground">Category</th>
-                          <th className="px-8 py-4 text-left font-bold text-[10px] uppercase tracking-widest text-muted-foreground">Description</th>
-                          <th className="px-8 py-4 text-left font-bold text-[10px] uppercase tracking-widest text-muted-foreground">Amount</th>
-                          <th className="px-8 py-4 text-left font-bold text-[10px] uppercase tracking-widest text-muted-foreground">Status</th>
-                          <th className="px-8 py-4 text-right"></th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y">
-                        {isProjectExpensesLoading ? (
-                          <tr><td colSpan={6} className="text-center py-12"><Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" /></td></tr>
-                        ) : projectExpenses?.length === 0 ? (
-                          <tr><td colSpan={6} className="px-8 py-16 text-center text-muted-foreground italic text-xs">No project costs recorded.</td></tr>
-                        ) : (
-                          projectExpenses?.map((ex) => (
-                            <tr key={ex.id} className="hover:bg-slate-50/50 transition-colors group">
-                              <td className="px-8 py-5 text-slate-500 font-medium text-xs">{ex.date}</td>
-                              <td className="px-8 py-5">
-                                <div className="flex flex-col gap-1">
-                                  <Badge variant="secondary" className="text-[8px] uppercase font-bold py-0 w-fit">{ex.category}</Badge>
-                                  <span className="text-[9px] text-muted-foreground font-medium uppercase tracking-tighter">{ex.sub_category}</span>
-                                </div>
-                              </td>
-                              <td className="px-8 py-5 font-bold text-slate-700 text-xs">{ex.description}</td>
-                              <td className="px-8 py-5 font-black text-rose-600 text-xs">₹{ex.amount?.toLocaleString()}</td>
-                              <td className="px-8 py-5">
-                                <Badge variant={ex.status === 'Paid' ? 'default' : 'outline'} className="text-[8px] md:text-[9px] uppercase font-bold py-0">
-                                  {ex.status}
-                                </Badge>
-                              </td>
-                              <td className="px-8 py-5 text-right">
-                                <Button 
-                                  variant="ghost" 
-                                  size="icon" 
-                                  className="h-8 w-8 text-rose-500 hover:bg-rose-50 opacity-0 group-hover:opacity-100 transition-opacity"
-                                  onClick={() => setExpenseToDelete(ex)}
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </td>
-                            </tr>
-                          ))
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Project Invoices Table */}
-              <Card className="border-none shadow-sm rounded-[2rem] overflow-hidden bg-white">
-                <CardHeader className="bg-slate-50/50 flex flex-row items-center justify-between border-b px-8 py-6">
-                  <div>
-                    <div className="flex items-center gap-2 mb-1">
-                      <div className="p-1.5 bg-primary/10 rounded-lg text-primary"><Receipt className="h-4 w-4" /></div>
-                      <CardTitle className="text-xl">Billing Ledger</CardTitle>
-                    </div>
-                    <CardDescription>Client invoices generated for this workspace.</CardDescription>
-                  </div>
-                  <Link href="/invoices">
-                    <Button variant="outline" size="sm" className="rounded-xl h-9 font-bold gap-2">
-                      <Plus className="h-4 w-4" /> New Invoice
-                    </Button>
-                  </Link>
-                </CardHeader>
-                <CardContent className="p-0">
-                  {isInvoicesLoading ? (
-                    <div className="flex justify-center p-12"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
-                  ) : invoices?.length === 0 ? (
-                    <div className="text-center py-24 text-muted-foreground space-y-4">
-                      <Receipt className="h-12 w-12 mx-auto opacity-10" />
-                      <p className="text-sm font-medium">No billing records found for this project.</p>
-                    </div>
-                  ) : (
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-sm">
-                        <thead className="bg-slate-50/30 border-b">
-                          <tr>
-                            <th className="px-8 py-4 text-left font-bold text-[10px] uppercase text-muted-foreground tracking-widest">Invoice #</th>
-                            <th className="px-8 py-4 text-left font-bold text-[10px] uppercase text-muted-foreground tracking-widest">Amount</th>
-                            <th className="px-8 py-4 text-left font-bold text-[10px] uppercase text-muted-foreground tracking-widest">Status</th>
-                            <th className="px-8 py-4 text-right"></th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y">
-                          {invoices?.map((inv) => (
-                            <tr key={inv.id} className="hover:bg-slate-50 transition-colors group">
-                              <td className="px-8 py-5 font-mono font-bold text-primary">{inv.invoice_number}</td>
-                              <td className="px-8 py-5 font-bold text-xs">₹{inv.total?.toLocaleString()}</td>
-                              <td className="px-8 py-5">
-                                <Badge variant={inv.payment_status === 'paid' ? 'default' : 'secondary'} className="text-[9px] uppercase font-bold">
-                                  {inv.payment_status}
-                                </Badge>
-                              </td>
-                              <td className="px-8 py-5 text-right">
-                                <div className="flex justify-end gap-2">
-                                  <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"><Download className="h-4 w-4" /></Button>
-                                  <Link href={`/invoices/${inv.id}`}>
-                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-primary opacity-0 group-hover:opacity-100 transition-opacity">
-                                      <ExternalLink className="h-4 w-4" />
-                                    </Button>
-                                  </Link>
-                                </div>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
-
-            <div className="space-y-6">
-              <Card className="border-none shadow-sm bg-primary text-white rounded-[2rem]">
-                <CardHeader>
-                  <CardTitle className="text-lg">Commercial Health</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <div className="space-y-1">
-                    <p className="text-[10px] font-bold text-white/60 uppercase">Total Billed</p>
-                    <h4 className="text-2xl font-bold">₹{totalBilled.toLocaleString()}</h4>
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-[10px] font-bold text-white/60 uppercase">Outstanding</p>
-                    <h4 className="text-2xl font-bold text-rose-300">₹{totalOutstanding.toLocaleString()}</h4>
-                  </div>
-                  <div className="pt-4 border-t border-white/10">
-                    <div className="flex justify-between text-[10px] font-bold uppercase text-white/60 mb-2">
-                      <span>Collection Rate</span>
-                      <span>{totalBilled > 0 ? Math.round(((totalBilled - totalOutstanding) / totalBilled) * 100) : 0}%</span>
-                    </div>
-                    <Progress value={totalBilled > 0 ? ((totalBilled - totalOutstanding) / totalBilled) * 100 : 0} className="h-1 bg-white/10" />
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="border-none shadow-sm bg-white rounded-[2rem] p-8 text-center">
-                <PieChartIcon className="h-12 w-12 text-primary/20 mx-auto mb-4" />
-                <h4 className="font-bold text-lg mb-2">P&L Status</h4>
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  Your project is operating at a <span className={cn("font-bold", netProfit >= 0 ? "text-emerald-600" : "text-rose-600")}>
-                    {netProfit >= 0 ? "PROFIT" : "LOSS"}
-                  </span> of ₹{Math.abs(netProfit).toLocaleString()} with a {profitMargin.toFixed(1)}% margin.
-                </p>
-              </Card>
-            </div>
-          </div>
         </TabsContent>
       </Tabs>
 
-      {/* STABLE DIALOGS */}
-      <AlertDialog open={!!taskToDelete} onOpenChange={(open) => !open && setTaskToDelete(null)}>
-        <AlertDialogContent className="rounded-[2rem]">
-          <AlertDialogHeader>
-            <AlertDialogTitle>Remove Objective?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will permanently remove "{taskToDelete?.title}" from this production phase.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel className="rounded-xl">Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleConfirmDeleteTask} className="bg-rose-500 hover:bg-rose-600 rounded-xl">
-              Confirm Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      <AlertDialog open={!!assetToDelete} onOpenChange={(open) => !open && setAssetToDelete(null)}>
-        <AlertDialogContent className="rounded-[2rem]">
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Asset Record?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will permanently remove "{assetToDelete?.name}" from your project inventory.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel className="rounded-xl">Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleConfirmDeleteAsset} className="bg-rose-500 hover:bg-rose-600 rounded-xl">
-              Confirm Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      <AlertDialog open={!!expenseToDelete} onOpenChange={(open) => !open && setExpenseToDelete(null)}>
-        <AlertDialogContent className="rounded-[2rem]">
-          <AlertDialogHeader>
-            <AlertDialogTitle>Purge Expense Record?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will permanently remove this cost entry from the project ledger.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel className="rounded-xl">Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleConfirmDeleteExpense} className="bg-rose-500 hover:bg-rose-600 rounded-xl">
-              Confirm Purge
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* MODALS */}
+      {/* Dialogs */}
       <Dialog open={isAddTaskOpen} onOpenChange={setIsAddTaskOpen}>
-        <DialogContent className="sm:max-w-[425px] rounded-[2rem]">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-accent" />
-              New Objective
-            </DialogTitle>
-            <DialogDescription>
-              Define a specific deliverable for the current production phase.
-            </DialogDescription>
-          </DialogHeader>
+        <DialogContent className="rounded-[2rem]">
+          <DialogHeader><DialogTitle>New Objective</DialogTitle></DialogHeader>
           <form onSubmit={handleAddTask} className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="title">Objective Title</Label>
-              <Input 
-                id="title" 
-                placeholder="e.g. Color Grade Final" 
-                value={newTask.title}
-                onChange={(e) => setNewTask({ ...newTask, title: e.target.value })}
-                required
-                className="rounded-xl"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="assignee">Assign to Role</Label>
-              <Input 
-                id="assignee" 
-                placeholder="e.g. Lead Editor" 
-                value={newTask.assignedTo}
-                onChange={(e) => setNewTask({ ...newTask, assignedTo: e.target.value })}
-                className="rounded-xl"
-              />
-            </div>
-            <DialogFooter className="pt-4">
-              <Button type="submit" disabled={isSubmitting} className="w-full rounded-xl h-11 font-bold">
-                {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                Register Objective
-              </Button>
-            </DialogFooter>
+            <div className="space-y-2"><Label>Title</Label><Input value={newTask.title} onChange={(e) => setNewTask({ ...newTask, title: e.target.value })} required className="rounded-xl" /></div>
+            <div className="space-y-2"><Label>Assign To</Label><Input value={newTask.assignedTo} onChange={(e) => setNewTask({ ...newTask, assignedTo: e.target.value })} className="rounded-xl" /></div>
+            <DialogFooter><Button type="submit" disabled={isSubmitting} className="w-full rounded-xl">Register Objective</Button></DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
 
       <Dialog open={isAddAssetOpen} onOpenChange={setIsAddAssetOpen}>
-        <DialogContent className="sm:max-w-[425px] rounded-[2rem]">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Package className="h-5 w-5 text-accent" />
-              Register Production Item
-            </DialogTitle>
-            <DialogDescription>
-              Add an equipment or prop item to the project inventory.
-            </DialogDescription>
-          </DialogHeader>
+        <DialogContent className="rounded-[2rem]">
+          <DialogHeader><DialogTitle>Register Item</DialogTitle></DialogHeader>
           <form onSubmit={handleAddAsset} className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="assetName">Item Name</Label>
-              <Input 
-                id="assetName" 
-                placeholder="e.g. Sony FX6 Kit #1" 
-                value={newAsset.name}
-                onChange={(e) => setNewAsset({ ...newAsset, name: e.target.value })}
-                required
-                className="rounded-xl"
-              />
-            </div>
+            <div className="space-y-2"><Label>Name</Label><Input value={newAsset.name} onChange={(e) => setNewAsset({ ...newAsset, name: e.target.value })} required className="rounded-xl" /></div>
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="assetCat">Category</Label>
-                <Select onValueChange={(val) => setNewAsset({...newAsset, category: val})} defaultValue="Equipment">
-                  <SelectTrigger className="rounded-xl">
-                    <SelectValue placeholder="Select" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {['Equipment', 'Props', 'Wardrobe', 'Digital'].map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="assetStatus">Initial Status</Label>
-                <Select onValueChange={(val) => setNewAsset({...newAsset, status: val})} defaultValue="available">
-                  <SelectTrigger className="rounded-xl">
-                    <SelectValue placeholder="Select" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="available">Available</SelectItem>
-                    <SelectItem value="checked_out">Checked Out</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+              <Select onValueChange={(v) => setNewAsset({...newAsset, category: v})} defaultValue="Equipment"><SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Equipment">Equipment</SelectItem><SelectItem value="Digital">Digital</SelectItem></SelectContent></Select>
+              <Select onValueChange={(v) => setNewAsset({...newAsset, status: v})} defaultValue="available"><SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="available">Available</SelectItem><SelectItem value="checked_out">Checked Out</SelectItem></SelectContent></Select>
             </div>
-            <DialogFooter className="pt-4">
-              <Button type="submit" disabled={isSubmitting} className="w-full rounded-xl h-11 font-bold">
-                {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                Add to Project
-              </Button>
-            </DialogFooter>
+            <DialogFooter><Button type="submit" disabled={isSubmitting} className="w-full rounded-xl">Add to Project</Button></DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
 
-      {/* Log Project Cost Dialog */}
       <Dialog open={isLogExpenseOpen} onOpenChange={setIsLogExpenseOpen}>
-        <DialogContent className="sm:max-w-[425px] rounded-[2.5rem] p-8 max-h-[90vh] overflow-y-auto custom-scrollbar">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-2xl font-bold">
-              <Receipt className="h-6 w-6 text-accent" />
-              Log Project Cost
-            </DialogTitle>
-            <DialogDescription>
-              Record direct production costs for this workspace.
-            </DialogDescription>
-          </DialogHeader>
-          <form onSubmit={handleLogExpense} className="space-y-5 py-4">
+        <DialogContent className="rounded-[2.5rem]">
+          <DialogHeader><DialogTitle>Log Project Cost</DialogTitle></DialogHeader>
+          <form onSubmit={handleLogExpense} className="space-y-4 py-4">
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Category</Label>
-                <Select 
-                  value={newExpense.category} 
-                  onValueChange={(val) => {
-                    const subs = PRODUCTION_CATEGORIES_MAP[val] || [];
-                    setNewExpense({...newExpense, category: val, sub_category: subs[0] || ""});
-                  }}
-                >
-                  <SelectTrigger className="rounded-xl h-11"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {Object.keys(PRODUCTION_CATEGORIES_MAP).map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Sub-Item</Label>
-                <Select 
-                  key={newExpense.category}
-                  value={newExpense.sub_category} 
-                  onValueChange={(val) => setNewExpense({...newExpense, sub_category: val})}
-                >
-                  <SelectTrigger className="rounded-xl h-11">
-                    <div className="flex items-center gap-2">
-                      <ListTree className="h-3 w-3 text-muted-foreground" />
-                      <SelectValue placeholder="Select Item" />
-                    </div>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {(PRODUCTION_CATEGORIES_MAP[newExpense.category] || []).map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
+              <Select value={newExpense.category} onValueChange={(v) => setNewExpense({...newExpense, category: v})}><SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger><SelectContent>{Object.keys(PRODUCTION_CATEGORIES_MAP).map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent></Select>
+              <Input type="number" placeholder="Amount" value={newExpense.amount} onChange={(e) => setNewExpense({...newExpense, amount: e.target.value})} required className="rounded-xl" />
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Amount (₹)</Label>
-                <Input 
-                  type="number"
-                  placeholder="5000" 
-                  value={newExpense.amount}
-                  onChange={(e) => setNewExpense({...newExpense, amount: e.target.value})}
-                  required
-                  className="rounded-xl h-11"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Status</Label>
-                <Select value={newExpense.status} onValueChange={(val) => setNewExpense({...newExpense, status: val})}>
-                  <SelectTrigger className="rounded-xl h-11"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Paid">Paid</SelectItem>
-                    <SelectItem value="Pending">Pending</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label>Description</Label>
-              <Input 
-                placeholder="e.g. Equipment Rental Day 1" 
-                value={newExpense.description}
-                onChange={(e) => setNewExpense({...newExpense, description: e.target.value})}
-                required
-                className="rounded-xl h-11"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Date</Label>
-              <Input 
-                type="date"
-                value={newExpense.date}
-                onChange={(e) => setNewExpense({...newExpense, date: e.target.value})}
-                className="rounded-xl h-11"
-              />
-            </div>
-            <DialogFooter className="pt-4">
-              <Button type="submit" disabled={isSubmitting} className="w-full bg-accent hover:bg-accent/90 rounded-xl h-12 font-bold shadow-lg shadow-accent/20">
-                {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Commit to Project Ledger"}
-              </Button>
-            </DialogFooter>
+            <Input placeholder="Description" value={newExpense.description} onChange={(e) => setNewExpense({...newExpense, description: e.target.value})} required className="rounded-xl" />
+            <Input type="date" value={newExpense.date} onChange={(e) => setNewExpense({...newExpense, date: e.target.value})} className="rounded-xl" />
+            <DialogFooter><Button type="submit" disabled={isSubmitting} className="w-full rounded-xl bg-accent">Commit to Ledger</Button></DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!taskToDelete} onOpenChange={() => setTaskToDelete(null)}>
+        <AlertDialogContent className="rounded-[2rem]"><AlertDialogHeader><AlertDialogTitle>Delete task?</AlertDialogTitle></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel className="rounded-xl">Cancel</AlertDialogCancel><AlertDialogAction onClick={handleConfirmDeleteTask} className="bg-rose-500 rounded-xl">Delete</AlertDialogAction></AlertDialogFooter></AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

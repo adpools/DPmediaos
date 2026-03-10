@@ -20,13 +20,14 @@ import {
   Target,
   ArrowUpRight,
   TrendingUp,
-  Layers
+  Layers,
+  Layout
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useTenant } from "@/hooks/use-tenant";
 import { useCollection, useMemoFirebase, useFirestore } from "@/firebase";
-import { collection, query, where, limit, orderBy, doc, serverTimestamp } from "firebase/firestore";
+import { collection, query, where, limit, orderBy, doc, serverTimestamp, collectionGroup } from "firebase/firestore";
 import { updateDocumentNonBlocking, setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import Link from "next/link";
 import { 
@@ -68,7 +69,7 @@ export default function DashboardPage() {
 
   // --- DATA FETCHING ---
 
-  // 1. Fetch recent projects for the carousel
+  // 1. Recent Projects
   const recentProjectsQuery = useMemoFirebase(() => {
     if (!db || !companyId) return null;
     return query(
@@ -79,39 +80,40 @@ export default function DashboardPage() {
   }, [db, companyId]);
   const { data: recentProjects, isLoading: isProjectsLoading } = useCollection(recentProjectsQuery);
 
-  // 2. Fetch all projects for accurate stats
+  // 2. All projects for stats
   const allProjectsQuery = useMemoFirebase(() => {
     if (!db || !companyId) return null;
-    return query(collection(db, 'companies', companyId, 'projects'));
+    return collection(db, 'companies', companyId, 'projects');
   }, [db, companyId]);
   const { data: allProjects } = useCollection(allProjectsQuery);
 
-  // 3. Fetch tasks
+  // 3. Aggregated Tasks from all projects
   const tasksQuery = useMemoFirebase(() => {
     if (!db || !companyId) return null;
     return query(
-      collection(db, 'companies', companyId, 'tasks'),
+      collectionGroup(db, 'tasks'),
+      where('company_id', '==', companyId),
       where('status', '!=', 'done'),
       limit(10)
     );
   }, [db, companyId]);
   const { data: tasks, isLoading: isTasksLoading } = useCollection(tasksQuery);
 
-  // 4. Fetch Invoices for Revenue Graph
+  // 4. Invoices
   const invoicesQuery = useMemoFirebase(() => {
     if (!db || !companyId) return null;
     return collection(db, 'companies', companyId, 'invoices');
   }, [db, companyId]);
   const { data: invoices } = useCollection(invoicesQuery);
 
-  // 5. Fetch Leads for Pipeline Value
+  // 5. Leads
   const leadsQuery = useMemoFirebase(() => {
     if (!db || !companyId) return null;
     return collection(db, 'companies', companyId, 'leads');
   }, [db, companyId]);
   const { data: leads } = useCollection(leadsQuery);
 
-  // 6. Fetch Talent Count
+  // 6. Talents
   const talentsQuery = useMemoFirebase(() => {
     if (!db || !companyId) return null;
     return collection(db, 'companies', companyId, 'talents');
@@ -122,7 +124,7 @@ export default function DashboardPage() {
 
   const stats = useMemo(() => {
     const revenue = invoices?.reduce((sum, inv) => sum + (inv.total || 0), 0) || 0;
-    const pipeline = leads?.reduce((sum, l) => l.stage !== 'client' ? sum + (l.deal_value || 0) : sum, 0) || 0;
+    const pipeline = leads?.reduce((sum, l) => !['client', 'won', 'lost'].includes(l.stage || '') ? sum + (l.deal_value || 0) : sum, 0) || 0;
     const projectValue = allProjects?.reduce((sum, p) => sum + (p.budget || 0), 0) || 0;
     const active = allProjects?.filter(p => p.status === 'in_progress').length || 0;
     const team = talents?.length || 0;
@@ -149,7 +151,7 @@ export default function DashboardPage() {
     const inProgress = allProjects?.filter(p => p.status === 'in_progress').length || 0;
     const completed = allProjects?.filter(p => p.status === 'completed').length || 0;
     return [
-      { name: 'Active', value: inProgress, color: 'hsl(var(--primary))' },
+      { name: 'Active', value: inProgress || 1, color: 'hsl(var(--primary))' },
       { name: 'Done', value: completed, color: 'hsl(var(--accent))' }
     ];
   }, [allProjects]);
@@ -164,6 +166,24 @@ export default function DashboardPage() {
     return (
       <div className="flex items-center justify-center h-[80vh]">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  // Handle case where admin hasn't onboarded yet
+  if (!companyId && isSuperAdmin) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[80vh] space-y-6">
+        <div className="h-20 w-20 bg-primary/10 rounded-[2rem] flex items-center justify-center text-primary">
+          <ShieldCheck className="h-10 w-10" />
+        </div>
+        <div className="text-center space-y-2">
+          <h2 className="text-2xl font-bold">Admin Mode: No Workspace Detected</h2>
+          <p className="text-muted-foreground max-w-md">You are logged in as a system administrator but have not initialized a workspace yet.</p>
+        </div>
+        <Link href="/onboarding">
+          <Button className="rounded-xl h-12 px-8 font-bold">Initialize Workspace</Button>
+        </Link>
       </div>
     );
   }
@@ -228,7 +248,6 @@ export default function DashboardPage() {
         ))}
       </div>
 
-      {/* Analytics Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
         <Card className="lg:col-span-2 border-none shadow-sm rounded-[2rem] bg-white overflow-hidden">
           <CardHeader className="flex flex-row items-center justify-between space-y-0">
@@ -290,9 +309,10 @@ export default function DashboardPage() {
             <CardDescription className="text-xs">Active workspace distribution</CardDescription>
           </CardHeader>
           <CardContent className="h-[200px] md:h-[250px] flex items-center justify-center">
-            {stats.active === 0 && stats.revenue === 0 ? (
-              <div className="text-center text-[10px] text-muted-foreground bg-slate-50 p-6 rounded-2xl border-2 border-dashed">
-                Launch projects to track pulse
+            {allProjects?.length === 0 ? (
+              <div className="text-center p-8 border-2 border-dashed rounded-3xl opacity-20">
+                <Layout className="h-10 w-10 mx-auto mb-2" />
+                <p className="text-[10px] font-bold uppercase tracking-widest">No Active Workspaces</p>
               </div>
             ) : (
               <ResponsiveContainer width="100%" height="100%">
@@ -319,7 +339,6 @@ export default function DashboardPage() {
         </Card>
       </div>
 
-      {/* Projects Horizon */}
       <div className="space-y-4 md:space-y-6">
         <div className="flex items-center justify-between">
           <h2 className="text-xl md:text-2xl font-bold">Recent Projects</h2>
@@ -389,8 +408,8 @@ export default function DashboardPage() {
 
         <Tabs defaultValue="active" className="w-full">
           <TabsList className="bg-transparent h-auto p-0 gap-6 md:gap-8 border-b border-slate-200 w-full justify-start rounded-none">
-            <TabsTrigger value="active" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none text-xs font-bold px-0 pb-3">Active Tasks</TabsTrigger>
-            <TabsTrigger value="done" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none text-xs font-bold px-0 pb-3 text-muted-foreground/60">Archive</TabsTrigger>
+            <TabsTrigger value="active" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none text-xs font-bold px-0 pb-3">Active Objectives</TabsTrigger>
+            <TabsTrigger value="done" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none text-xs font-bold px-0 pb-3 text-muted-foreground/60">Historical Feed</TabsTrigger>
           </TabsList>
           
           <TabsContent value="active" className="space-y-3 md:space-y-4 pt-4">
@@ -400,7 +419,7 @@ export default function DashboardPage() {
               </div>
             ) : tasks?.length === 0 ? (
               <div className="text-center py-10 md:py-12 text-muted-foreground bg-white/50 rounded-3xl border-2 border-dashed">
-                <p className="text-xs md:text-sm">No pending tasks. Your queue is clear.</p>
+                <p className="text-xs md:text-sm">No active objectives detected across your productions.</p>
               </div>
             ) : (
               tasks?.map(task => (
@@ -410,10 +429,14 @@ export default function DashboardPage() {
                        {task.status === 'in_progress' ? <Clock className="h-4 md:h-5 w-4 md:w-5" /> : <CheckCircle2 className="h-4 md:h-5 w-4 md:w-5" />}
                     </div>
                     <div className="space-y-0.5 md:space-y-1">
-                      <h4 className="font-bold text-xs md:text-sm leading-none">{task.name || task.title}</h4>
-                      <p className="text-[9px] md:text-[11px] text-muted-foreground font-medium uppercase tracking-wider flex items-center gap-1.5 md:gap-2">
-                        <TrendingUp className="h-2.5 md:h-3 w-2.5 md:w-3" /> {task.priority || 'Medium'} priority
-                      </p>
+                      <h4 className="font-bold text-xs md:text-sm leading-none">{task.title}</h4>
+                      <div className="flex items-center gap-2">
+                        <p className="text-[9px] md:text-[11px] text-muted-foreground font-medium uppercase tracking-wider flex items-center gap-1.5 md:gap-2">
+                          <TrendingUp className="h-2.5 md:h-3 w-2.5 md:w-3" /> {task.priority || 'Medium'} priority
+                        </p>
+                        <span className="text-[9px] text-primary/40">•</span>
+                        <p className="text-[9px] font-bold text-primary/60 uppercase">{task.phase?.replace('-', ' ')}</p>
+                      </div>
                     </div>
                   </div>
                   <div className="flex items-center gap-2 md:gap-4">
@@ -423,9 +446,11 @@ export default function DashboardPage() {
                         <AvatarFallback>U</AvatarFallback>
                       </Avatar>
                     </div>
-                    <Button variant="ghost" size="icon" className="h-8 md:h-9 w-8 md:w-9 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity hidden sm:flex">
-                      <ArrowUpRight className="h-4 w-4" />
-                    </Button>
+                    <Link href={`/projects/${task.project_id || ''}`}>
+                      <Button variant="ghost" size="icon" className="h-8 md:h-9 w-8 md:w-9 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity hidden sm:flex">
+                        <ArrowUpRight className="h-4 w-4" />
+                      </Button>
+                    </Link>
                   </div>
                 </div>
               ))

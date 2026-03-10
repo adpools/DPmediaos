@@ -46,6 +46,10 @@ service cloud.firestore {
       allow read: if isMember(resource.data.company_id) || isMember(resource.data.companyId);
     }
 
+    match /{path=**}/tasks/{taskId} {
+      allow read: if isMember(resource.data.company_id) || isMember(resource.data.companyId);
+    }
+
     // --- GLOBAL BYPASS: Platform Admins ---
     match /{allPaths=**} {
       allow read, write: if isPlatformAdmin();
